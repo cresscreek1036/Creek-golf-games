@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="40%" r="70%">
+      <stop offset="0%" stop-color="#4CB35C"/>
+      <stop offset="100%" stop-color="#1D6A2F"/>
+    </radialGradient>
+    <radialGradient id="ball" cx="40%" cy="35%" r="70%">
+      <stop offset="0%" stop-color="#FFFFFF"/>
+      <stop offset="100%" stop-color="#D9DEE2"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Fairway background -->
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+
+  <!-- Ground shadow under the ball -->
+  <ellipse cx="530" cy="912" rx="120" ry="18" fill="#000000" opacity="0.25"/>
+
+  <!-- Golf ball -->
+  <circle cx="530" cy="815" r="95" fill="url(#ball)"/>
+  <g fill="#B9C1C7">
+    <circle cx="490" cy="790" r="9"/>
+    <circle cx="530" cy="780" r="9"/>
+    <circle cx="570" cy="790" r="9"/>
+    <circle cx="470" cy="825" r="9"/>
+    <circle cx="510" cy="815" r="9"/>
+    <circle cx="550" cy="815" r="9"/>
+    <circle cx="590" cy="825" r="9"/>
+    <circle cx="490" cy="855" r="9"/>
+    <circle cx="530" cy="850" r="9"/>
+    <circle cx="570" cy="855" r="9"/>
+  </g>
+
+  <!-- Legs and toes -->
+  <g stroke="#F2A93B" stroke-width="18" stroke-linecap="round" fill="none">
+    <path d="M500 630 L505 728"/>
+    <path d="M565 630 L560 728"/>
+    <path d="M505 728 L470 742 M505 728 L500 748 M505 728 L530 740"/>
+    <path d="M560 728 L540 742 M560 728 L565 748 M560 728 L592 740"/>
+  </g>
+
+  <!-- Sickle tail feathers (drawn behind the body) -->
+  <path fill="#1F2B26" d="M690 330 C720 200 860 130 935 225 C980 290 965 405 912 480 C922 395 900 312 850 272 C800 236 735 262 690 330 Z"/>
+  <path fill="#2F4A3C" d="M715 380 C775 272 900 268 928 368 C940 430 912 492 875 535 C888 460 866 390 826 360 C786 334 748 352 715 380 Z"/>
+  <path fill="#C8642B" d="M730 420 C790 360 870 380 875 450 C878 495 850 540 815 565 C828 510 818 465 790 445 C770 432 750 428 730 420 Z"/>
+
+  <!-- Rooster body -->
+  <path fill="#FFF8EC" d="
+    M330 225
+    C372 222 398 255 397 292
+    C396 332 412 370 470 386
+    C540 402 600 390 650 360
+    C690 334 708 290 718 240
+    C760 215 825 228 852 290
+    C872 340 862 402 830 452
+    C810 422 790 402 770 396
+    C786 452 770 522 720 572
+    C670 622 600 650 520 655
+    C440 660 360 620 320 550
+    C290 495 284 430 298 380
+    C305 352 298 330 286 312
+    C276 270 292 228 330 225 Z"/>
+
+  <!-- Wing -->
+  <path fill="#E9DFC9" d="M465 470 C540 425 645 440 695 505 C645 522 600 562 515 572 C560 540 540 500 465 470 Z"/>
+
+  <!-- Neck hackle feathers -->
+  <path fill="#E07A2E" d="M298 320 C318 400 372 448 455 442 C424 420 406 378 398 300 C378 322 338 330 298 320 Z"/>
+
+  <!-- Comb -->
+  <path fill="#D7262B" d="M288 250 Q270 190 312 198 Q312 145 350 172 Q368 126 396 175 Q434 160 420 212 Q442 228 404 242 Q350 224 288 250 Z"/>
+
+  <!-- Beak -->
+  <path fill="#F2A93B" d="M290 262 L238 287 L292 304 Z"/>
+
+  <!-- Wattle -->
+  <path fill="#D7262B" d="M296 302 Q284 350 312 356 Q338 350 326 304 Z"/>
+
+  <!-- Eye -->
+  <circle cx="338" cy="268" r="11" fill="#1E1E1E"/>
+  <circle cx="341" cy="265" r="3.5" fill="#FFFFFF"/>
+</svg>

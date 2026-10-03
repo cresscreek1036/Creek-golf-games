@@ -1,0 +1,78 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- Background -->
+  <rect width="1024" height="1024" fill="#FFFFFF"/>
+
+  <g transform="translate(-48 -20)" fill="#1B2A4A" stroke="none">
+    <!-- Comb -->
+    <path d="M255 218 L246 182 L268 197 L270 164 L290 189 L301 156 L313 187 L332 162 L335 194 L356 184 L342 224 Z"/>
+
+    <!-- Beak -->
+    <path d="M258 228 L212 246 L256 262 Z"/>
+
+    <!-- Wattle -->
+    <path d="M258 266 C246 286 250 308 268 308 C284 304 284 284 278 266 Z"/>
+
+    <!-- Rooster body and tail -->
+    <path d="
+      M255 215
+      C275 195 322 195 342 222
+      C362 252 366 302 396 342
+      C426 382 482 394 542 387
+      C592 381 622 352 652 312
+      C692 262 762 236 822 256
+      C872 273 902 322 907 382
+      C910 422 902 457 887 484
+      L870 412
+      C862 442 850 472 838 498
+      L830 422
+      C815 452 800 472 785 484
+      L790 422
+      C770 447 745 472 720 487
+      L705 472 L690 507 L670 490 L650 522 L628 502 L605 537 L585 517
+      C565 547 540 572 520 582
+      C460 602 380 587 320 547
+      C255 502 225 442 235 382
+      C242 332 258 302 262 282
+      C248 262 243 233 255 215 Z"/>
+
+    <!-- Curved sickle feather arching over the tail -->
+    <path d="M800 252 C890 250 948 330 942 432 C940 472 928 500 912 520 C918 450 904 370 858 318 C840 298 822 282 800 270 Z"/>
+
+    <!-- Legs -->
+    <g stroke="#1B2A4A" stroke-width="20" stroke-linecap="round" fill="none">
+      <path d="M482 575 L496 640"/>
+      <path d="M530 575 L514 640"/>
+    </g>
+
+    <!-- Perch and weathervane post -->
+    <rect x="456" y="634" width="104" height="18" rx="9"/>
+    <path d="M498 652 L518 652 L516 900 L508 925 L500 900 Z"/>
+
+    <!-- Crossed club shafts -->
+    <g stroke="#1B2A4A" stroke-width="16" stroke-linecap="round" fill="none">
+      <path d="M398 742 L650 892"/>
+      <path d="M618 742 L366 892"/>
+    </g>
+
+    <!-- Iron club heads -->
+    <path d="M638 878 L702 858 C734 848 754 868 746 894 C740 912 720 920 698 918 L644 912 Z"/>
+    <path d="M378 878 L314 858 C282 848 262 868 270 894 C276 912 296 920 318 918 L372 912 Z"/>
+
+    <!-- Golf balls -->
+    <g stroke="#1B2A4A" stroke-width="12" fill="#FFFFFF">
+      <circle cx="368" cy="702" r="54"/>
+      <circle cx="648" cy="702" r="54"/>
+    </g>
+    <g>
+      <circle cx="350" cy="686" r="7"/><circle cx="376" cy="680" r="7"/><circle cx="394" cy="700" r="7"/>
+      <circle cx="342" cy="712" r="7"/><circle cx="368" cy="708" r="7"/><circle cx="388" cy="726" r="7"/>
+      <circle cx="356" cy="734" r="7"/>
+      <circle cx="630" cy="686" r="7"/><circle cx="656" cy="680" r="7"/><circle cx="674" cy="700" r="7"/>
+      <circle cx="622" cy="712" r="7"/><circle cx="648" cy="708" r="7"/><circle cx="668" cy="726" r="7"/>
+      <circle cx="636" cy="734" r="7"/>
+    </g>
+
+    <!-- Eye -->
+    <circle cx="296" cy="234" r="8" fill="#FFFFFF"/>
+  </g>
+</svg>
