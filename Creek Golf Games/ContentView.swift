@@ -7,6 +7,10 @@ struct ContentView: View {
     var body: some View {
         if let indexURL {
             WebAppView(fileURL: indexURL)
+                // The page draws its own background edge to edge.
+                .ignoresSafeArea()
+                // Light status bar text (and dark alerts/share sheet) to suit the dark green page.
+                .preferredColorScheme(.dark)
         } else {
             ContentUnavailableView(
                 "Game Not Found",

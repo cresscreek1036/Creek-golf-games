@@ -19,7 +19,6 @@
 /* Begin PBXFileReference section */
 		000000000000000000000120 /* Creek Golf Games.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Creek Golf Games.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		BB8636553071B37C00004477 /* Creek Golf GamesTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = "Creek Golf GamesTests.xctest"; sourceTree = BUILT_PRODUCTS_DIR; };
-		BB86365F3071B61300004477 /* Creek-Golf-Games-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = "Creek-Golf-Games-Info.plist"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -52,7 +51,6 @@
 		000000000000000000000001 = {
 			isa = PBXGroup;
 			children = (
-				BB86365F3071B61300004477 /* Creek-Golf-Games-Info.plist */,
 				000000000000000000000010 /* Creek Golf Games */,
 				BB8636563071B37C00004477 /* Creek Golf GamesTests */,
 				000000000000000000000020 /* Products */,
@@ -320,7 +318,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
-				CODE_SIGN_ENTITLEMENTS = "Creek Golf Games/Creek Golf Games.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = GPAV797Q98;
@@ -328,7 +325,6 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "Creek-Golf-Games-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Creek Golf Games";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.sports-games";
@@ -370,7 +366,6 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_INCLUDE_ALL_APPICON_ASSETS = NO;
-				CODE_SIGN_ENTITLEMENTS = "Creek Golf Games/Creek Golf Games.entitlements";
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = GPAV797Q98;
@@ -378,7 +373,6 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_FILE = "Creek-Golf-Games-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Creek Golf Games";
 				INFOPLIST_KEY_ITSAppUsesNonExemptEncryption = NO;
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.sports-games";

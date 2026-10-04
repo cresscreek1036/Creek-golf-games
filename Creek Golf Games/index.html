@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>Creek Golf Games — Scorekeeper</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -35,7 +35,8 @@
     color:var(--cream);
     font-family:'IBM Plex Sans', sans-serif;
     min-height:100vh;
-    padding:28px 16px 60px;
+    /* Extra padding keeps content clear of the notch and home indicator. */
+    padding:calc(28px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(60px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
   }
   .wrap{max-width:760px;margin:0 auto;}
   .masthead{display:flex;align-items:baseline;justify-content:space-between;flex-wrap:wrap;gap:10px;margin-bottom:22px;border-bottom:1px solid var(--green-line);padding-bottom:16px;}
@@ -55,8 +56,15 @@
   }
   .newround-btn:hover{border-color:var(--red-soft);color:var(--red-soft);}
 
+  /* Keep iOS from enlarging text in landscape. */
+  html{-webkit-text-size-adjust:100%;text-size-adjust:100%;}
+  /* Solid strip behind the status bar so scrolled content doesn't show through it.
+     Only shown once scrolled, so it doesn't leave a seam over the gradient at the top. */
+  body::before{content:'';position:fixed;top:0;left:0;right:0;height:env(safe-area-inset-top);background:var(--green-deep);z-index:999;pointer-events:none;opacity:0;transition:opacity .15s;}
+  body.scrolled::before{opacity:1;}
+
   /* ---------- Rules overlay ---------- */
-  #rules-overlay{display:none;position:fixed;inset:0;z-index:1000;overflow-y:auto;padding:28px 16px 60px;
+  #rules-overlay{display:none;position:fixed;inset:0;z-index:1000;overflow-y:auto;padding:calc(28px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(60px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
     background:radial-gradient(circle at 20% 0%, var(--green-mid), var(--green-deep) 65%);}
   .rules-body h2{margin:0 0 10px;}
   .rules-body h3{font-family:'Fraunces',serif;font-size:1.05rem;margin:18px 0 6px;color:var(--ink);}
@@ -1034,30 +1042,6 @@ async function storageSet(key, value){
 }
 
 /* ==========================================================================
-   Scorecard photo reading — lets Add a course fill itself in from a picture
-   of the actual card, via the artifact "sample" capability (ask Claude from
-   the published page). Stays hidden entirely wherever that capability or
-   image support isn't available, so the existing paste/manual paths are
-   always the fallback.
-   ========================================================================== */
-let sampleCap = null;
-let sampleImageLimits = null;
-let scorecardPhotoStatus = '';
-let scorecardPhotoBusy = false;
-async function initSampleCapability(){
-  try{
-    if(!window.claude || !window.claude.use) return;
-    const cap = await window.claude.use('sample');
-    if(!cap) return;
-    const limits = await cap.limits().catch(()=>null);
-    if(!limits || !limits.images) return;
-    sampleCap = cap;
-    sampleImageLimits = limits.images;
-    render();
-  }catch(e){ /* feature just stays hidden */ }
-}
-
-/* ==========================================================================
    Screenshot the final results (standings + settlement/net) as a PNG the
    viewer can save to their phone — via the artifact "downloads" capability,
    since a published page can't trigger a save on its own.
@@ -1094,44 +1078,6 @@ async function saveScreenshot(targetId){
     }
   }
   screenshotBusy = false;
-  render();
-}
-const SCORECARD_PHOTO_PROMPT = `This image is a golf course scorecard. For each of the 18 holes, read the par and the hole handicap (sometimes labeled "HCP", "Handicap", "S.I.", or "Stroke Index"). Also read the yardage for ONE tee: prefer whichever is labeled "Black", "Championship", "Back", or "Blue", or the longest tee shown if none are labeled that way. If a specific value truly cannot be read, use null for just that value rather than guessing — never invent a number. Reply with ONLY a JSON array of exactly 18 objects in hole order, like: [{"hole":1,"par":4,"yards":380,"si":7}, ...]. If this image is not a golf scorecard, reply with [].`;
-async function handleScorecardPhoto(event){
-  const file = event.target.files && event.target.files[0];
-  event.target.value = ''; // allow re-selecting the same file later
-  if(!file || !sampleCap) return;
-  scorecardPhotoBusy = true;
-  scorecardPhotoStatus = 'Reading the scorecard…';
-  render();
-  try{
-    const result = await sampleCap.json(SCORECARD_PHOTO_PROMPT, { images: file, modelTier: 'default' });
-    if(!Array.isArray(result) || result.length !== 18){
-      scorecardPhotoStatus = "Couldn't find 18 holes in that photo — try a clearer picture, or enter it below.";
-    } else {
-      courseDraft.holes = result.map((h, i) => ({
-        hole: i+1,
-        par:   (h && h.par!=null)   ? String(h.par)   : '',
-        yards: (h && h.yards!=null) ? String(h.yards) : '',
-        si:    (h && h.si!=null)    ? String(h.si)    : '',
-      }));
-      scorecardPhotoStatus = '✅ Read from your photo — check every hole below before saving, especially the handicap column.';
-    }
-  }catch(e){
-    const byCode = {
-      not_granted: "Photo reading isn't turned on for this app right now.",
-      images_unavailable: "This view can't send photos.",
-      image_rejected: "That file couldn't be read — try a different photo.",
-      rate_limited: "Too many requests right now — wait a moment and try again.",
-      invalid_json: "Couldn't make sense of that scorecard — try a clearer photo, or enter it below.",
-      refused: "Couldn't read that image — try a clearer photo, or enter it below.",
-      empty_completion: "Couldn't read that image — try a clearer photo, or enter it below.",
-      cancelled: '',
-    };
-    scorecardPhotoStatus = (e && byCode[e.code]) || "Something went wrong reading the photo — try again, or enter it below.";
-    if(e && e.code === 'not_granted') sampleCap = null; // stop offering it for the rest of this view
-  }
-  scorecardPhotoBusy = false;
   render();
 }
 
@@ -3084,7 +3030,6 @@ function openAddCourse(presetRegion){
     holes: Array.from({length:18}, (_, i) => ({ hole:i+1, par:'4', yards:'', si:String(i+1) }))
   };
   pasteOpen = false; pasteText = ''; pasteReport = '';
-  scorecardPhotoStatus = ''; scorecardPhotoBusy = false;
   // Cancel (and Save) return to wherever this was opened from — a specific
   // state's list if one was picked, otherwise the top state list.
   state.courseAddBackPhase = presetRegion ? 'stateCourseList' : 'courseList';
@@ -3177,14 +3122,6 @@ function renderCourseAdd(){
     <input id="course-name" type="text" placeholder="e.g. Naperville Country Club" autocomplete="off" value="${escapeAttr(courseDraft.name)}" oninput="refreshCoursePreview()">
     <label>State</label>
     <input id="course-region" type="text" placeholder="e.g. Illinois" autocomplete="off" value="${escapeAttr(courseDraft.region)}" oninput="refreshCoursePreview()">
-
-    ${sampleCap ? `
-    <input id="scorecard-photo-input" type="file" accept="${escapeAttr((sampleImageLimits&&sampleImageLimits.mediaTypes||['image/*']).join(','))}" capture="environment" style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;" onchange="handleScorecardPhoto(event)">
-    <div class="btn-row" style="margin:-4px 0 10px;">
-      <button class="btn btn-compact btn-outline btn-full" ${scorecardPhotoBusy?'disabled':''} onclick="document.getElementById('scorecard-photo-input').click()">${scorecardPhotoBusy?'⏳ Reading…':'📷 Take a photo of the scorecard'}</button>
-    </div>
-    ${scorecardPhotoStatus ? `<div class="sub" style="margin:0 0 10px;">${escapeHtml(scorecardPhotoStatus)}</div>` : ''}
-    ` : ''}
 
     ${pasteOpen ? `
     <label>Paste the scorecard</label>
@@ -5729,8 +5666,8 @@ function renderComplete(){
 function escapeStr(s){ return s.replace(/'/g, "\\'"); }
 
 loadState();
-initSampleCapability();
 initDownloadsCapability();
+addEventListener('scroll', () => document.body.classList.toggle('scrolled', window.scrollY > 0), { passive: true });
 </script>
 </body>
 </html>

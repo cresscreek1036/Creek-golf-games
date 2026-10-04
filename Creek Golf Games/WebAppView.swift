@@ -36,8 +36,15 @@ struct WebAppView: UIViewRepresentable {
         let webView = WKWebView(frame: .zero, configuration: configuration)
         webView.uiDelegate = context.coordinator
         webView.navigationDelegate = context.coordinator
+        // Match the page's dark green so nothing white shows while loading or
+        // when scrolling past the edges.
+        let pageGreen = UIColor(red: 0x13 / 255, green: 0x2A / 255, blue: 0x20 / 255, alpha: 1)
         webView.isOpaque = false
-        webView.backgroundColor = .systemBackground
+        webView.backgroundColor = pageGreen
+        webView.scrollView.backgroundColor = pageGreen
+        webView.underPageBackgroundColor = pageGreen
+        // The page pads itself with env(safe-area-inset-*), so don't inset it again.
+        webView.scrollView.contentInsetAdjustmentBehavior = .never
         #if DEBUG
         // Allows debugging the page from Safari's Develop menu.
         webView.isInspectable = true
@@ -58,8 +65,7 @@ struct WebAppView: UIViewRepresentable {
     /// Defines `window.claude.use('downloads')`, the API the page expects for saving
     /// files. `save({ filename, data })` sends the Blob to native code as base64 and
     /// throws an error with `code: 'declined'` if the share sheet is dismissed.
-    /// Other capabilities (such as `'sample'`) resolve to `null`, so the page keeps
-    /// those features hidden.
+    /// Any other capability resolves to `null`.
     private static let downloadsBridgeScript = """
     (() => {
       const downloads = {
@@ -104,9 +110,7 @@ struct WebAppView: UIViewRepresentable {
                 return (nil, "Invalid file data")
             }
 
-            // Use only the last path component so the page can't write outside the temp folder.
-            let requestedName = (body["filename"] as? String).map { ($0 as NSString).lastPathComponent } ?? ""
-            let filename = requestedName.isEmpty ? "creek-golf-results.png" : requestedName
+            let filename = Self.safeFilename(from: body["filename"] as? String)
             let fileURL = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
             do {
                 try data.write(to: fileURL, options: .atomic)
@@ -128,6 +132,14 @@ struct WebAppView: UIViewRepresentable {
             }
             try? FileManager.default.removeItem(at: fileURL)
             return (completed ? "saved" : "declined", nil)
+        }
+
+        /// Returns just the last path component of the page's requested filename,
+        /// so the page can't write outside the temp folder, or a default name if
+        /// nothing usable was given.
+        static func safeFilename(from requested: String?) -> String {
+            let name = ((requested ?? "") as NSString).lastPathComponent
+            return name.isEmpty || name == "/" || name == "." || name == ".." ? "creek-golf-results.png" : name
         }
 
         // MARK: Navigation
