@@ -929,6 +929,30 @@ let setupTeam2Names = ['', '']; // draft player names for Team 2
 let setupHammerCount = 4; // 2, 3, or 4
 let captain5LightningDraft = [16,17,18]; // the other usual choice is [14,17,18]
 function setCaptain5Lightning(opt){ captain5LightningDraft = opt; render(); }
+// Wolf / 5Man Captain: false = shuffle names into slots at tee off,
+// true = slot 1 is whoever was typed first, and so on.
+let keepSlotOrderDraft = false;
+function teeOffLabel(){ return keepSlotOrderDraft ? '⛳ Tee Off' : '🎲 Shuffle Slots &amp; Tee Off'; }
+function slotOrderPicker(){
+  const btn = (keep, label) => `<button class="btn ${keepSlotOrderDraft===keep?'btn-gold':'btn-outline'}" style="flex:1;" data-slot-order="${keep?'keep':'shuffle'}" onclick="setKeepSlotOrder(${keep})">${label}</button>`;
+  return `
+    <label style="margin:4px 0 6px;">Player order</label>
+    <div class="btn-row" style="margin-bottom:14px;">
+      ${btn(false, '🎲 Shuffle')}
+      ${btn(true, 'Keep as entered')}
+    </div>`;
+}
+function setKeepSlotOrder(keep){
+  keepSlotOrderDraft = keep;
+  // Update the buttons in place instead of calling render(), so names
+  // already typed into the form aren't wiped.
+  document.querySelectorAll('[data-slot-order]').forEach(b=>{
+    const on = (b.dataset.slotOrder==='keep')===keep;
+    b.classList.toggle('btn-gold', on);
+    b.classList.toggle('btn-outline', !on);
+  });
+  document.querySelectorAll('.tee-off-btn').forEach(b=>{ b.innerHTML = teeOffLabel(); });
+}
 let setupHammerNames = ['', '', '', '']; // draft player names for Hammer, length matches setupHammerCount
 function setSetupMode(m){
   setupMode = m; setupStartValue = null;
@@ -1302,9 +1326,10 @@ function shuffleAndStart(){
   const names = [...document.querySelectorAll('.player-input')].map(i=>i.value.trim());
   if(names.some(n=>!n)){ alert('Enter all 4 player names.'); return; }
   if(new Set(names.map(n=>n.toLowerCase())).size<4){ alert('Player names must be unique.'); return; }
-  for(let i=names.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [names[i],names[j]]=[names[j],names[i]]; }
+  if(!keepSlotOrderDraft)
+    for(let i=names.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [names[i],names[j]]=[names[j],names[i]]; }
   const rate = state.pointValue>0 ? state.pointValue : 1;
-  Object.assign(state, { phase:'lineup', mode:'captain', players:names, betRate: rate, currentHole:1, holes:[], lightningPick:null, teams:null, currentValue:null });
+  Object.assign(state, { phase:'lineup', mode:'captain', players:names, betRate: rate, currentHole:1, holes:[], lightningPick:null, teams:null, currentValue:null, slotsShuffled: !keepSlotOrderDraft });
   saveState(); render();
 }
 
@@ -1312,11 +1337,13 @@ function startCaptain5(){
   const names = [...document.querySelectorAll('.player5-input')].map(i=>i.value.trim());
   if(names.some(n=>!n)){ alert('Enter all 5 player names.'); return; }
   if(new Set(names.map(n=>n.toLowerCase())).size<5){ alert('Player names must be unique.'); return; }
-  for(let i=names.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [names[i],names[j]]=[names[j],names[i]]; }
+  if(!keepSlotOrderDraft)
+    for(let i=names.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [names[i],names[j]]=[names[j],names[i]]; }
   const rate = state.pointValue>0 ? state.pointValue : 1;
   Object.assign(state, {
     phase:'lineup', mode:'captain5', players:names, betRate: rate, currentHole:1, holes:[],
-    lightningPick:null, teams:null, currentValue:null, lightningHoles: captain5LightningDraft.slice()
+    lightningPick:null, teams:null, currentValue:null, lightningHoles: captain5LightningDraft.slice(),
+    slotsShuffled: !keepSlotOrderDraft
   });
   saveState(); render();
 }
@@ -1543,7 +1570,7 @@ function renderLineup(){
   <div class="card">
     ${gameTitleBadge(state.mode)}
     <h2>🎲 Lineup Set</h2>
-    <div class="sub">Slots assigned randomly — this drives the captain rotation for the round.</div>
+    <div class="sub">${state.slotsShuffled===false ? 'Slots follow the order you entered' : 'Slots assigned randomly'} — this drives the captain rotation for the round.</div>
     <table class="standings">
       <thead><tr><th>Slot</th><th>Player</th><th>Captain on holes</th></tr></thead>
       <tbody>${rows}</tbody>
@@ -2466,7 +2493,7 @@ function getRulesGames(){
     glance:'Four players. Every hole a rotating captain (Wolf) picks a partner and plays 2 on 2.',
     sections:[
       ['Setup', [
-        'Four players. The app shuffles them into slots 1-4 at the start.']],
+        'Four players. The app shuffles them into slots 1-4 at the start, or choose Keep as entered to use the order you typed them in.']],
       ['The captain (Wolf)', [
         'Slot 1 is captain on holes 1, 5, 9, 13, 17. Slot 2 on 2, 6, 10, 14, 18. Slot 3 on 3, 7, 11, 15. Slot 4 on 4, 8, 12, 16.',
         'Each hole the captain picks one of the other three as a partner. Captain and partner play the other two, 2 on 2.']],
@@ -2503,7 +2530,7 @@ function getRulesGames(){
     glance:'Five players. Every hole a rotating captain picks a partner and plays 2 on 3, except three Lightning holes.',
     sections:[
       ['Setup', [
-        'Five players. The app shuffles them into slots 1-5 at the start, and you pick which three holes are Lightning — 16, 17, 18 or 14, 17, 18 are the usual choices.']],
+        'Five players. The app shuffles them into slots 1-5 at the start (or choose Keep as entered to use the order you typed them in), and you pick which three holes are Lightning — 16, 17, 18 or 14, 17, 18 are the usual choices.']],
       ['The captain', [
         'Each slot captains three holes, in order, skipping whichever holes are Lightning. With Lightning on 16, 17, 18: Slot 1 on 1, 6, 11; Slot 2 on 2, 7, 12; Slot 3 on 3, 8, 13; Slot 4 on 4, 9, 14; Slot 5 on 5, 10, 15.',
         'Each hole the captain picks one of the other four as a partner. Captain and partner play the other three, 2 on 3.']],
@@ -4974,14 +5001,15 @@ function renderSetup(){
   <div class="card">
     ${ROOSTER_IMG}
     ${gameTitleBadge('captain')}
-    <div class="sub">Slots are assigned randomly and drive the captain rotation for all 18 holes. Each hole, the captain picks one of the other three as a partner — 2 on 2. The Point (points multiplier): <b>${state.pointValue>0?state.pointValue:1}</b> per point.</div>
+    <div class="sub">Slots drive the captain rotation for all 18 holes — shuffle them or keep the order you entered. Each hole, the captain picks one of the other three as a partner — 2 on 2. The Point (points multiplier): <b>${state.pointValue>0?state.pointValue:1}</b> per point.</div>
     <div class="grid5">
       <div><label>1 man</label><input class="player-input" type="text" placeholder="Name" value="${escapeAttr(rosterNames[0]||'')}"></div>
       <div><label>2 man</label><input class="player-input" type="text" placeholder="Name" value="${escapeAttr(rosterNames[1]||'')}"></div>
       <div><label>3 man</label><input class="player-input" type="text" placeholder="Name" value="${escapeAttr(rosterNames[2]||'')}"></div>
       <div><label>4 man</label><input class="player-input" type="text" placeholder="Name" value="${escapeAttr(rosterNames[3]||'')}"></div>
     </div>
-    <button class="btn btn-gold btn-full" onclick="shuffleAndStart()">🎲 Shuffle Slots &amp; Tee Off</button>
+    ${slotOrderPicker()}
+    <button class="btn btn-gold btn-full tee-off-btn" onclick="shuffleAndStart()">${teeOffLabel()}</button>
     ${backBar}
   </div>`;
 }
@@ -5011,8 +5039,9 @@ function renderSetupCaptain5(backBar){
       ${lightningBtn([16,17,18], '16, 17, 18')}
       ${lightningBtn([14,17,18], '14, 17, 18')}
     </div>
-    <div class="sub" style="margin:0 0 14px;">On a Lightning hole, whoever's furthest down in the running total captains — the group can defer the pick to anyone else. Rotation: Slot ${1} on ${rotationPreview[1].join(', ')} · Slot ${2} on ${rotationPreview[2].join(', ')} · Slot ${3} on ${rotationPreview[3].join(', ')} · Slot ${4} on ${rotationPreview[4].join(', ')} · Slot ${5} on ${rotationPreview[5].join(', ')} (slots assigned randomly).</div>
-    <button class="btn btn-gold btn-full" onclick="startCaptain5()">🎲 Shuffle Slots &amp; Tee Off</button>
+    <div class="sub" style="margin:0 0 14px;">On a Lightning hole, whoever's furthest down in the running total captains — the group can defer the pick to anyone else. Rotation: Slot ${1} on ${rotationPreview[1].join(', ')} · Slot ${2} on ${rotationPreview[2].join(', ')} · Slot ${3} on ${rotationPreview[3].join(', ')} · Slot ${4} on ${rotationPreview[4].join(', ')} · Slot ${5} on ${rotationPreview[5].join(', ')}.</div>
+    ${slotOrderPicker()}
+    <button class="btn btn-gold btn-full tee-off-btn" onclick="startCaptain5()">${teeOffLabel()}</button>
     ${backBar}
   </div>`;
 }
