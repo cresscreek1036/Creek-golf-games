@@ -1577,7 +1577,7 @@ function renderLineup(){
     </table>
     <div class="sub" style="margin:14px 0 18px;">The Point (points multiplier): <b>${state.betRate}</b> per point.</div>
     <button class="btn btn-gold btn-full" onclick="beginPlay()">▶ Start Hole 1</button>
-    <div class="btn-row"><button class="btn btn-outline btn-full" onclick="backToSetupFromLineup()">◀ Back</button></div>
+    <div class="btn-row" style="margin-top:10px;"><button class="btn btn-outline btn-full" onclick="backToSetupFromLineup()">◀ Back</button></div>
   </div>`;
 }
 
@@ -1596,7 +1596,7 @@ function renderLineupRoll(){
     </table>
     <div class="sub" style="margin:14px 0 18px;">Starting value: <b>${state.currentValue}</b> per hole. Press adds +1 and it sticks; Roll adds +2 for that hole; Re-roll adds another +2 (+4 in total).</div>
     <button class="btn btn-gold btn-full" onclick="beginPlay()">▶ Start Hole 1</button>
-    <div class="btn-row"><button class="btn btn-outline btn-full" onclick="backToSetupFromLineup()">◀ Back</button></div>
+    <div class="btn-row" style="margin-top:10px;"><button class="btn btn-outline btn-full" onclick="backToSetupFromLineup()">◀ Back</button></div>
   </div>`;
 }
 
@@ -1618,7 +1618,7 @@ function renderLineupHammer(){
     <div class="sub" style="margin:14px 0 4px;">Starting value: <b>${state.currentValue}</b> per point.</div>
     <div class="sub" style="margin:0 0 18px;">Press adds +1 and it sticks. Hammer a match to double its value — whoever accepts owns the hammer until it resets next hole.</div>
     <button class="btn btn-gold btn-full" onclick="beginPlay()">▶ Start Hole 1</button>
-    <div class="btn-row"><button class="btn btn-outline btn-full" onclick="backToSetupFromLineup()">◀ Back</button></div>
+    <div class="btn-row" style="margin-top:10px;"><button class="btn btn-outline btn-full" onclick="backToSetupFromLineup()">◀ Back</button></div>
   </div>`;
 }
 
@@ -1637,7 +1637,7 @@ function renderLineupBBB(){
     </table>
     <div class="sub" style="margin:14px 0 18px;">Each point you win earns ${state.currentValue} from every other player. Leave a point blank if no one earns it. Press adds +1 and it sticks.</div>
     <button class="btn btn-gold btn-full" onclick="beginPlay()">▶ Start Hole 1</button>
-    <div class="btn-row"><button class="btn btn-outline btn-full" onclick="backToSetupFromLineup()">◀ Back</button></div>
+    <div class="btn-row" style="margin-top:10px;"><button class="btn btn-outline btn-full" onclick="backToSetupFromLineup()">◀ Back</button></div>
   </div>`;
 }
 
@@ -1663,7 +1663,7 @@ function renderLineupSixSixSix(){
     </table>
     <div class="sub" style="margin:14px 0 18px;">The Point (points multiplier): <b>${state.betRate}</b> per point.</div>
     <button class="btn btn-gold btn-full" onclick="beginPlay()">▶ Start Hole 1</button>
-    <div class="btn-row"><button class="btn btn-outline btn-full" onclick="backToSetupFromLineup()">◀ Back</button></div>
+    <div class="btn-row" style="margin-top:10px;"><button class="btn btn-outline btn-full" onclick="backToSetupFromLineup()">◀ Back</button></div>
   </div>`;
 }
 
@@ -2238,8 +2238,8 @@ function renderEditHoleForm(){
     ${readyForResult ? `
     <label>Result</label>
     <div class="result-toggle">
-      <button class="${pendingResult==='captainWins'?'active-win':''}" onclick="setEditResult('captainWins')">${pendingAlone ? 'Captain wins' : "Captain's team wins"}</button>
-      <button class="${pendingResult==='captainLoses'?'active-loss':''}" onclick="setEditResult('captainLoses')">${pendingAlone ? 'Captain loses' : "Captain's team loses"}</button>
+      <button class="${pendingResult==='captainWins'?'active-win':''}" onclick="setEditResult('captainWins')">${captainWord()}${pendingAlone ? ' wins' : "'s team wins"}</button>
+      <button class="${pendingResult==='captainLoses'?'active-loss':''}" onclick="setEditResult('captainLoses')">${captainWord()}${pendingAlone ? ' loses' : "'s team loses"}</button>
       <button class="${pendingResult==='push'?'active-push':''}" onclick="setEditResult('push')">Push / halved</button>
     </div>
     ${pendingResult && pendingResult!=='push' ? `
@@ -2426,8 +2426,10 @@ function tryPlayTrophyVideo(){
 
 // Keep the scorecard scrolled to whichever nine is currently relevant, since the
 // table is rebuilt from scratch on every render and would otherwise snap back to hole 1.
+// A finished round opens on the front nine, like a paper card.
 function syncScorecardScroll(){
-  const showBack = (state.phase==='complete') || (state.phase==='cardComplete') || (state.currentHole > 9) || (state.phase==='cardPlaying' && state.cardHole > 9) || (state.phase==='playing' && state.trackMode==='both' && state.holeSubPhase==='scores' && state.currentHole > 9);
+  const finished = state.phase==='complete' || state.phase==='cardComplete';
+  const showBack = !finished && ((state.currentHole > 9) || (state.phase==='cardPlaying' && state.cardHole > 9) || (state.phase==='playing' && state.trackMode==='both' && state.holeSubPhase==='scores' && state.currentHole > 9));
   document.querySelectorAll('.scorecard-scroll').forEach(el=>{
     el.scrollLeft = showBack ? el.scrollWidth : 0;
   });
@@ -2860,7 +2862,7 @@ function renderCourseList(){
         <div class="mode-desc">Paste it off the club's website, or enter the 18 holes by hand.</div>
       </button>
     </div>
-    <div class="btn-row"><button class="btn btn-outline btn-full" onclick="backToCourseSelectTop()">◀ Back</button></div>
+    <div class="btn-row" style="margin-top:10px;"><button class="btn btn-outline btn-full" onclick="backToCourseSelectTop()">◀ Back</button></div>
   </div>`;
 }
 
@@ -2886,7 +2888,7 @@ function renderStateCourseList(){
         <div class="mode-desc">Paste it off the club's website, or enter the 18 holes by hand.</div>
       </button>
     </div>
-    <div class="btn-row"><button class="btn btn-outline btn-full" onclick="backToCourseList()">◀ Back to states</button></div>
+    <div class="btn-row" style="margin-top:10px;"><button class="btn btn-outline btn-full" onclick="backToCourseList()">◀ Back to states</button></div>
   </div>`;
 }
 
@@ -3272,7 +3274,7 @@ function renderCourseReview(){
     </div>
     <div class="stroke-preview" id="course-review-check">${courseReviewCheckHtml()}</div>
     <button class="btn btn-gold btn-full" onclick="saveCourseReview()">💾 Save and continue</button>
-    <div class="btn-row"><button class="btn btn-outline btn-full" onclick="backFromCourseReview()">◀ Back without saving</button></div>
+    <div class="btn-row" style="margin-top:10px;"><button class="btn btn-outline btn-full" onclick="backFromCourseReview()">◀ Back without saving</button></div>
   </div>`;
 }
 
@@ -3430,7 +3432,7 @@ function renderRoster(){
     <div class="sub" style="margin:0 0 16px;">Rolls a number at the end of the round to set The Point instead, so nobody knows the value until it's over.</div>
     `}
 
-    <div class="btn-row"><button class="btn btn-outline btn-full" onclick="backToCourseSelect()">◀ Back</button></div>
+    <div class="btn-row" style="margin-top:10px;"><button class="btn btn-outline btn-full" onclick="backToCourseSelect()">◀ Back</button></div>
   </div>`;
 }
 
@@ -3592,7 +3594,7 @@ function renderKeepChoice(){
         <div class="mode-desc">Enter scores each hole, then record the game's result for it.</div>
       </button>
     </div>
-    <div class="btn-row"><button class="btn btn-outline btn-full" onclick="backToRoster()">◀ Back</button></div>
+    <div class="btn-row" style="margin-top:10px;"><button class="btn btn-outline btn-full" onclick="backToRoster()">◀ Back</button></div>
   </div>`;
 }
 function chooseKeepMode(mode){
@@ -3637,7 +3639,7 @@ function renderScoresChoice(){
     <button class="btn btn-compact btn-outline btn-full" style="margin-bottom:6px;" onclick="openNassauSetup()">${NASSAU_ICON}Nassau</button>
     <div class="sub" style="margin:0 0 14px;">Partners must be selected on the prior screen or they will be assigned by combining the high handicap and the low handicap players.</div>
     <button class="btn btn-gold btn-full" onclick="startScorecardOnly()">▶ Start Hole 1</button>
-    <div class="btn-row"><button class="btn btn-outline btn-full" onclick="backToKeepChoice()">◀ Back</button></div>
+    <div class="btn-row" style="margin-top:10px;"><button class="btn btn-outline btn-full" onclick="backToKeepChoice()">◀ Back</button></div>
   </div>`;
 }
 function backToKeepChoice(){
@@ -3705,7 +3707,7 @@ function renderTrackChoice(){
         <button class="btn btn-gold btn-full" onclick="continueFromTrackChoice()">${goLabel}</button>
       </div>
     </div>
-    <div class="btn-row"><button class="btn btn-outline btn-full" onclick="backToKeepChoice()">◀ Back</button></div>
+    <div class="btn-row" style="margin-top:10px;"><button class="btn btn-outline btn-full" onclick="backToKeepChoice()">◀ Back</button></div>
   </div>`;
 }
 
@@ -4031,7 +4033,7 @@ function renderNassauSetup(){
     <div class="sub" style="margin:0 0 14px;">Partners must be marked Teammate on the roster screen, or they default to the high handicap paired with the low handicap${nassauVariantDraft!=='team'?' (and, for Singles, the lower two handicaps paired together)':''}.</div>
     <div class="sub" style="margin:0 0 6px;">${valueNote}</div>
     <button class="btn btn-gold btn-full" onclick="startNassau()">▶ Start Hole 1</button>
-    <div class="btn-row"><button class="btn btn-outline btn-full" onclick="backFromNassauSetup()">◀ Back</button></div>
+    <div class="btn-row" style="margin-top:10px;"><button class="btn btn-outline btn-full" onclick="backFromNassauSetup()">◀ Back</button></div>
   </div>`;
 }
 
@@ -4162,6 +4164,8 @@ function bettingStrokesFor(name, h){
 }
 // A small inline dot — the same red mark used on the scorecard grid, just
 // sized for sitting next to a name on a button rather than in a table cell.
+// Wolf calls its captain the Wolf; the other captain games say Captain.
+function captainWord(){ return state.mode==='captain' ? 'Wolf' : 'Captain'; }
 function strokeDotInline(){
   return '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--red);margin-left:5px;vertical-align:middle;"></span>';
 }
@@ -5413,8 +5417,8 @@ function renderPlaying(){
     ${readyForResult ? `
     <label>Result</label>
     <div class="result-toggle">
-      <button class="${pendingResult==='captainWins'?'active-win':''}" onclick="setResult('captainWins')">${pendingAlone ? 'Captain wins' : "Captain's team wins"}</button>
-      <button class="${pendingResult==='captainLoses'?'active-loss':''}" onclick="setResult('captainLoses')">${pendingAlone ? 'Captain loses' : "Captain's team loses"}</button>
+      <button class="${pendingResult==='captainWins'?'active-win':''}" onclick="setResult('captainWins')">${captainWord()}${pendingAlone ? ' wins' : "'s team wins"}</button>
+      <button class="${pendingResult==='captainLoses'?'active-loss':''}" onclick="setResult('captainLoses')">${captainWord()}${pendingAlone ? ' loses' : "'s team loses"}</button>
       <button class="${pendingResult==='push'?'active-push':''}" onclick="setResult('push')">Push / halved</button>
     </div>
     ${pendingResult && pendingResult!=='push' ? `
