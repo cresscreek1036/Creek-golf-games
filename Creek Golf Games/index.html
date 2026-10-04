@@ -1239,7 +1239,7 @@ function computeHolePayout(captain, partner, outcome, points, betRate, players, 
     payouts[captain] = captainWins ? perPlayer*others.length : -perPlayer*others.length;
     const soloIcon = state.mode==='captain' ? '🐺' : '🐓';
     const otherCountWord = others.length===3 ? 'three' : 'four';
-    const roundingNote = `Sweet Lou ${soloIcon} — ${captain} played the other ${otherCountWord} solo (points auto-doubled to ${effectivePoints} pts). Each of the other ${otherCountWord} ${captainWins?'owes':'earns'} ${perPlayer}, and ${captain} ${captainWins?'earns':'owes'} the full ${perPlayer*others.length}.`;
+    const roundingNote = `Sweet Lou ${soloIcon} — ${captain} played the other ${otherCountWord} solo (points auto-doubled to ${effectivePoints} pts). Each of the other ${otherCountWord} ${captainWins?'loses':'earns'} ${perPlayer}, and ${captain} ${captainWins?'earns':'loses'} the full ${perPlayer*others.length}.`;
     return {payouts, pot:perPlayer*others.length, loserPay:perPlayer, roundingNote, winners, losers, isAlone:true};
   }
   const others = players.filter(p=>p!==captain && p!==partner); // the other two-man team
@@ -1267,11 +1267,11 @@ function computeHolePayout(captain, partner, outcome, points, betRate, players, 
     const tieNote = tied.length>1 ? ' (random tie-break, furthest down pre-hole).' : ' (furthest down pre-hole).';
     if(pairSign===1){
       payouts[furthestDown] += remainder;
-      roundingNote = `The ${pot} pot didn't split evenly between ${captain} and ${partner} — the extra ${remainder} went to ${furthestDown}` + tieNote;
+      roundingNote = `The ${pot} points didn't split evenly between ${captain} and ${partner} — the extra ${remainder} went to ${furthestDown}` + tieNote;
     } else {
       const other = pair.find(p=>p!==furthestDown);
       payouts[other] -= remainder;
-      roundingNote = `The ${pot} owed didn't split evenly between ${captain} and ${partner} — ${furthestDown} was spared the extra ${remainder}` + tieNote;
+      roundingNote = `The ${pot} points lost didn't split evenly between ${captain} and ${partner} — ${furthestDown} was spared the extra ${remainder}` + tieNote;
     }
   }
   return {payouts, pot, loserPay:flatAmount, winners, losers, roundingNote, isAlone:false};
@@ -2444,23 +2444,23 @@ function getRulesGames(){
     sections:[
       ['The Point (points multiplier)', [
         'Entered once on the first screen ("Who\'s playing?"). It is what one point is worth, and it applies to every game.',
-        'Leave it blank to track points only on the scorecard games. The betting games (Captain, Roll &amp; Re-roll, Hammer, Bingo Bango Bongo, 666 Parlor) need a number.']],
+        'Leave it blank to track points only on the scorecard games. The points games (Captain, Roll &amp; Re-roll, Hammer, Bingo Bango Bongo, 666 Parlor) need a number.']],
       ['Press', [
-        'Tap ➕ Press on a hole to add 1 to the point value. In the betting games a press <b>sticks</b> for the rest of the round.']],
+        'Tap ➕ Press on a hole to add 1 to the point value. In the points games a press <b>sticks</b> for the rest of the round.']],
       ['Handicap strokes', [
         'Strokes are figured off the lowest handicap in the group. A player gets one stroke on each hole whose hole-handicap number is at or below the difference (a difference over 18 wraps around for a second stroke). A red dot on the score line marks a hole where that player gets a stroke.',
         'Tap the <b>−</b> button beside a handicap for a plus player (a +2 becomes −2, so they give strokes).']],
       ['Teammates', [
         'Check <b>Teammate</b> on the first screen for two players (no more than two). 666 Parlor uses that pair for holes 1-6, and Naper Vegas uses it as Team 1.']],
       ['Keeping the Game, the scores, or both', [
-        'Right after the roster, pick one: <b>Keeping the Game</b> (a betting game, no scorecard), <b>Keeping the players\' scores</b> (post gross scores, with Skins, Stableford, Quota or Naper Vegas if you want), or <b>Keeping both</b> (enter scores each hole, then record the game\'s result for it).',
+        'Right after the roster, pick one: <b>Keeping the Game</b> (a points game, no scorecard), <b>Keeping the players\' scores</b> (post gross scores, with Skins, Stableford, Quota or Naper Vegas if you want), or <b>Keeping both</b> (enter scores each hole, then record the game\'s result for it).',
         'Skins, Stableford and Quota need scores anyway, so picking them under Game or Both works the same either way. Naper Vegas is played on its own, under Keeping the players\' scores.']],
       ['Roll the Dice', [
         'An option next to The Point on the first screen. Turn it on and set a Low and High instead of a fixed point value.',
         'The round is played at a placeholder of 1 per point (presses still add +1 each, and stick). At the end, tap 🎲 Roll the Dice — it picks a number in your range and reapplies the whole round at that value, presses included.',
-        'Works for the betting games (Wolf, Roll &amp; Re-roll, Hammer, Bingo Bango Bongo, 666 Parlor) and for Naper Vegas. It can only be rolled once per round.']],
+        'Works for the points games (Wolf, Roll &amp; Re-roll, Hammer, Bingo Bango Bongo, 666 Parlor) and for Naper Vegas. It can only be rolled once per round.']],
       ['Settling up', [
-        'After hole 18 the Final Tally shows who owes whom, in points. Every player\'s total adds up to zero. When a split doesn\'t come out even, the odd point goes to the player who is further down.']]
+        'After hole 18 the Final Tally shows who gives points to whom. Every player\'s total adds up to zero. When a split doesn\'t come out even, the odd point goes to the player who is further down.']]
     ]},
   { key:'captain', icon:'🐺', title:'Wolf',
     glance:'Four players. Every hole a rotating captain (Wolf) picks a partner and plays 2 on 2.',
@@ -2495,8 +2495,8 @@ function getRulesGames(){
         '<b>Sneak</b> (1 pt each, optional — some groups skip it): missed the green in regulation but still made par or better.',
         'Add up each side\'s points and enter the difference as that hole\'s point value.']],
       ['Final results', [
-        'Each player on the losing side owes <b>point value × points</b>. The winning pair splits what\'s earned.',
-        'Playing solo (Sweet Lou), each of the three others owes or earns point value × (points × 2), and the captain earns or owes three times that.',
+        'Each player on the losing side gives up <b>point value × points</b>. The winning pair splits what\'s earned.',
+        'Playing solo (Sweet Lou), each of the three others loses or earns point value × (points × 2), and the captain earns or loses three times that.',
         'Press adds 1 to the point value from that hole on. You can also change The Point mid-round.']]
     ]},
   { key:'captain5', icon:'captain5', title:'5Man Captain',
@@ -2536,9 +2536,9 @@ function getRulesGames(){
         'Playing solo (Sweet Lou), the captain\'s low-ball points aren\'t doubled, but everything else they earn is — add it up by hand and enter the final total for the hole, same as always.',
         'Add up each side\'s points and enter the difference as that hole\'s point value.']],
       ['Final results', [
-        'The three-man side always wins or loses the flat amount — each of the three owes or earns <b>point value × points</b>.',
-        'The two-man side splits the whole pot between the two of them — each wins or loses 1.5 times that amount. If the split isn\'t a whole number, the extra dollar goes to whichever of the two is furthest down in the running total (or at random if they\'re tied).',
-        'Playing solo (Sweet Lou), each of the other four owes or earns point value × (points × 2), and the captain earns or owes four times that.',
+        'The three-man side always wins or loses the flat amount — each of the three loses or earns <b>point value × points</b>.',
+        'The two-man side splits the points between the two of them — each wins or loses 1.5 times that amount. If the split isn\'t a whole number, the extra point goes to whichever of the two is furthest down in the running total (or at random if they\'re tied).',
+        'Playing solo (Sweet Lou), each of the other four loses or earns point value × (points × 2), and the captain earns or loses four times that.',
         'Press adds 1 to the point value from that hole on. You can also change The Point mid-round.']]
     ]},
   { key:'rollReroll', icon:'🎲', title:'Roll & Re-roll',
@@ -2568,7 +2568,7 @@ function getRulesGames(){
       ['Press', [
         'Press adds 1 to the point value and sticks for the rest of the round.']],
       ['Final results', [
-        'Each player on the losing team owes <b>value × points</b>, and the winning pair splits what\'s earned. A push settles nothing.']]
+        'Each player on the losing team gives up <b>value × points</b>, and the winning pair splits what\'s earned. A push changes nothing.']]
     ]},
   { key:'hammer', icon:'🔨', title:'Hammer',
     glance:'Two to four players. Every pair plays its own match on every hole, and hammers double the value.',
@@ -2584,7 +2584,7 @@ function getRulesGames(){
       ['Press', [
         'Press adds 1 to the base value for every match and sticks for the round.']],
       ['Final results', [
-        'The winner of a match earns that match\'s value from the loser. A tie settles nothing. Everyone\'s matches are added up for the hole.']]
+        'The winner of a match earns that match\'s value from the loser. A tie changes nothing. Everyone\'s matches are added up for the hole.']]
     ]},
   { key:'bbb', icon:'🟢', title:'Bingo Bango Bongo',
     glance:'Two to four players. Three points are up for grabs on every hole.',
@@ -2621,7 +2621,7 @@ function getRulesGames(){
         '<b>Sneak</b> (1 pt each, optional — some groups skip it): missed the green in regulation but still made par or better.',
         'Add up each side\'s points and enter the difference as that hole\'s point value.']],
       ['Final results', [
-        'Same as Wolf: each player on the losing pair owes <b>value × points</b> and the winning pair splits what\'s earned. Press adds 1 and sticks.']]
+        'Same as Wolf: each player on the losing pair gives up <b>value × points</b> and the winning pair splits what\'s earned. Press adds 1 and sticks.']]
     ]},
   { key:'nv', icon:'nv', title:'Naper Vegas',
     glance:'Two teams combine their scores into a two-digit number each hole. The lower number wins the difference.',
@@ -2638,7 +2638,7 @@ function getRulesGames(){
         'Naper Vegas is played on its own and is not combined with other games. It can be played with Roll the Dice, and it has its own ➕ Press (+1), which raises the value from that hole on.']]
     ]},
   { key:'nassau', icon:'⚔️', title:'Nassau',
-    glance:'Three matches in one — front nine, back nine, and total 18 — each settled on its own. Singles, Team, or both at once.',
+    glance:'Three matches in one — front nine, back nine, and total 18 — each scored on its own. Singles, Team, or both at once.',
     sections:[
       ['Three variants', [
         '<b>Singles</b>: head-to-head match play, one vs one (or two matches at once with 4 players).',
@@ -2666,10 +2666,10 @@ function getRulesGames(){
         'Tap <b>Validation</b> and winning the hole isn\'t enough on its own — the winner also has to make net par or better on the <b>next</b> hole to keep the skin. Hole 18\'s skin is validated by hole 1, since there\'s no 19th hole.',
         'Fail to validate and the skin is void — treated exactly like a tie (no one wins it, and it carries forward to the next hole if Carryovers is also on).',
         'Validation and Carryovers can be used together or on their own.']],
-      ['Skins pool', [
-        'Enter an amount per player (for example 20). The pool is that amount × the number of players.',
-        'The pool is shared out across the skins won: each skin is worth the pool ÷ the total skins awarded. Each player\'s net is their winnings minus what they put in.',
-        'If no skins are won, nothing is paid out.']],
+      ['Skins points pool', [
+        'Enter a number of points per player (for example 20). The pool is that many points × the number of players.',
+        'The pool is shared out across the skins won: each skin is worth the pool ÷ the total skins awarded. Each player\'s net is the points they won minus what they put in.',
+        'If no skins are won, no points change hands.']],
       ['No pool', [
         'Without a pool, Skins shows the skins count, times The Point if you set one. Skins can be combined with other games.']]
     ]},
@@ -2690,8 +2690,8 @@ function getRulesGames(){
         'Eagle or better: 4. Birdie: 3. Par: 2. Bogey: 1. Double bogey or worse: 0. The handicap is already in the quota, so no strokes are taken.']],
       ['Finish', [
         'Finish = total points − quota. Beat it and you are over; the best finish wins. Example: a 12 handicap has a quota of 24, and 25 points is +1.']],
-      ['Ante (optional)', [
-        'Enter an ante per player (for example 20). The best finish takes the whole pot. A tie for best splits it evenly. With no ante, the finish is shown × The Point.',
+      ['Starting points (optional)', [
+        'Enter starting points per player (for example 20). The best finish takes all of them. A tie for best splits them evenly. With no starting points, the finish is shown × The Point.',
         'Quota can be combined with other games.']]
     ]}
   ];
@@ -3554,7 +3554,7 @@ function renderKeepChoice(){
     <div class="mode-row">
       <button class="mode-card" onclick="chooseKeepMode('games')">
         <div class="mode-title">🎯 Keeping the Game</div>
-        <div class="mode-desc">A betting game only — no scorecard, unless you also check Skins, Stableford or Quota on the next screen, which need scores to work.</div>
+        <div class="mode-desc">A points game only — no scorecard, unless you also check Skins, Stableford or Quota on the next screen, which need scores to work.</div>
       </button>
       <button class="mode-card" onclick="chooseKeepMode('scores')">
         <div class="mode-title">⛳ Keeping the players' scores</div>
@@ -3590,20 +3590,20 @@ function renderScoresChoice(){
     <div class="sub" style="text-align:center;margin-bottom:14px;">Check any games scored straight off the scorecard, or leave them all off for a plain scorecard.</div>
     <div class="btn-row" style="flex-wrap:wrap;margin-bottom:14px;">${gameToggles}</div>
     ${scorecardGamesDraft.skins ? `
-    <label style="margin:0 0 6px;">Skins pool (per player)</label>
+    <label style="margin:0 0 6px;">Skins points (per player)</label>
     <input id="skins-ante-input" type="number" inputmode="decimal" min="0" step="1" placeholder="e.g. 20"
            value="${skinsAnteDraft===null?'':skinsAnteDraft}" oninput="captureSkinsAnteInput()">
-    <div class="sub" style="margin:4px 0 10px;">Everyone puts this many points in; the pool is split across the skins won.</div>
+    <div class="sub" style="margin:4px 0 10px;">Everyone puts this many points in; the points pool is split across the skins won.</div>
     <button class="btn ${skinsCarryDraft?'btn-gold':'btn-outline'} btn-full" style="margin-bottom:4px;" onclick="toggleSkinsCarry()">Carryovers${skinsCarryDraft?' ✓':''}</button>
     <div class="sub" style="margin:4px 0 10px;">${skinsCarryDraft?'Tied holes carry over — three ties in a row make the next hole worth 4 skins.':'Off: a tied hole is simply no skin.'}</div>
     <button class="btn ${skinsValidateDraft?'btn-gold':'btn-outline'} btn-full" style="margin-bottom:4px;" onclick="toggleSkinsValidate()">Validation${skinsValidateDraft?' ✓':''}</button>
     <div class="sub" style="margin:4px 0 14px;">${skinsValidateDraft?'A skin has to be validated — net par or better on the next hole (hole 1 validates an 18th-hole skin). Fail to validate and the skin is void, same as a tie.':'Off: winning the hole is enough to keep the skin.'}</div>
     ` : ''}
     ${scorecardGamesDraft.quota ? `
-    <label style="margin:0 0 6px;">Quota ante (per player)</label>
+    <label style="margin:0 0 6px;">Quota starting points (per player)</label>
     <input id="quota-ante-input" type="number" inputmode="decimal" min="0" step="1" placeholder="e.g. 20"
            value="${quotaAnteDraft===null?'':quotaAnteDraft}" oninput="captureQuotaAnteInput()">
-    <div class="sub" style="margin:4px 0 14px;">Everyone antes this many points; the best finish over quota takes the whole pot.</div>
+    <div class="sub" style="margin:4px 0 14px;">Everyone puts this many points in; the best finish over quota takes them all.</div>
     ` : ''}
     <div style="border-top:1.5px dashed #cfc7a9;margin:2px 0 12px;"></div>
     <button class="btn btn-compact btn-outline btn-full" style="margin-bottom:6px;" onclick="startNaperVegas()">${NAPERVEGAS_ICON}Naper Vegas</button>
@@ -3660,20 +3660,20 @@ function renderTrackChoice(){
         <div class="sub" style="margin:0 0 10px;">Skins, Stableford, Quota — check any to ride along, or on their own. Checking one tracks scores too, even with Game only picked above.</div>
         <div class="btn-row" style="flex-wrap:wrap;margin-bottom:14px;">${gameToggles}</div>
         ${scorecardGamesDraft.skins ? `
-        <label style="margin:0 0 6px;">Skins pool (per player)</label>
+        <label style="margin:0 0 6px;">Skins points (per player)</label>
         <input id="skins-ante-input" type="number" inputmode="decimal" min="0" step="1" placeholder="e.g. 20"
                value="${skinsAnteDraft===null?'':skinsAnteDraft}" oninput="captureSkinsAnteInput()">
-        <div class="sub" style="margin:4px 0 10px;">Pool = this × players, split across skins won.</div>
+        <div class="sub" style="margin:4px 0 10px;">Points pool = this × players, split across skins won.</div>
         <button class="btn ${skinsCarryDraft?'btn-gold':'btn-outline'} btn-full" style="margin-bottom:4px;" onclick="toggleSkinsCarry()">Carryovers${skinsCarryDraft?' ✓':''}</button>
         <div class="sub" style="margin:4px 0 10px;">${skinsCarryDraft?'Ties carry to the next hole.':'Off: a tied hole is no skin.'}</div>
         <button class="btn ${skinsValidateDraft?'btn-gold':'btn-outline'} btn-full" style="margin-bottom:4px;" onclick="toggleSkinsValidate()">Validation${skinsValidateDraft?' ✓':''}</button>
         <div class="sub" style="margin:4px 0 14px;">${skinsValidateDraft?'On: must net par or better next hole to keep it (18 → 1). Miss it and it\'s void.':'Off: winning the hole is enough.'}</div>
         ` : ''}
         ${scorecardGamesDraft.quota ? `
-        <label style="margin:0 0 6px;">Quota ante (per player)</label>
+        <label style="margin:0 0 6px;">Quota starting points (per player)</label>
         <input id="quota-ante-input" type="number" inputmode="decimal" min="0" step="1" placeholder="e.g. 20"
                value="${quotaAnteDraft===null?'':quotaAnteDraft}" oninput="captureQuotaAnteInput()">
-        <div class="sub" style="margin:4px 0 14px;">Best finish over quota takes the pool.</div>
+        <div class="sub" style="margin:4px 0 14px;">Best finish over quota takes the points pool.</div>
         ` : ''}
         <button class="btn btn-gold btn-full" onclick="continueFromTrackChoice()">${goLabel}</button>
       </div>
@@ -3988,7 +3988,7 @@ function renderNassauSetup(){
   return `
   <div class="card">
     <h2 style="text-align:center;">${NASSAU_ICON}Nassau</h2>
-    <div class="sub" style="text-align:center;margin-bottom:14px;">Front, back, and total — three matches, settled on their own.</div>
+    <div class="sub" style="text-align:center;margin-bottom:14px;">Front, back, and total — three matches, scored on their own.</div>
     <label style="margin:0 0 6px;">Variant</label>
     <div class="btn-row" style="margin-bottom:6px;">
       ${variantBtn('singles','Singles')}
@@ -4537,8 +4537,8 @@ function renderSkinsSection(){
       return `<tr><td>${escapeHtml(r.name)}</td><td>${r.skins}</td><td>${r.pts}</td><td class="amt ${cls}">${signed(r.net)}</td>${holesCell(r.name)}</tr>`;
     }).join('');
     potNote = totalSkins>0
-      ? `<div class="stroke-preview" style="margin-top:10px;">Pool: <b>${ante*n}</b> (${ante} × ${n} players) — ${totalSkins} skin${totalSkins===1?'':'s'} won, <b>${r2(perSkin)}</b> per skin.</div>`
-      : `<div class="stroke-preview" style="margin-top:10px;">Pool: <b>${ante*n}</b> (${ante} × ${n} players) — no skins won yet.</div>`;
+      ? `<div class="stroke-preview" style="margin-top:10px;">Points pool: <b>${ante*n}</b> (${ante} × ${n} players) — ${totalSkins} skin${totalSkins===1?'':'s'} won, <b>${r2(perSkin)}</b> per skin.</div>`
+      : `<div class="stroke-preview" style="margin-top:10px;">Points pool: <b>${ante*n}</b> (${ante} × ${n} players) — no skins won yet.</div>`;
   } else {
     head = '<th>Player</th><th>Skins</th><th>Holes</th>';
     rows = state.cardPlayers.map((p,i) => {
@@ -4638,8 +4638,8 @@ function renderQuotaSection(){
     const winnerNames = escapeHtml(winners.map(r=>r.name).join(' & '));
     const finishStr = best>0 ? `+${best}` : String(best);
     potNote = winners.length>1
-      ? `<div class="stroke-preview" style="margin-top:10px;">Pool: <b>${pot}</b> (${ante} × ${results.length} players) — tied at ${finishStr}, <b>${winnerNames}</b> split it, ${Math.round((pot/winners.length)*100)/100} each.</div>`
-      : `<div class="stroke-preview" style="margin-top:10px;">Pool: <b>${pot}</b> (${ante} × ${results.length} players) — <b>${winnerNames}</b> takes it all.</div>`;
+      ? `<div class="stroke-preview" style="margin-top:10px;">Points pool: <b>${pot}</b> (${ante} × ${results.length} players) — tied at ${finishStr}, <b>${winnerNames}</b> split it, ${Math.round((pot/winners.length)*100)/100} each.</div>`
+      : `<div class="stroke-preview" style="margin-top:10px;">Points pool: <b>${pot}</b> (${ante} × ${results.length} players) — <b>${winnerNames}</b> takes it all.</div>`;
   }
 
   return `
@@ -4912,7 +4912,7 @@ function renderCardComplete(){
   const netCard = skinsNet ? `
   <div class="card">
     <h2>💰 Skins — Net Results</h2>
-    <div class="sub">Pool of <b>${state.skinsAnte * state.cardPlayers.length}</b> (${state.skinsAnte} × ${state.cardPlayers.length} players), split across the skins won.</div>
+    <div class="sub">Points pool of <b>${state.skinsAnte * state.cardPlayers.length}</b> (${state.skinsAnte} × ${state.cardPlayers.length} players), split across the skins won.</div>
     <table class="standings">
       <thead><tr><th>Player</th><th>Skins</th><th style="text-align:right;">Net</th></tr></thead>
       <tbody>${skinsNet.slice().sort((a,b)=>b.net-a.net).map(r=>{
@@ -5582,7 +5582,7 @@ function renderFinalReveal(){
     trophyHeadline = useMoneyTrophy
       ? `${escapeHtml(trophyName)} ${netChampions.length>1?'share':'takes home'} the rooster${netChampions.length>1?'!':' — up '+netMax+' net!'}`
       : (best ? `${escapeHtml(trophyName)} takes home the rooster!` : '');
-    const moneyLabel = moneySource==='skins' ? 'the Skins pool' : 'Nassau';
+    const moneyLabel = moneySource==='skins' ? 'Skins' : 'Nassau';
     trophySub = useMoneyTrophy
       ? (netChampions.length>1 ? `Tied at <b>${netMax}</b> net for ${moneyLabel}.` : `Leads ${moneyLabel}, net.`)
       : (best ? `Low gross of the round.` : '');
@@ -5650,9 +5650,9 @@ function renderComplete(){
     </div>
     <div class="card">
       <h2>Final Tally</h2>
-      <div class="sub">The fewest amounts needed so everyone nets to zero.</div>
+      <div class="sub">The fewest point transfers that bring everyone back to even.</div>
       <ul class="settle-list">
-        ${settlement.length ? settlement.map(s=>`<li><span><b>${s.from}</b> owes <b>${s.to}</b></span><span>${s.amt}</span></li>`).join('') : '<li>Nothing owed — dead even.</li>'}
+        ${settlement.length ? settlement.map(s=>`<li><span><b>${s.from}</b> gives <b>${s.to}</b></span><span>${s.amt} pt${s.amt===1?'':'s'}</span></li>`).join('') : '<li>No points to hand over — dead even.</li>'}
       </ul>
     </div>
   </div>
