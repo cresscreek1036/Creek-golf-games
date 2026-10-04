@@ -88,7 +88,7 @@
   .game-title-badge{display:inline-block;font-family:'IBM Plex Mono',monospace;font-size:0.72rem;letter-spacing:1.5px;text-transform:uppercase;color:var(--green-deep);background:var(--gold);padding:4px 10px;border-radius:6px;margin-bottom:10px;}
   input[type=text], input[type=number], select{
     width:100%;padding:10px 12px;border:1.5px solid #cfc7a9;border-radius:8px;
-    background:#fff;font-family:'IBM Plex Sans',sans-serif;font-size:0.95rem;color:var(--ink);
+    background:#fff;font-family:'IBM Plex Sans',sans-serif;font-size:1rem;color:var(--ink);
     margin-bottom:14px;
   }
   input:focus, select:focus{outline:2px solid var(--gold);border-color:var(--gold);}
@@ -286,7 +286,7 @@
   }
   .course-grid td{padding:4px;border-bottom:1px solid #f0ead8;text-align:center;}
   .course-grid td.cd-hole{font-family:'IBM Plex Mono',monospace;font-weight:700;width:44px;background:#EFE6CF;}
-  .course-grid input{width:100%;margin:0;padding:8px 4px;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:0.95rem;}
+  .course-grid input{width:100%;margin:0;padding:8px 4px;text-align:center;font-family:'IBM Plex Mono',monospace;font-size:1rem;}
 
   /* ---------- Player roster / course handicap ---------- */
   .hcp-grid{display:grid;grid-template-columns:1fr 116px 84px;gap:0 12px;align-items:end;}
@@ -1569,7 +1569,7 @@ function renderLineup(){
   return `
   <div class="card">
     ${gameTitleBadge(state.mode)}
-    <h2>🎲 Lineup Set</h2>
+    <h2>${state.slotsShuffled===false ? '⛳' : '🎲'} Lineup Set</h2>
     <div class="sub">${state.slotsShuffled===false ? 'Slots follow the order you entered' : 'Slots assigned randomly'} — this drives the captain rotation for the round.</div>
     <table class="standings">
       <thead><tr><th>Slot</th><th>Player</th><th>Captain on holes</th></tr></thead>
@@ -3672,7 +3672,7 @@ function renderTrackChoice(){
 
     <div class="mode-row">
       <div class="mode-card" style="cursor:default;">
-        <div class="sub" style="margin:-4px 0 10px;">${trackNote}${trackModeChoice==='both' ? ' Skins, Stableford, Quota are further down ↓.' : ''}</div>
+        <div class="sub" style="margin:-4px 0 10px;">${trackNote}</div>
 
         <label style="margin:0 0 4px;">4 and 5 Man Games</label>
         <div class="sub" style="margin:0 0 10px;">Tap to select — partners default to high paired with low handicap, unless set on the prior screen.</div>
@@ -4404,7 +4404,7 @@ function renderCardScorecard(highlight){
   <div class="card">
     ${state.trackMode==='both' ? gameTitleBadge(state.mode) : ''}
     <h2>Scorecard</h2>
-    <div class="sub">${escapeHtml(currentCourse().name)}. A <span class="stroke-mark" style="position:relative;top:-1px;box-shadow:none;"></span> marks a hole where that player gets a handicap stroke.</div>
+    <div class="sub">${escapeHtml(currentCourse().name)}. A${strokeDotInline()} marks a hole where that player gets a handicap stroke.</div>
     <div class="scorecard-scroll">
       <table class="scorecard">
         <thead><tr>${head}</tr></thead>
