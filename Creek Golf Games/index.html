@@ -132,10 +132,23 @@
   .btn-submit:active{transform:translateY(4px); box-shadow:0 1px 0 #8a6f16, 0 2px 6px rgba(0,0,0,0.25);}
   .btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:6px;}
   .btn-full{width:100%;}
+  /* Sweet Lou and Divorce share one row on Wolf / 5Man Captain holes. */
+  .solo-row{display:flex;gap:8px;margin:-6px 0 16px;}
+  .solo-row .btn{flex:1;font-size:0.9rem;padding:9px 6px;}
+  .solo-row .btn:disabled{opacity:0.4;cursor:default;}
   /* Tighter padding/type for long game-picker lists (Captain, Hammer, Nassau,
      etc. stacked one per row) so an extra game or two still fits comfortably
      without the list running long. */
   .btn-compact{padding:8px 14px;font-size:0.85rem;}
+  /* Pick a game: big title, games two per row. */
+  .pick-game-head{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:0 0 14px;}
+  .card h2.pick-game-title{font-size:2rem;font-weight:900;margin:0;white-space:nowrap;}
+  .just-scores-btn{flex:0 1 auto;padding:8px 10px;font-size:0.9rem;line-height:1.2;}
+  /* Same border width selected or not, so tapping doesn't shift the layout. */
+  .just-scores-btn.btn-gold, .game-grid .game-btn.btn-gold{border:1.5px solid var(--gold);}
+  .game-grid{display:flex;flex-wrap:wrap;gap:8px;}
+  .game-grid .game-btn{flex:1 1 calc(50% - 4px);min-width:0;padding:12px 6px;font-size:1.05rem;line-height:1.25;}
+  .game-grid .game-btn img{max-height:24px;width:auto !important;margin-right:4px !important;}
 
   /* Final Results reveal screen — a quick ceremony before the numbers. */
   .reveal-stage{text-align:center;padding:10px 4px 4px;}
@@ -275,12 +288,17 @@
     background:#fff;border:1.5px solid #cfc7a9;border-radius:12px;padding:18px 20px;
     font-family:'IBM Plex Sans',sans-serif;color:var(--ink);transition:border-color .15s ease, background .15s ease;
   }
-  .mode-card:hover{border-color:var(--gold);background:#FFFBF0;}
+  @media (hover:hover){ .mode-card:hover{border-color:var(--gold);background:#FFFBF0;} }
   /* Course list row: ☆ favorite | course card | 🗑 (courses you added). */
   .course-row{display:flex;gap:8px;align-items:stretch;}
-  .course-row .mode-card{flex:1;min-width:0;}
+  .course-row .mode-card{flex:1;min-width:0;padding:10px 14px;}
+  .course-row .mode-card .mode-title{font-size:1.05rem;margin:0;}
+  .course-list{gap:8px;}
+  .course-action{padding:10px 14px;}
+  .course-action .mode-title{font-size:1.05rem;margin-bottom:2px;}
+  .course-action .mode-desc{font-size:0.8rem;line-height:1.35;}
   .course-side-btn{
-    flex:0 0 44px;height:44px;align-self:center;border:1.5px solid #cfc7a9;border-radius:12px;background:#fff;cursor:pointer;
+    flex:0 0 40px;height:40px;align-self:center;border:1.5px solid #cfc7a9;border-radius:12px;background:#fff;cursor:pointer;
     font-size:1.35rem;line-height:1;color:#8a8a7a;padding:0;
   }
   .course-side-btn.on{color:var(--gold);border-color:var(--gold);}
@@ -347,15 +365,9 @@
   .point-row .btn{width:100%;height:45px;padding-left:6px;padding-right:6px;display:flex;align-items:center;justify-content:center;white-space:nowrap;}
   .point-row .btn img{height:22px !important;margin-right:6px !important;}
   .point-or{font-family:'Fraunces',serif;font-style:italic;font-weight:700;color:#8a8a7a;}
-  /* Small Back link in the card's top-left corner, beside the centered title. */
+  /* Small Back link in the card's top-left corner, above the title. */
   .top-back{
     display:block;background:none;border:none;padding:0;margin:-4px 0 8px;cursor:pointer;
-    font-family:'IBM Plex Sans',sans-serif;font-weight:600;font-size:0.85rem;color:var(--green-mid);
-  }
-  .card-title-row{position:relative;}
-  .card-back{
-    position:absolute;left:0;top:50%;transform:translateY(-50%);
-    background:none;border:none;padding:4px 0;cursor:pointer;
     font-family:'IBM Plex Sans',sans-serif;font-weight:600;font-size:0.85rem;color:var(--green-mid);
   }
   .hcp-input input{margin:0;}
@@ -451,10 +463,13 @@ function getSlotHoles(){
   if(state && state.mode==='captain5') return computeCaptain5SlotHoles(getLightningHoles());
   // 3 Man Wolf: three players, six holes each as Wolf.
   if(state && state.mode==='mrPar') return {1:[1,4,7,10,13,16], 2:[2,5,8,11,14,17], 3:[3,6,9,12,15,18]};
+  // Wolf: four holes each on 1-16; 17 and 18 are Lightning holes.
+  if(state && state.mode==='captain') return {1:[1,5,9,13], 2:[2,6,10,14], 3:[3,7,11,15], 4:[4,8,12,16]};
   return {1:[1,5,9,13,17], 2:[2,6,10,14,18], 3:[3,7,11,15], 4:[4,8,12,16]};
 }
 function getLightningHoles(){
   if(state && state.mode==='captain5') return state.lightningHoles || [16,17,18];
+  if(state && state.mode==='captain') return [17,18];
   return [];
 }
 // 5 slots over 18 holes only divides evenly once the lightning holes (always
@@ -950,7 +965,7 @@ async function loadCourses(){
   await loadFavorites();
 }
 
-// Favorite courses (by id) are listed on the first screen. Kept under their own
+// Favorite courses (by id) are listed at the top of the course screen. Kept under their own
 // key, like the course library, so a new round never clears them.
 const FAVORITES_KEY = 'creek-golf-favorites-v1';
 let favoriteCourseIds = [];
@@ -993,7 +1008,7 @@ async function saveCourseOverrides(){
 
 function defaultState(){
   return {
-    phase:'courseSelect', courseId:'cress-creek', roster:[],
+    phase:'trackChoice', courseId:'cress-creek', roster:[],
     mode:'captain', players:['','','',''], betRate:5, currentHole:1, holes:[], lightningPick:null, teams:null, currentValue:null,
     // Scorecard-only play
     cardPlayers:[], cardScores:[], cardHole:1,
@@ -1194,6 +1209,8 @@ async function loadState(){
     // Merge onto the defaults so a round saved by an older build still has every field it needs.
     state = (res && res.value) ? Object.assign(defaultState(), JSON.parse(res.value)) : defaultState();
   }catch(e){ state = defaultState(); }
+  // Those two setup screens were removed when Pick a game moved to the start.
+  if(state.phase==='keepChoice' || state.phase==='scoresChoice') state.phase = 'trackChoice';
   render();
 }
 let storageWarned = false;
@@ -1258,7 +1275,7 @@ function recomputeHolesWithShift(shift){
     if(rec.mode==='captain' || rec.mode==='captain5' || rec.mode==='six66' || rec.mode==='rollReroll' || rec.mode==='mrPar'){
       const newBetRate = rec.betRate + shift;
       const totalsBefore = runningTotalsBefore(rec.hole); // reflects holes already recomputed, in order
-      const calc = computeHolePayout(rec.captain, rec.partner, rec.outcome, rec.points, newBetRate, state.players, totalsBefore, !!rec.alone);
+      const calc = computeHolePayout(rec.captain, rec.partner, rec.outcome, rec.points, newBetRate, state.players, totalsBefore, !!rec.alone, !!rec.divorce);
       state.holes[idx] = { ...rec,
         betRate: newBetRate,
         valueBefore: (rec.valueBefore!==undefined ? rec.valueBefore+shift : rec.valueBefore),
@@ -1329,8 +1346,12 @@ function getCurrentCaptain(){
   return captainForHole(state.currentHole);
 }
 
-function computeHolePayout(captain, partner, outcome, points, betRate, players, totalsBefore, isAlone){
+function computeHolePayout(captain, partner, outcome, points, betRate, players, totalsBefore, isAlone, isDivorce){
   if(state.mode==='mrPar') return computeMrParPayout(captain, outcome, points, betRate, players, isAlone);
+  // Divorce: the partner rejected the captain and plays alone, settled exactly
+  // like Sweet Lou with the partner in the captain's place.
+  let divorcedCaptain = null;
+  if(isDivorce && partner){ divorcedCaptain = captain; captain = partner; partner = null; isAlone = true; }
   const payouts={}; players.forEach(p=>payouts[p]=0);
   if(outcome==='push'){
     return {payouts, pot:0, loserPay:0, roundingNote:'Push — no points change hands.', winners:[], losers:[], isAlone:!!isAlone};
@@ -1346,7 +1367,8 @@ function computeHolePayout(captain, partner, outcome, points, betRate, players, 
     payouts[captain] = captainWins ? perPlayer*others.length : -perPlayer*others.length;
     const soloIcon = state.mode==='captain' ? '🐺' : '🐓';
     const otherCountWord = others.length===3 ? 'three' : 'four';
-    const roundingNote = `Sweet Lou ${soloIcon} — ${captain} played the other ${otherCountWord} solo (points auto-doubled to ${effectivePoints} pts). Each of the other ${otherCountWord} ${captainWins?'loses':'earns'} ${perPlayer}, and ${captain} ${captainWins?'earns':'loses'} the full ${perPlayer*others.length}.`;
+    const lead = divorcedCaptain ? `Divorce 💔 — ${captain} rejected ${divorcedCaptain} and` : `Sweet Lou ${soloIcon} — ${captain}`;
+    const roundingNote = `${lead} played the other ${otherCountWord} solo (points auto-doubled to ${effectivePoints} pts). Each of the other ${otherCountWord} ${captainWins?'loses':'earns'} ${perPlayer}, and ${captain} ${captainWins?'earns':'loses'} the full ${perPlayer*others.length}.`;
     return {payouts, pot:perPlayer*others.length, loserPay:perPlayer, roundingNote, winners, losers, isAlone:true};
   }
   const others = players.filter(p=>p!==captain && p!==partner); // the other two-man team
@@ -1573,10 +1595,9 @@ function backToLineup(){
   saveState(); render();
 }
 // Same idea for the standalone scorecard engine, which has no lineup step —
-// hole 1's "back" returns to whichever screen actually started it (Keeping
-// the players' scores, or Pick a game with only checkbox games checked).
+// hole 1's "back" returns to the players screen that started it.
 function backToTrackChoiceFromCard(){
-  state.phase = state.cardBackPhase || 'trackChoice';
+  state.phase = state.cardBackPhase || 'roster';
   saveState(); render();
 }
 
@@ -1661,7 +1682,7 @@ function renderBothScores(){
     </div>
     ${blocks}
     <div class="sub" id="hole-note" style="margin:2px 0 12px;">${missingNote(missing)}</div>
-    <button class="btn btn-gold btn-full" onclick="continueToGameResult()">Record the game ▶</button>
+    <button class="btn btn-gold btn-full score-go" onclick="continueToGameResult()">Record the game ▶</button>
     <div class="btn-row">
       <button class="btn btn-outline btn-full" onclick="toggleFullCard()">${showFullCard ? '▲ Hide the full scorecard' : '📋 Show the full scorecard'}</button>
     </div>
@@ -1800,6 +1821,9 @@ function renderLineupSixSixSix(){
 let pendingResult = null; // 'captainWins' | 'captainLoses' | 'push'
 let pendingPartner = null;
 let pendingAlone = false;
+// Divorce (Wolf / 5Man Captain): the picked partner rejects the captain and
+// plays the hole alone instead, just like Sweet Lou. The rotation is unchanged.
+let pendingDivorce = false;
 let pendingPoints = null;
 let pendingUmbrella = false;
 // Roll & Re-roll mode pending state
@@ -1824,8 +1848,29 @@ function pickPoints(n){
   if(editingHole !== null){ render(); return; }
   if(val>0){ if(state.mode==='six66') submitHoleSixSixSix(); else submitHole(); } else render();
 }
-function selectPartner(name){ pendingPartner = name || null; pendingAlone = false; pendingResult = null; render(); }
-function toggleSweetLou(){ pendingAlone = !pendingAlone; if(pendingAlone) pendingPartner = null; pendingResult = null; render(); }
+function selectPartner(name){ pendingPartner = name || null; pendingAlone = false; pendingDivorce = false; pendingResult = null; render(); }
+function toggleSweetLou(){ pendingAlone = !pendingAlone; pendingDivorce = false; if(pendingAlone) pendingPartner = null; pendingResult = null; render(); }
+function toggleDivorce(){ if(!pendingPartner) return; pendingDivorce = !pendingDivorce; pendingAlone = false; pendingResult = null; render(); }
+
+// Who the result buttons are about: the captain, or the partner who divorced them.
+function soloOrCaptainLabel(){ return pendingDivorce && pendingPartner ? pendingPartner : captainWord(); }
+
+// Sweet Lou and Divorce side by side, with a one-line note on what's selected.
+function soloButtonsHtml(){
+  const icon = state.mode==='captain' ? '🐺' : '🐓';
+  const word = state.mode==='captain' ? 'Wolf' : 'captain';
+  const note = pendingAlone
+    ? `${icon} Sweet Lou — the ${word} goes alone vs. all ${state.players.length-1}, points doubled.`
+    : (pendingDivorce
+      ? `💔 Divorce — ${pendingPartner} rejects the ${word} and goes alone vs. all ${state.players.length-1}, points doubled. The rotation doesn't change.`
+      : '');
+  return `
+    <div class="solo-row">
+      <button class="btn ${pendingAlone?'btn-gold':'btn-outline'}" onclick="toggleSweetLou()">${icon} Sweet Lou${pendingAlone?' ✓':''}</button>
+      <button class="btn ${pendingDivorce?'btn-gold':'btn-outline'}" ${pendingPartner?'':'disabled'} onclick="toggleDivorce()">💔 Divorce${pendingDivorce?' ✓':''}</button>
+    </div>
+    ${note ? `<div class="sub" style="margin:-10px 0 14px;">${note}</div>` : ''}`;
+}
 function setScorecardView(v){ scorecardView = v; render(); }
 
 function submitHole(){
@@ -1840,17 +1885,17 @@ function submitHole(){
   const totalsBefore = runningTotalsBefore(state.currentHole);
   const rateBefore = state.betRate;
   const rate = rateBefore + pendingPressCount; // presses stick for the rest of the round
-  const calc = computeHolePayout(captain, pendingAlone?null:pendingPartner, pendingResult, points, rate, state.players, totalsBefore, pendingAlone);
+  const calc = computeHolePayout(captain, pendingAlone?null:pendingPartner, pendingResult, points, rate, state.players, totalsBefore, pendingAlone, pendingDivorce);
   state.holes.push({
     hole: state.currentHole, captain, mode: state.mode, valueBefore: rateBefore, pressCount: pendingPressCount,
     partner: (pendingResult==='push'||pendingAlone)?null:pendingPartner,
-    outcome: pendingResult, points, betRate: rate, alone: pendingAlone,
+    outcome: pendingResult, points, betRate: rate, alone: pendingAlone, divorce: pendingResult!=='push' && pendingDivorce,
     payouts: calc.payouts, pot: calc.pot, loserPay: calc.loserPay,
     roundingNote: calc.roundingNote, winners: calc.winners, losers: calc.losers
   });
   state.betRate = rate;
   state.lightningPick = null;
-  pendingResult = null; pendingPartner = null; pendingAlone = false; pendingPoints = null; pendingUmbrella = false;
+  pendingResult = null; pendingPartner = null; pendingAlone = false; pendingDivorce = false; pendingPoints = null; pendingUmbrella = false;
   pendingPressCount = 0;
   if(state.currentHole>=18){ state.phase='complete'; } else { state.currentHole+=1; }
   if(state.trackMode==='both' && state.phase!=='complete') state.holeSubPhase='review';
@@ -1868,7 +1913,7 @@ function undoLastHole(){
   if(state.trackMode==='both') state.holeSubPhase='game';
   if((removed.mode==='rollReroll' || removed.mode==='hammer' || removed.mode==='bbb') && typeof removed.valueBefore==='number'){ state.currentValue = removed.valueBefore; }
   if((removed.mode==='captain' || removed.mode==='captain5' || removed.mode==='six66' || removed.mode==='mrPar') && typeof removed.valueBefore==='number'){ state.betRate = removed.valueBefore; }
-  pendingResult=null; pendingPartner=null; pendingAlone=false; pendingPoints=null; pendingUmbrella=false;
+  pendingResult=null; pendingPartner=null; pendingAlone=false; pendingDivorce=false; pendingPoints=null; pendingUmbrella=false;
   pendingRoll=false; pendingReroll=false; pendingPressCount=0; pendingHammerMatches={};
   pendingBBB = {bingo:null, bango:null, bongo:null};
   saveState(); render();
@@ -2138,6 +2183,7 @@ function chooseEditHole(n){
     editCaptainOverride = isLightning(n) ? rec.captain : null;
     pendingPartner = rec.partner || null;
     pendingAlone = !!rec.alone;
+    pendingDivorce = !!rec.divorce;
     pendingResult = rec.outcome || null;
     pendingPoints = rec.points || null;
     pendingUmbrella = false;
@@ -2150,7 +2196,7 @@ function setEditResult(r){ pendingResult = r; render(); }
 
 function cancelEditHole(){
   editingHole = null; editCaptainOverride = null;
-  pendingResult=null; pendingPartner=null; pendingAlone=false; pendingPoints=null; pendingUmbrella=false;
+  pendingResult=null; pendingPartner=null; pendingAlone=false; pendingDivorce=false; pendingPoints=null; pendingUmbrella=false;
   render();
 }
 
@@ -2168,21 +2214,21 @@ function saveEditedHole(){
   }
   // Totals before this hole depend only on earlier holes, which are untouched by this edit.
   const totalsBefore = runningTotalsBefore(n);
-  const calc = computeHolePayout(captain, pendingAlone?null:pendingPartner, pendingResult, points, rec.betRate, state.players, totalsBefore, pendingAlone);
+  const calc = computeHolePayout(captain, pendingAlone?null:pendingPartner, pendingResult, points, rec.betRate, state.players, totalsBefore, pendingAlone, pendingDivorce);
   const idx = state.holes.findIndex(h=>h.hole===n);
   // Keep the rest of the record (mode, valueBefore, pressCount) — Roll the
   // Dice and Undo both read those.
   state.holes[idx] = { ...rec,
     hole:n, captain,
     partner:(pendingResult==='push'||pendingAlone)?null:pendingPartner,
-    outcome:pendingResult, points, betRate: rec.betRate, alone: pendingAlone,
+    outcome:pendingResult, points, betRate: rec.betRate, alone: pendingAlone, divorce: pendingResult!=='push' && pendingDivorce,
     payouts: calc.payouts, pot: calc.pot, loserPay: calc.loserPay,
     roundingNote: calc.roundingNote, winners: calc.winners, losers: calc.losers
   };
   // Every other hole's own record is untouched — cumulative totals are derived live from state.holes,
   // so they automatically reflect this correction without needing to replay anything.
   editingHole = null; editCaptainOverride = null;
-  pendingResult=null; pendingPartner=null; pendingAlone=false; pendingPoints=null; pendingUmbrella=false;
+  pendingResult=null; pendingPartner=null; pendingAlone=false; pendingDivorce=false; pendingPoints=null; pendingUmbrella=false;
   saveState(); render();
 }
 
@@ -2365,14 +2411,12 @@ function renderEditHoleForm(){
     <div class="name-row">
       ${others.map(p=>`<button class="${pendingPartner===p?'active-pick':''}" ${pendingAlone?'disabled':''} onclick="selectPartner('${escapeStr(p)}')">${p}</button>`).join('')}
     </div>
-    <div class="btn-row" style="margin:-6px 0 16px;">
-      <button class="btn ${pendingAlone?'btn-gold':'btn-outline'} btn-full" onclick="toggleSweetLou()">${state.mode==='captain'?'🐺':'🐓'} ${pendingAlone ? `Sweet Lou selected — ${state.mode==='captain'?'Wolf':'captain'} is going alone` : `Sweet Lou — ${state.mode==='captain'?'Wolf':'captain'} goes alone vs. all ${state.players.length-1}`}</button>
-    </div>
+    ${soloButtonsHtml()}
     ${readyForResult ? `
     <label>Result</label>
     <div class="result-toggle">
-      <button class="${pendingResult==='captainWins'?'active-win':''}" onclick="setEditResult('captainWins')">${captainWord()}${pendingAlone ? ' wins' : "'s team wins"}</button>
-      <button class="${pendingResult==='captainLoses'?'active-loss':''}" onclick="setEditResult('captainLoses')">${captainWord()}${pendingAlone ? ' loses' : "'s team loses"}</button>
+      <button class="${pendingResult==='captainWins'?'active-win':''}" onclick="setEditResult('captainWins')">${soloOrCaptainLabel()}${(pendingAlone||pendingDivorce) ? ' wins' : "'s team wins"}</button>
+      <button class="${pendingResult==='captainLoses'?'active-loss':''}" onclick="setEditResult('captainLoses')">${soloOrCaptainLabel()}${(pendingAlone||pendingDivorce) ? ' loses' : "'s team loses"}</button>
       <button class="${pendingResult==='push'?'active-push':''}" onclick="setEditResult('push')">Push / halved</button>
     </div>
     ${pendingResult && pendingResult!=='push' ? `
@@ -2388,7 +2432,7 @@ function renderEditHoleForm(){
       <button class="btn btn-outline" onclick="cancelEditHole()">Cancel</button>
     </div>
     ` : `
-    <div class="sub" style="margin-top:-6px;">Pick a partner — or go Sweet Lou — to continue.</div>
+    <div class="sub" style="margin-top:-6px;">Pick a partner — or go Sweet Lou — to continue. After picking, the partner can Divorce.</div>
     <div class="btn-row"><button class="btn btn-outline" onclick="cancelEditHole()">Cancel</button></div>
     `}
   `;
@@ -2462,7 +2506,7 @@ function doNewRound(){
   bottomNewRoundConfirm = false;
   cancelNewRound();
   state = defaultState();
-  pendingResult = null; pendingPartner = null; pendingAlone = false; pendingPoints = null; pendingUmbrella = false;
+  pendingResult = null; pendingPartner = null; pendingAlone = false; pendingDivorce = false; pendingPoints = null; pendingUmbrella = false;
   pendingRoll = false; pendingReroll = false; pendingPressCount = 0; pendingHammerMatches = {};
   pendingBBB = {bingo:null, bango:null, bongo:null};
   setupMode = 'captain'; setupStartValue = null; setupTeam1Names = ['',''] ; setupTeam2Names = ['',''];
@@ -2492,8 +2536,6 @@ function render(){
   else if(state.phase==='courseList') app.innerHTML = renderCourseList();
   else if(state.phase==='courseAdd') app.innerHTML = renderCourseAdd();
   else if(state.phase==='roster') app.innerHTML = renderRoster();
-  else if(state.phase==='keepChoice') app.innerHTML = renderKeepChoice();
-  else if(state.phase==='scoresChoice') app.innerHTML = renderScoresChoice();
   else if(state.phase==='trackChoice') app.innerHTML = renderTrackChoice();
   else if(state.phase==='nassauSetup') app.innerHTML = renderNassauSetup();
   else if(state.phase==='courseReview') app.innerHTML = renderCourseReview();
@@ -2617,7 +2659,7 @@ function getRulesGames(){
     glance:'Things that work the same way in every game.',
     sections:[
       ['The Point (points multiplier)', [
-        'Entered once on the first screen ("Who\'s playing?"). It is what one point is worth, and it applies to every game.',
+        'Entered once on the "Who\'s playing?" screen. It is what one point is worth, and it applies to every game.',
         'Leave it blank to track points only on the scorecard games. The points games (Captain, Roll &amp; Re-roll, Hammer, Bingo Bango Bongo, 666 Parlor) need a number.']],
       ['Press', [
         'Tap ➕ Press on a hole to add 1 to the point value. In the points games a press <b>sticks</b> for the rest of the round.']],
@@ -2625,32 +2667,41 @@ function getRulesGames(){
         'Strokes are figured off the lowest handicap in the group. A player gets one stroke on each hole whose hole-handicap number is at or below the difference (a difference over 18 wraps around for a second stroke). A red dot on the score line marks a hole where that player gets a stroke.',
         'Tap the <b>−</b> button beside a handicap for a plus player (a +2 becomes −2, so they give strokes).']],
       ['Teammates', [
-        'Check <b>Teammate</b> on the first screen for two players (no more than two). 666 Parlor uses that pair for holes 1-6, and Naper Vegas uses it as Team 1.']],
-      ['Keeping the Game, the scores, or both', [
-        'Right after the roster, pick one: <b>Keeping the Game</b> (a points game, no scorecard), <b>Keeping the players\' scores</b> (post gross scores, with Skins, Stableford, Quota or Naper Vegas if you want), or <b>Keeping both</b> (enter scores each hole, then record the game\'s result for it).',
-        'Skins, Stableford and Quota need scores anyway, so picking them under Game or Both works the same either way. Naper Vegas is played on its own, under Keeping the players\' scores.']],
+        'Check <b>Teammate</b> on the Who\'s playing? screen for two players (no more than two). 666 Parlor uses that pair for holes 1-6, and Naper Vegas uses it as Team 1.']],
+      ['Picking a game', [
+        'Pick the game first, then the course, then the players and The Point.',
+        'Points games keep both the scores and the game by default: enter scores each hole, then record the game\'s result. Tap <b>Game only (no scorecard)</b> to skip the scores. <b>⛳ Just keep the scores</b>, beside the Pick a game title, is a plain scorecard.',
+        'Skins, Stableford, Quota and 9 Point need scores, so checking one always keeps scores. Naper Vegas and Nassau are played on their own.']],
       ['Roll the Dice', [
-        'An option next to The Point on the first screen. Turn it on and set a Low and High instead of a fixed point value.',
+        'An option next to The Point on the Who\'s playing? screen. Turn it on and set a Low and High instead of a fixed point value.',
         'The round is played at a placeholder of 1 per point (presses still add +1 each, and stick). At the end, tap 🎲 Roll the Dice — it picks a number in your range and reapplies the whole round at that value, presses included.',
         'Works for the points games (Wolf, Roll &amp; Re-roll, Hammer, Bingo Bango Bongo, 666 Parlor) and for Naper Vegas. It can only be rolled once per round.']],
       ['Settling up', [
         'After hole 18 the Final Tally shows who gives points to whom. Every player\'s total adds up to zero. When a split doesn\'t come out even, the odd point goes to the player who is further down.']]
     ]},
   { key:'captain', icon:'🐺', title:'Wolf',
-    glance:'Four players. Every hole a rotating captain (Wolf) picks a partner and plays 2 on 2.',
+    glance:'Four players. Every hole a rotating captain (Wolf) picks a partner and plays 2 on 2, except Lightning holes 17 and 18.',
     sections:[
       ['Setup', [
         'Four players. The app shuffles them into slots 1-4 at the start, or choose Keep as entered to use the order you typed them in.']],
       ['The captain (Wolf)', [
-        'Slot 1 is captain on holes 1, 5, 9, 13, 17. Slot 2 on 2, 6, 10, 14, 18. Slot 3 on 3, 7, 11, 15. Slot 4 on 4, 8, 12, 16.',
+        'Slot 1 is captain on holes 1, 5, 9, 13. Slot 2 on 2, 6, 10, 14. Slot 3 on 3, 7, 11, 15. Slot 4 on 4, 8, 12, 16. Holes 17 and 18 are Lightning holes (below).',
         'Each hole the captain picks one of the other three as a partner. Captain and partner play the other two, 2 on 2.']],
       ['Choosing a partner', [
         'The captain (Wolf) tees off last, after watching the other three hit.',
         'Right after each of the first three players hits, the captain can choose them as a partner on the spot, or wait and see the next one. Once play moves on to the next player, an earlier one can\'t be picked anymore.',
         'If the captain passes on all three, they\'re playing the hole alone — that\'s Sweet Lou (Lone Wolf), below.']],
+      ['⚡ Lightning holes (17 and 18)', [
+        'On a Lightning hole, whoever is furthest down in the running total is suggested as captain — tap any name to hand the pick to someone else instead. Ties are decided by the group.',
+        'Everything else about the hole — partner, Sweet Lou, Divorce, result, points, Umbrella — works exactly the same as a rotation hole.']],
       ['Sweet Lou (Lone Wolf) 🐺', [
         'The captain can go alone against all three. The points automatically double.',
         'Some groups prefer a lighter version instead of the full double: enter half of what the hole was actually worth, rounding up if it isn\'t a whole number (1.5 rounds up to 2). The captain still feels it for going alone, just not as steep as doubling.']],
+      ['Divorce 💔', [
+        'After the captain picks a partner, that player can <b>divorce</b> (reject) the captain. The partner then becomes the captain for that hole and goes alone against the other three.',
+        'It works just like Sweet Lou: the points automatically double, and the player who divorced wins or loses the full amount from each of the other three.',
+        'Divorce doesn\'t change the rotation. The next hole\'s captain is the same as it would have been.',
+        'In the app, tap the partner, then tap 💔 Divorce.']],
       ['Recording a hole', [
         'Pick the result: the captain\'s side wins, loses, or the hole is pushed (halved, nothing changes hands).',
         'Then enter how many points the hole was worth (0-8), however your group awards them. ☂️ Umbrella doubles the points on that hole.']],
@@ -2715,6 +2766,11 @@ function getRulesGames(){
       ['Sweet Lou 🐓', [
         'The captain can go alone against all four. The points automatically double.',
         'Some groups prefer a lighter version instead of the full double: enter half of what the hole was actually worth, rounding up if it isn\'t a whole number (1.5 rounds up to 2). The captain still feels it for going alone, just not as steep as doubling.']],
+      ['Divorce 💔', [
+        'After the captain picks a partner, that player can <b>divorce</b> (reject) the captain. The partner then becomes the captain for that hole and goes alone against the other four.',
+        'It works just like Sweet Lou: the points automatically double, and the player who divorced wins or loses the full amount from each of the other four.',
+        'Divorce doesn\'t change the rotation. The next hole\'s captain is the same as it would have been.',
+        'In the app, tap the partner, then tap 💔 Divorce.']],
       ['Recording a hole', [
         'Pick the result: the captain\'s side wins, loses, or the hole is pushed (halved, nothing changes hands).',
         'Then enter how many points the hole was worth (0-8), however your group awards them. ☂️ Umbrella doubles the points on that hole.']],
@@ -2743,7 +2799,7 @@ function getRulesGames(){
     glance:'Four players in two fixed teams for the whole round, with roll and re-roll bonuses.',
     sections:[
       ['Setup', [
-        'Two players per team. Check exactly two players as <b>Teammate</b> on the first screen — that pair is Team 1, the other two are Team 2. Partners are locked in for all 18 holes, with no captain rotation.']],
+        'Two players per team. Check exactly two players as <b>Teammate</b> on the Who\'s playing? screen — that pair is Team 1, the other two are Team 2. Partners are locked in for all 18 holes, with no captain rotation.']],
       ['Recording a hole', [
         'Pick the result (Team 1 wins, Team 2 wins, or push), then the points for the hole (0-8). ☂️ Umbrella doubles the points.']],
       ['☂️ Umbrella', [
@@ -2801,7 +2857,7 @@ function getRulesGames(){
     glance:'Four players, scored like Wolf, but partners are fixed and change every 6 holes.',
     sections:[
       ['Partners', [
-        'Holes 1-6: the two players marked <b>Teammate</b> on the first screen play the other two.',
+        'Holes 1-6: the two players marked <b>Teammate</b> on the Who\'s playing? screen play the other two.',
         'Holes 7-12 and 13-18: the two remaining pairings, in random order. Every player partners each of the other three exactly once.']],
       ['Recording a hole', [
         'Same as Wolf. Pick which pair won (or push), then the points for the hole (0-8). ☂️ Umbrella doubles the points. There is no captain and no Sweet Lou.']],
@@ -2825,7 +2881,7 @@ function getRulesGames(){
     glance:'Two teams combine their scores into a two-digit number each hole. The lower number wins the difference.',
     sections:[
       ['Teams', [
-        'Check two players as <b>Teammates</b> on the first screen. They are Team 1 and the other two are Team 2.']],
+        'Check two players as <b>Teammates</b> on the Who\'s playing? screen. They are Team 1 and the other two are Team 2.']],
       ['Each hole', [
         'Use <b>net</b> scores (gross minus handicap strokes). Each team puts its two scores together with the lower score first. A 4 and a 5 make <b>45</b>.',
         'If either net score reaches double digits (10+), that score leads instead, since it already has two digits of its own — a 9 and a 10 make <b>109</b>, not 910.',
@@ -2900,7 +2956,7 @@ function getRulesGames(){
         'Tie for first: 4 each (third gets 1). Tie for second: 2 each (first gets 5). All three tied: 3 each.']],
       ['Settling up', [
         'Each pair settles the gap between their point totals, × The Point. Example: A 60, B 50, C 52 — B gives A 10, C gives A 8, B gives C 2.',
-        '9 Point is a scorecard game: check it on Keeping the players\' scores or under Bonus games. It needs exactly 3 players, and can be combined with other games.']]
+        '9 Point is a scorecard game: check it under Bonus games on Pick a game. It needs exactly 3 players, and can be combined with other games.']]
     ]}
   ];
 }
@@ -2963,6 +3019,28 @@ function renderRules(){
 }
 document.addEventListener('keydown', e => { if(e.key==='Escape') closeRules(); });
 
+// While a hole score is being typed, keep the hole's go button (Record the
+// game ▶ / Hole N ▶) above the keyboard, so tapping it doesn't land on the
+// keyboard's Done bar instead. Scrolls only as far as the focused box allows.
+function keepScoreButtonAboveKeyboard(input){
+  const btn = document.querySelector('.score-go');
+  const vv = window.visualViewport;
+  if(!btn || !vv || document.activeElement !== input) return;
+  const visibleBottom = vv.offsetTop + vv.height;
+  const overlap = btn.getBoundingClientRect().bottom + 10 - visibleBottom;
+  if(overlap <= 0) return;
+  const room = input.getBoundingClientRect().top - vv.offsetTop - 10;
+  const by = Math.min(overlap, room);
+  if(by > 0) window.scrollBy({top: by, behavior: 'smooth'});
+}
+document.addEventListener('focusin', e => {
+  const input = e.target;
+  if(!(input instanceof HTMLInputElement) || !input.classList.contains('score-input')) return;
+  // Wait for the keyboard to finish opening, then check again on any resize.
+  setTimeout(() => keepScoreButtonAboveKeyboard(input), 350);
+  if(window.visualViewport) window.visualViewport.addEventListener('resize', () => keepScoreButtonAboveKeyboard(input), { once: true });
+});
+
 
 /* ==========================================================================
    Course select — pick the course, or build a new one by hand
@@ -2973,16 +3051,10 @@ function topBackLink(fn){
   return `<button type="button" class="top-back" onclick="${fn}">◀ Back</button>`;
 }
 
-function courseSummary(c){
-  const par = c.holes.reduce((s,h)=>s+h.par, 0);
-  const yards = c.holes.reduce((s,h)=>s+(h.yards||0), 0);
-  return yards ? `Par ${par} · ${yards} yards` : `Par ${par}`;
-}
-
-// A course card with a ☆/★ favorite toggle on its left (and, for a course the
-// user added, a 🗑 remove button on its right), all on one line so a list of
-// courses stays compact.
-function courseRow(c, desc, opts){
+// A course card (name only) with a ☆/★ favorite toggle on its left (and, for a
+// course the user added, a 🗑 remove button on its right), all on one line so a
+// list of courses stays compact.
+function courseRow(c, opts){
   const fav = isFavorite(c.id);
   const id = escapeStr(c.id);
   const starClick = opts.confirmUnfavorite ? `unfavoriteWithConfirm('${id}')` : `toggleFavorite('${id}')`;
@@ -2992,7 +3064,6 @@ function courseRow(c, desc, opts){
               aria-label="${fav?'Remove from':'Add to'} favorites" title="${fav?'Remove from':'Add to'} favorites">${fav?'★':'☆'}</button>
       <button class="mode-card" onclick="chooseCourse('${id}')">
         <div class="mode-title">${escapeHtml(c.name)}</div>
-        <div class="mode-desc">${desc}</div>
       </button>
       ${opts.removable ? `<button class="course-side-btn" onclick="removeCourseWithConfirm('${id}')" aria-label="Remove ${escapeAttr(c.name)}" title="Remove this course">🗑</button>` : ''}
     </div>`;
@@ -3008,25 +3079,29 @@ function removeCourseWithConfirm(id){
 
 function renderCourseSelect(){
   const favorites = favoriteCourseIds.map(id => courses.find(c => c.id === id)).filter(Boolean);
-  const favoriteList = favorites.map(c => courseRow(c, courseSummary(c), { confirmUnfavorite:true })).join('');
+  const favoriteList = favorites.map(c => courseRow(c, { confirmUnfavorite:true })).join('');
   return `
   <div class="card">
+    ${topBackLink("backToPickGame()")}
     <h2 style="text-align:center;">⛳ Which course?</h2>
     <div class="sub" style="text-align:center;">Pick where you're playing. Par and hole handicaps drive the strokes.</div>
-    <div class="mode-row">
-      <button class="mode-card" onclick="openCourseList()">
+    ${favorites.length ? `
+    <label style="margin:14px 0 8px;">Favorites</label>
+    <div class="mode-row course-list">${favoriteList}</div>
+    <div style="border-top:1.5px dashed #cfc7a9;margin:16px 0 4px;"></div>` : ''}
+    <div class="mode-row course-list">
+      <button class="mode-card course-action" onclick="openCourseList()">
         <div class="mode-title">▶ Select course</div>
         <div class="mode-desc">Browse every course on this device by state.</div>
       </button>
-      <button class="mode-card" style="border-style:dashed;" onclick="openAddCourse()">
+      <button class="mode-card course-action" style="border-style:dashed;" onclick="openAddCourse()">
         <div class="mode-title">＋ Add a course</div>
         <div class="mode-desc">Paste it off the club's website, or enter the 18 holes by hand.</div>
       </button>
     </div>
-    ${favorites.length ? `
-    <label style="margin:18px 0 8px;">Favorites</label>
-    <div class="mode-row">${favoriteList}</div>` : `
-    <div class="sub" style="text-align:center;margin:16px 0 0;">Tip: tap the ☆ beside a course and it shows up here.</div>`}
+    ${favorites.length ? '' : `
+    <div class="sub" style="text-align:center;margin:16px 0 0;">Tip: tap the ☆ beside a course and it shows up at the top here.</div>`}
+    <div class="btn-row" style="margin-top:10px;"><button class="btn btn-outline btn-full" onclick="backToPickGame()">◀ Back</button></div>
   </div>`;
 }
 
@@ -3086,16 +3161,16 @@ function renderCourseList(){
 function renderStateCourseList(){
   const region = state.courseListRegion;
   const inRegion = courses.filter(c => courseRegion(c) === region);
-  const list = inRegion.map(c => courseRow(c, `${courseSummary(c)}${c.builtIn ? '' : ' · added by you'}`, { removable: !c.builtIn })).join('');
+  const list = inRegion.map(c => courseRow(c, { removable: !c.builtIn })).join('');
 
   return `
   <div class="card">
     ${topBackLink("backToCourseList()")}
     <h2 style="text-align:center;">${escapeHtml(region)}</h2>
     <div class="sub" style="text-align:center;">Pick a course, or add a new one in ${escapeHtml(region)}.</div>
-    <div class="mode-row">
+    <div class="mode-row course-list">
       ${list}
-      <button class="mode-card" style="border-style:dashed;" onclick="openAddCourse('${escapeStr(region)}')">
+      <button class="mode-card course-action" style="border-style:dashed;" onclick="openAddCourse('${escapeStr(region)}')">
         <div class="mode-title">＋ Add a course</div>
         <div class="mode-desc">Paste it off the club's website, or enter the 18 holes by hand.</div>
       </button>
@@ -3273,7 +3348,7 @@ function openAddCourse(presetRegion){
   };
   pasteOpen = false; pasteText = ''; pasteReport = '';
   // Cancel returns to wherever this was opened from — a specific state's
-  // list, the state list, or the first screen.
+  // list, the state list, or the course screen.
   state.courseAddBackPhase = presetRegion ? 'stateCourseList' : (state.phase === 'courseSelect' ? 'courseSelect' : 'courseList');
   state.phase = 'courseAdd';
   saveState(); render();
@@ -3502,7 +3577,6 @@ let cardDraft = { names:['','','','',''], hcps:['','','','',''], neg:[false,fals
 let showFullCard = false;
 
 function parTotal(from, to){ let s=0; for(let h=from;h<=to;h++) s+=holeInfo(h).par; return s; }
-function yardTotal(from, to){ let s=0; for(let h=from;h<=to;h++) s+=holeInfo(h).yards; return s; }
 
 // Strokes a player receives on a hole: one per hole handicap at or below the
 // handicap difference, wrapping for differences over 18.
@@ -3616,10 +3690,8 @@ function renderRoster(){
 
   return `
   <div class="card">
-    <div class="card-title-row">
-      <button type="button" class="card-back" onclick="backToCourseSelect()">◀ Back</button>
-      <h2 style="text-align:center;">Who's playing?</h2>
-    </div>
+    ${topBackLink("backToCourseSelect()")}
+    <h2 style="text-align:center;">Who's playing?</h2>
     <div class="sub">${escapeHtml(currentCourse().name)} · Par ${parTotal(1,18)}<br><button type="button" style="background:none;border:none;padding:0;font:inherit;font-weight:600;color:var(--green-mid);text-decoration:underline;cursor:pointer;" onclick="openCourseReview()">📋 Review/edit scorecard</button></div>
 
     <div class="sub" style="margin:0 0 14px;">Check <b>Teammate</b> for the two who are partnered up.</div>
@@ -3665,15 +3737,7 @@ function confirmRoster(){
   }
 
   state.roster = roster;
-  scorecardGamesDraft = { skins:false, stableford:false, quota:false, ninePoint:false };
-  trackChoicePrimary = null;
-  quotaAnteDraft = null;
-  skinsAnteDraft = null;
-  skinsCarryDraft = false;
-  skinsValidateDraft = false;
-  trackModeChoice = 'both';
-  state.phase = 'keepChoice';
-  saveState(); render();
+  launchPickedGame();
 }
 
 function backToRoster(){
@@ -3715,12 +3779,49 @@ function selectPrimaryGame(mode){
   render();
 }
 function continueFromTrackChoice(){
-  if(trackChoicePrimary){ pickBettingGame(trackModeChoice, trackChoicePrimary); return; }
-  if(Object.values(scorecardGamesDraft).some(v=>v)){ startScorecardOnly(); return; }
-  alert('Pick a game first.');
+  captureQuotaAnteInput();
+  captureSkinsAnteInput();
+  const standalone = trackChoicePrimary==='nv' || trackChoicePrimary==='nassau';
+  const bonus = standalone ? { skins:false, stableford:false, quota:false, ninePoint:false } : { ...scorecardGamesDraft };
+  if(!trackChoicePrimary && !Object.values(bonus).some(v=>v)){ alert('Pick a game first.'); return; }
+  // Kept in state (not just the drafts) so the pick survives the app being
+  // reloaded on the course or players screen.
+  state.gamePick = {
+    primary: trackChoicePrimary, trackMode: trackModeChoice, bonus,
+    skinsAnte: skinsAnteDraft, skinsCarry: skinsCarryDraft, skinsValidate: skinsValidateDraft, quotaAnte: quotaAnteDraft
+  };
+  state.phase = 'courseSelect';
+  saveState(); render();
+}
+
+// Runs from the players screen's Continue: start whatever was picked on the
+// Pick a game screen, now that the players and The Point are known.
+// Put the saved Pick a game choices back into the screen's drafts (they're
+// lost if the app reloads after Continue).
+function restoreGamePickDrafts(){
+  const pick = state.gamePick;
+  if(!pick) return false;
+  trackChoicePrimary = pick.primary; trackModeChoice = pick.trackMode || 'both';
+  scorecardGamesDraft = { ...pick.bonus };
+  skinsAnteDraft = pick.skinsAnte; skinsCarryDraft = !!pick.skinsCarry; skinsValidateDraft = !!pick.skinsValidate; quotaAnteDraft = pick.quotaAnte;
+  return true;
+}
+function launchPickedGame(){
+  if(!restoreGamePickDrafts()){ state.phase = 'trackChoice'; saveState(); render(); return; }
+  const pick = state.gamePick;
+  // 9 Point only works as a threesome — 9 points split three ways each hole.
+  if(scorecardGamesDraft.ninePoint && state.roster.length!==3){
+    alert('9 Point is a 3-player game — enter exactly 3 players.'); return;
+  }
+  if(pick.primary==='nv'){ startNaperVegas(); return; }
+  if(pick.primary==='nassau'){ openNassauSetup(); return; }
+  if(BETTING_GAME_LABELS[pick.primary]){ pickBettingGame(trackModeChoice, pick.primary); return; }
+  startScorecardOnly(); // ⛳ Just keep the scores, or bonus games on their own
 }
 
 const SCORECARD_GAME_LABELS = { skins:'Skins', stableford:'Stableford', quota:'Quota', ninePoint:'9 Point' };
+// Pick a game choices that aren't points games: they start the scorecard directly.
+const OTHER_GAME_LABELS = { nv: NAPERVEGAS_ICON + 'Naper Vegas', nassau: NASSAU_ICON + 'Nassau', scores: '⛳ Just keep the scores' };
 const BETTING_GAME_LABELS = { captain:'🐺 Wolf', mrPar:'🐺 3 Man Wolf', captain5: ROOSTER5_ICON + '5Man Captain', rollReroll:'🎲 Roll & Re-roll', hammer:'🔨 Hammer', bbb:'🟢 Bingo Bango Bongo', six66:'666 Parlor' };
 // A small, consistent "which game is this" tag shown at the top of every
 // setup, lineup, hole, and scorecard screen — so it's never ambiguous which
@@ -3734,10 +3835,6 @@ function toggleScorecardGame(key){
   capturePointValueInput();
   captureQuotaAnteInput();
   captureSkinsAnteInput();
-  // 9 Point only works as a threesome — 9 points split three ways each hole.
-  if(key==='ninePoint' && !scorecardGamesDraft[key] && (state.roster||[]).length!==3){
-    alert('9 Point is a 3-player game — enter exactly 3 players on the first screen.'); return;
-  }
   scorecardGamesDraft[key] = !scorecardGamesDraft[key];
   render();
 }
@@ -3790,151 +3887,55 @@ function setTrackModeChoice(mode){
   render();
 }
 
-// What is the scorekeeper actually keeping this round? Asked up front, as its
-// own step, instead of being buried as an override at the bottom of the game
-// list — the same three choices as before (Game / Scores / Both), just made
-// explicit first so there's no ambiguity about what happens next.
-function renderKeepChoice(){
-  const names = state.roster.map(p=>p.name).join(', ');
-  return `
-  <div class="card">
-    ${topBackLink("backToRoster()")}
-    <h2 style="text-align:center;">What are you keeping?</h2>
-    <div class="sub" style="text-align:center;">${escapeHtml(names)} on ${escapeHtml(currentCourse().name)}.</div>
-    <div class="mode-row">
-      <button class="mode-card" onclick="chooseKeepMode('games')">
-        <div class="mode-title">🎯 Keeping the Game</div>
-        <div class="mode-desc">A points game only — no scorecard, unless you also check Skins, Stableford, Quota or 9 Point on the next screen, which need scores to work.</div>
-      </button>
-      <button class="mode-card" onclick="chooseKeepMode('scores')">
-        <div class="mode-title">⛳ Keeping the players' scores</div>
-        <div class="mode-desc">Post gross scores, hole by hole — with Skins, Stableford, Quota, 9 Point or Naper Vegas if you want.</div>
-      </button>
-      <button class="mode-card" onclick="chooseKeepMode('both')">
-        <div class="mode-title">🎯⛳ Keeping both the Game and the scores</div>
-        <div class="mode-desc">Enter scores each hole, then record the game's result for it.</div>
-      </button>
-    </div>
-    <div class="btn-row" style="margin-top:10px;"><button class="btn btn-outline btn-full" onclick="backToRoster()">◀ Back</button></div>
-  </div>`;
-}
-function chooseKeepMode(mode){
-  if(mode==='scores'){
-    state.phase = 'scoresChoice';
-  } else {
-    trackModeChoice = mode;
-    state.phase = 'trackChoice';
-  }
-  saveState(); render();
-}
-
-// Just the scorecard — with any of the score-based games riding along, since
-// none of them need a betting game to make sense.
-function renderScoresChoice(){
+function renderTrackChoice(){
   const gameToggles = Object.keys(SCORECARD_GAME_LABELS).map(key => `
-    <button class="btn btn-compact ${scorecardGamesDraft[key]?'btn-gold':'btn-outline'}" style="flex:1 1 45%;" onclick="toggleScorecardGame('${key}')">${SCORECARD_GAME_LABELS[key]}</button>
+    <button class="btn game-btn ${scorecardGamesDraft[key]?'btn-gold':'btn-outline'}" onclick="toggleScorecardGame('${key}')">${SCORECARD_GAME_LABELS[key]}</button>
   `).join('');
+  const gameBtn = (mode, label) =>
+    `<button class="btn game-btn ${trackChoicePrimary===mode?'btn-gold':'btn-outline'}" onclick="selectPrimaryGame('${mode}')">${label}</button>`;
+  const gameOrder = ['captain5','captain','rollReroll','six66','mrPar','hammer','bbb'];
+  const gameButtons = gameOrder.map(mode =>
+    gameBtn(mode, `${mode==='six66'?SIXSIXSIX_ICON:''}${BETTING_GAME_LABELS[mode]}`)
+  ).join('') + gameBtn('nv', OTHER_GAME_LABELS.nv) + gameBtn('nassau', OTHER_GAME_LABELS.nassau);
+  // Naper Vegas and Nassau need the round to themselves — no bonus games.
+  const standalone = trackChoicePrimary==='nv' || trackChoicePrimary==='nassau';
+  const isBettingGame = !!BETTING_GAME_LABELS[trackChoicePrimary];
+  const anyScorecardGameChecked = Object.values(scorecardGamesDraft).some(v=>v);
+
   return `
   <div class="card">
-    ${topBackLink("backToKeepChoice()")}
-    <h2 style="text-align:center;">Keeping the players' scores</h2>
-    <div class="sub" style="text-align:center;margin-bottom:14px;">Check any games scored straight off the scorecard, or leave them all off for a plain scorecard.</div>
-    <div class="btn-row" style="flex-wrap:wrap;margin-bottom:14px;">${gameToggles}</div>
+    <!-- "Pick a game … or Just keep the scores" -->
+    <div class="pick-game-head">
+      <h2 class="pick-game-title">Pick a game</h2>
+      <button class="btn just-scores-btn ${trackChoicePrimary==='scores'?'btn-gold':'btn-outline'}" onclick="selectPrimaryGame('scores')">or ${OTHER_GAME_LABELS.scores}</button>
+    </div>
+    <div class="game-grid">${gameButtons}</div>
+    ${isBettingGame ? `
+    <button class="btn btn-compact ${trackModeChoice==='games'?'btn-gold':'btn-outline'} btn-full" style="margin-top:10px;" onclick="setTrackModeChoice('games')">Game only (no scorecard)${trackModeChoice==='games'?' ✓':''}</button>
+    ${trackModeChoice==='games' && anyScorecardGameChecked ? `<div class="sub" style="margin:6px 0 0;">A bonus game is checked, so scores will be kept too.</div>` : ''}` : ''}
+
+    ${standalone ? '' : `
+    <div style="border-top:1.5px dashed #cfc7a9;margin:16px 0 12px;"></div>
+    <label style="margin:0 0 4px;">Bonus games</label>
+    <div class="sub" style="margin:0 0 10px;">Check any to ride along with a game, or on their own.</div>
+    <div class="game-grid" style="margin-bottom:14px;">${gameToggles}</div>
     ${scorecardGamesDraft.skins ? `
     <label style="margin:0 0 6px;">Skins points (per player)</label>
     <input id="skins-ante-input" type="number" inputmode="decimal" min="0" step="1" placeholder="e.g. 20"
            value="${skinsAnteDraft===null?'':skinsAnteDraft}" oninput="captureSkinsAnteInput()">
-    <div class="sub" style="margin:4px 0 10px;">Everyone puts this many points in; the points pool is split across the skins won.</div>
+    <div class="sub" style="margin:4px 0 10px;">Points pool = this × players, split across skins won.</div>
     <button class="btn ${skinsCarryDraft?'btn-gold':'btn-outline'} btn-full" style="margin-bottom:4px;" onclick="toggleSkinsCarry()">Carryovers${skinsCarryDraft?' ✓':''}</button>
-    <div class="sub" style="margin:4px 0 10px;">${skinsCarryDraft?'Tied holes carry over — three ties in a row make the next hole worth 4 skins.':'Off: a tied hole is simply no skin.'}</div>
+    <div class="sub" style="margin:4px 0 10px;">${skinsCarryDraft?'Ties carry to the next hole.':'Off: a tied hole is no skin.'}</div>
     <button class="btn ${skinsValidateDraft?'btn-gold':'btn-outline'} btn-full" style="margin-bottom:4px;" onclick="toggleSkinsValidate()">Validation${skinsValidateDraft?' ✓':''}</button>
-    <div class="sub" style="margin:4px 0 14px;">${skinsValidateDraft?'A skin has to be validated — net par or better on the next hole (hole 1 validates an 18th-hole skin). Fail to validate and the skin is void, same as a tie.':'Off: winning the hole is enough to keep the skin.'}</div>
+    <div class="sub" style="margin:4px 0 14px;">${skinsValidateDraft?'On: must net par or better next hole to keep it (18 → 1). Miss it and it\'s void.':'Off: winning the hole is enough.'}</div>
     ` : ''}
     ${scorecardGamesDraft.quota ? `
     <label style="margin:0 0 6px;">Quota starting points (per player)</label>
     <input id="quota-ante-input" type="number" inputmode="decimal" min="0" step="1" placeholder="e.g. 20"
            value="${quotaAnteDraft===null?'':quotaAnteDraft}" oninput="captureQuotaAnteInput()">
-    <div class="sub" style="margin:4px 0 14px;">Everyone puts this many points in; the best finish over quota takes them all.</div>
-    ` : ''}
-    <div style="border-top:1.5px dashed #cfc7a9;margin:2px 0 12px;"></div>
-    <button class="btn btn-compact btn-outline btn-full" style="margin-bottom:6px;" onclick="startNaperVegas()">${NAPERVEGAS_ICON}Naper Vegas</button>
-    <button class="btn btn-compact btn-outline btn-full" style="margin-bottom:6px;" onclick="openNassauSetup()">${NASSAU_ICON}Nassau</button>
-    <div class="sub" style="margin:0 0 14px;">Partners must be selected on the prior screen or they will be assigned by combining the high handicap and the low handicap players.</div>
-    <button class="btn btn-gold btn-full" onclick="startScorecardOnly()">▶ Start Hole 1</button>
-    <div class="btn-row" style="margin-top:10px;"><button class="btn btn-outline btn-full" onclick="backToKeepChoice()">◀ Back</button></div>
-  </div>`;
-}
-function backToKeepChoice(){
-  state.phase = 'keepChoice';
-  saveState(); render();
-}
-
-function renderTrackChoice(){
-  const names = state.roster.map(p=>p.name).join(', ');
-  const gameToggles = Object.keys(SCORECARD_GAME_LABELS).map(key => `
-    <button class="btn btn-compact ${scorecardGamesDraft[key]?'btn-gold':'btn-outline'}" style="flex:1 1 45%;" onclick="toggleScorecardGame('${key}')">${SCORECARD_GAME_LABELS[key]}</button>
-  `).join('');
-  const primaryBtn = (mode, label) =>
-    `<button class="btn btn-compact ${trackChoicePrimary===mode?'btn-gold':'btn-outline'} btn-full" onclick="selectPrimaryGame('${mode}')">${label}${trackChoicePrimary===mode?' ✓':''}</button>`;
-  const fourManOrder = ['captain','captain5','rollReroll','six66'];
-  const fourManButtons = fourManOrder.map(mode =>
-    primaryBtn(mode, `${mode==='six66'?SIXSIXSIX_ICON:''}${BETTING_GAME_LABELS[mode]}`)
-  ).join('') + `<button class="btn btn-compact btn-outline btn-full" onclick="startNaperVegas()">${NAPERVEGAS_ICON}Naper Vegas</button>`
-    + `<button class="btn btn-compact btn-outline btn-full" onclick="openNassauSetup()">${NASSAU_ICON}Nassau</button>`;
-  const otherButtons = ['hammer','bbb'].map(mode => primaryBtn(mode, BETTING_GAME_LABELS[mode])).join('');
-  const anyScorecardGameChecked = Object.values(scorecardGamesDraft).some(v=>v);
-  const modeNote = trackModeChoice==='both'
-    ? 'Both — scores, then the game.'
-    : (anyScorecardGameChecked ? 'Game only, but a bonus game is checked — scores will be tracked too.' : 'Game only — no scorecard, unless you check a bonus game below.');
-  const trackNote = `${modeNote} Skins, Stableford, Quota, 9 Point are further down ↓.`;
-  const goLabel = trackChoicePrimary ? `▶ Continue with ${BETTING_GAME_LABELS[trackChoicePrimary].replace(/<[^>]+>/g,'').trim()}` : '▶ Start Hole 1';
-
-  return `
-  <div class="card">
-    ${topBackLink("backToKeepChoice()")}
-    <h2 style="text-align:center;">Pick a game</h2>
-    <div class="sub" style="text-align:center;">${escapeHtml(names)} on ${escapeHtml(currentCourse().name)}.</div>
-
-    <div class="mode-row">
-      <div class="mode-card" style="cursor:default;">
-        <div class="sub" style="margin:-4px 0 10px;">${trackNote}</div>
-
-        <label style="margin:0 0 4px;">4 and 5 Man Games</label>
-        <div class="sub" style="margin:0 0 10px;">Tap to select — partners default to high paired with low handicap, unless set on the prior screen.</div>
-        <div class="btn-row" style="flex-direction:column;margin-bottom:14px;">${fourManButtons}</div>
-
-        <div style="border-top:1.5px dashed #cfc7a9;margin:2px 0 12px;"></div>
-        <label style="margin:0 0 4px;">3 Man Games</label>
-        <div class="btn-row" style="flex-direction:column;margin-bottom:14px;">${primaryBtn('mrPar', BETTING_GAME_LABELS.mrPar)}</div>
-
-        <div style="border-top:1.5px dashed #cfc7a9;margin:2px 0 12px;"></div>
-        <label style="margin:0 0 4px;">Other games — 2 to 4 players</label>
-        <div class="btn-row" style="flex-direction:column;margin-bottom:14px;">${otherButtons}</div>
-
-        <div style="border-top:1.5px dashed #cfc7a9;margin:2px 0 12px;"></div>
-        <label style="margin:0 0 4px;">Bonus games</label>
-        <div class="sub" style="margin:0 0 10px;">Skins, Stableford, Quota, 9 Point — check any to ride along, or on their own. Checking one tracks scores too, even with Game only picked above.</div>
-        <div class="btn-row" style="flex-wrap:wrap;margin-bottom:14px;">${gameToggles}</div>
-        ${scorecardGamesDraft.skins ? `
-        <label style="margin:0 0 6px;">Skins points (per player)</label>
-        <input id="skins-ante-input" type="number" inputmode="decimal" min="0" step="1" placeholder="e.g. 20"
-               value="${skinsAnteDraft===null?'':skinsAnteDraft}" oninput="captureSkinsAnteInput()">
-        <div class="sub" style="margin:4px 0 10px;">Points pool = this × players, split across skins won.</div>
-        <button class="btn ${skinsCarryDraft?'btn-gold':'btn-outline'} btn-full" style="margin-bottom:4px;" onclick="toggleSkinsCarry()">Carryovers${skinsCarryDraft?' ✓':''}</button>
-        <div class="sub" style="margin:4px 0 10px;">${skinsCarryDraft?'Ties carry to the next hole.':'Off: a tied hole is no skin.'}</div>
-        <button class="btn ${skinsValidateDraft?'btn-gold':'btn-outline'} btn-full" style="margin-bottom:4px;" onclick="toggleSkinsValidate()">Validation${skinsValidateDraft?' ✓':''}</button>
-        <div class="sub" style="margin:4px 0 14px;">${skinsValidateDraft?'On: must net par or better next hole to keep it (18 → 1). Miss it and it\'s void.':'Off: winning the hole is enough.'}</div>
-        ` : ''}
-        ${scorecardGamesDraft.quota ? `
-        <label style="margin:0 0 6px;">Quota starting points (per player)</label>
-        <input id="quota-ante-input" type="number" inputmode="decimal" min="0" step="1" placeholder="e.g. 20"
-               value="${quotaAnteDraft===null?'':quotaAnteDraft}" oninput="captureQuotaAnteInput()">
-        <div class="sub" style="margin:4px 0 14px;">Best finish over quota takes the points pool.</div>
-        ` : ''}
-        <button class="btn btn-gold btn-full" onclick="continueFromTrackChoice()">${goLabel}</button>
-      </div>
-    </div>
-    <div class="btn-row" style="margin-top:10px;"><button class="btn btn-outline btn-full" onclick="backToKeepChoice()">◀ Back</button></div>
+    <div class="sub" style="margin:4px 0 14px;">Best finish over quota takes the points pool.</div>
+    ` : ''}`}
+    <button class="btn btn-gold btn-full" style="margin-top:14px;" onclick="continueFromTrackChoice()">Continue ▶</button>
   </div>`;
 }
 
@@ -3961,7 +3962,7 @@ function pickBettingGame(trackMode, gameMode){
 // Naper Vegas needs the round to itself — a dedicated entry point rather than a
 // checkbox, so there's no way to accidentally combine it with anything else.
 function startNaperVegas(){
-  state.cardBackPhase = state.phase; // remember which screen started it (now always Scores)
+  state.cardBackPhase = state.phase; // the players screen — hole 1's Back returns here
   capturePointValueInput();
   captureDiceRangeInput();
   state.diceMode = diceModeDraft;
@@ -4004,7 +4005,7 @@ let nassauVariantDraft = 'singles';
 // the singles matches — this flips between them.
 let nassauSinglesSwapDraft = false;
 function openNassauSetup(){
-  state.cardBackPhase = state.phase; // scoresChoice or trackChoice — Back returns here
+  state.cardBackPhase = state.phase; // the players screen — Back returns here
   capturePointValueInput();
   captureDiceRangeInput();
   nassauVariantDraft = 'singles';
@@ -4013,7 +4014,7 @@ function openNassauSetup(){
   saveState(); render();
 }
 function backFromNassauSetup(){
-  state.phase = state.cardBackPhase || 'scoresChoice';
+  state.phase = state.cardBackPhase || 'roster';
   saveState(); render();
 }
 function setNassauVariant(v){
@@ -4351,7 +4352,7 @@ function chooseScorecardOnly(){
 }
 
 function startScorecardOnly(){
-  state.cardBackPhase = state.phase; // remember whether this came from Scores or Pick a game
+  state.cardBackPhase = state.phase; // the players screen — hole 1's Back returns here
   capturePointValueInput();
   captureQuotaAnteInput();
   captureSkinsAnteInput();
@@ -4439,6 +4440,8 @@ function inputCardScore(i, h, el){
 
 function missingNote(missing){
   if(!missing) return 'All scores in for this hole.';
+  // Moving on needs at least one score, so don't call an all-blank hole fine.
+  if(missing >= (state.cardPlayers||[]).length) return 'Enter at least one score to continue — anyone left blank shows as “—” on the card.';
   return `${missing} player${missing===1?' has':'s have'} no score on this hole yet — blanks are fine, they show as “—” on the card.`;
 }
 function cardTotal(i, from, to){
@@ -4571,7 +4574,7 @@ function renderCardPlaying(){
     <div class="sub" id="hole-note" style="margin:2px 0 12px;">${missingNote(missing)}</div>
     <div class="btn-row">
       ${h>1 ? `<button class="btn btn-outline" onclick="cardPrevHole()">◀ Hole ${h-1}</button>` : `<button class="btn btn-outline" onclick="backToTrackChoiceFromCard()">◀ Back</button>`}
-      <button class="btn btn-gold" style="flex:1;" onclick="cardNextHole()">${h>=18 ? '🏁 Finish round' : `Hole ${h+1} ▶`}</button>
+      <button class="btn btn-gold score-go" style="flex:1;" onclick="cardNextHole()">${h>=18 ? '🏁 Finish round' : `Hole ${h+1} ▶`}</button>
     </div>
     <div class="btn-row">
       <button class="btn btn-outline btn-full" onclick="toggleFullCard()">${showFullCard ? '▲ Hide the full scorecard' : '📋 Show the full scorecard'}</button>
@@ -4602,7 +4605,7 @@ function renderCardScorecard(highlight){
   for(let h=10; h<=18; h++) head += `<th id="cardcol-${h}" class="${highlight===h?'sc-here':''}">${h}</th>`;
   head += `<th class="sum-col">IN</th><th class="sum-col total">TOT</th>`;
 
-  // Course rows: yards, par, hole handicap.
+  // Course rows: par, hole handicap.
   const infoRow = (label, cell, outVal, inVal, totVal) => {
     let cells = `<td class="player-name">${label}</td>`;
     for(let h=1; h<=9; h++) cells += `<td>${cell(h)}</td>`;
@@ -4613,7 +4616,6 @@ function renderCardScorecard(highlight){
   };
 
   const courseRows =
-    infoRow('Yards', h=>holeInfo(h).yards, yardTotal(1,9), yardTotal(10,18), yardTotal(1,18)) +
     infoRow('Par',   h=>holeInfo(h).par,   parTotal(1,9),  parTotal(10,18),  parTotal(1,18)) +
     infoRow('Hcp',   h=>holeInfo(h).si,    '',             '',               '');
 
@@ -5328,13 +5330,15 @@ function renderCardComplete(){
 }
 
 
-function backToGameSelect(){
+// Pick a game is the first screen; the course screen's Back returns to it.
+function backToPickGame(){
+  restoreGamePickDrafts();
   state.phase = 'trackChoice';
   saveState(); render();
 }
 
 function renderSetup(){
-  const backBar = `<div class="btn-row" style="margin-top:10px;"><button class="btn btn-outline btn-full" onclick="backToGameSelect()">◀ Back</button></div>`;
+  const backBar = `<div class="btn-row" style="margin-top:10px;"><button class="btn btn-outline btn-full" onclick="backToRoster()">◀ Back</button></div>`;
 
   if(setupMode==='rollReroll') return renderSetupRoll(backBar);
   if(setupMode==='bbb') return renderSetupBBB(backBar);
@@ -5346,9 +5350,9 @@ function renderSetup(){
   const rosterNames = (state.roster||[]).map(p=>p.name);
   return `
   <div class="card">
-    ${topBackLink("backToGameSelect()")}
+    ${topBackLink("backToRoster()")}
     ${gameTitleBadge('captain')}
-    <div class="sub">Slots drive the captain rotation for all 18 holes — shuffle them or keep the order you entered. Each hole, the captain picks one of the other three as a partner — 2 on 2. The Point (points multiplier): <b>${state.pointValue>0?state.pointValue:1}</b> per point.</div>
+    <div class="sub">Slots drive the captain rotation for holes 1-16 — shuffle them or keep the order you entered. Each hole, the captain picks one of the other three as a partner — 2 on 2. Holes 17 and 18 are ⚡ Lightning holes: whoever's furthest down captains. The Point (points multiplier): <b>${state.pointValue>0?state.pointValue:1}</b> per point.</div>
     <div class="grid5">
       <div><label>1 man</label><input class="player-input" type="text" placeholder="Name" value="${escapeAttr(rosterNames[0]||'')}"></div>
       <div><label>2 man</label><input class="player-input" type="text" placeholder="Name" value="${escapeAttr(rosterNames[1]||'')}"></div>
@@ -5383,7 +5387,7 @@ function renderSetupMrPar(backBar){
   const rosterNames = (state.roster||[]).map(p=>p.name);
   return `
   <div class="card">
-    ${topBackLink("backToGameSelect()")}
+    ${topBackLink("backToRoster()")}
     ${gameTitleBadge('mrPar')}
     <div class="sub">Three players, each Wolf on 6 holes. The Point (points multiplier): <b>${state.pointValue>0?state.pointValue:1}</b> per point.</div>
     <label style="margin:4px 0 6px;">How are you playing?</label>
@@ -5411,7 +5415,7 @@ function renderSetupCaptain5(backBar){
   const rotationPreview = computeCaptain5SlotHoles(lightning);
   return `
   <div class="card">
-    ${topBackLink("backToGameSelect()")}
+    ${topBackLink("backToRoster()")}
     ${gameTitleBadge('captain5')}
     <div class="sub">Five players. Every hole a rotating captain picks one of the other four as a partner — 2 on 3 — except the three Lightning holes, where the furthest-down player captains instead. The Point (points multiplier): <b>${state.pointValue>0?state.pointValue:1}</b> per point.</div>
     <div class="grid5">
@@ -5440,7 +5444,7 @@ function renderSetupRoll(backBar){
     : `No Teammate pair marked — the high and low handicaps here will be paired as Team 1.`;
   return `
   <div class="card">
-    ${topBackLink("backToGameSelect()")}
+    ${topBackLink("backToRoster()")}
     ${gameTitleBadge('rollReroll')}
     <div class="sub">Teams are set from the roster's Teammate marks — partners are locked in for the whole round, no captain rotation. Starting value: <b>${state.pointValue>0?state.pointValue:1}</b> per hole.</div>
     <div class="stroke-preview" style="margin-bottom:14px;">${pairNote}</div>
@@ -5467,7 +5471,7 @@ function renderSetupBBB(backBar){
   `).join('');
   return `
   <div class="card">
-    ${topBackLink("backToGameSelect()")}
+    ${topBackLink("backToRoster()")}
     ${gameTitleBadge('bbb')}
     <div class="sub">Bingo Bango Bongo — three points every hole: 🟢 first on the green, 🎯 closest to the pin, 🕳️ first in the hole. Each point earns the value from every other player. Value per point: <b>${state.pointValue>0?state.pointValue:1}</b>.</div>
     <label style="display:block;margin-bottom:6px;">Players</label>
@@ -5487,7 +5491,7 @@ function renderSetupHammer(backBar){
 
   return `
   <div class="card">
-    ${topBackLink("backToGameSelect()")}
+    ${topBackLink("backToRoster()")}
     ${gameTitleBadge('hammer')}
     <div class="sub">Hammer — individual matches, everyone plays everyone else head to head. Pick how many are playing and enter names. Starting value: <b>${state.pointValue>0?state.pointValue:1}</b>.</div>
     <label style="display:block;margin-bottom:6px;">Players</label>
@@ -5511,7 +5515,7 @@ function renderSetupSixSixSix(backBar){
 
   return `
   <div class="card">
-    ${topBackLink("backToGameSelect()")}
+    ${topBackLink("backToRoster()")}
     ${SIXSIXSIX_IMG}
     ${gameTitleBadge('six66')}
     <div class="sub">666 Parlor — scored just like Captain. Fixed 2-on-2 partners that change every 6 holes: the roster's teammate pair for holes 1-6, then the two remaining pairings, in random order, for holes 7-12 and 13-18. The Point (points multiplier): <b>${state.pointValue>0?state.pointValue:1}</b> per point.</div>
@@ -5543,7 +5547,7 @@ function submitHoleSixSixSix(){
     roundingNote: calc.roundingNote, winners: calc.winners, losers: calc.losers
   });
   state.betRate = rate;
-  pendingResult = null; pendingPartner = null; pendingAlone = false; pendingPoints = null; pendingUmbrella = false;
+  pendingResult = null; pendingPartner = null; pendingAlone = false; pendingDivorce = false; pendingPoints = null; pendingUmbrella = false;
   pendingPressCount = 0;
   if(state.currentHole>=18){ state.phase='complete'; } else { state.currentHole+=1; }
   if(state.trackMode==='both' && state.phase!=='complete') state.holeSubPhase='review';
@@ -5619,7 +5623,7 @@ function saveEditedHoleSixSixSix(){
     roundingNote: calc.roundingNote, winners: calc.winners, losers: calc.losers
   };
   editingHole = null;
-  pendingResult=null; pendingPartner=null; pendingAlone=false; pendingPoints=null; pendingUmbrella=false;
+  pendingResult=null; pendingPartner=null; pendingAlone=false; pendingDivorce=false; pendingPoints=null; pendingUmbrella=false;
   saveState(); render();
 }
 
@@ -5795,15 +5799,13 @@ function renderPlaying(){
     <div class="name-row">
       ${others.map(p=>`<button class="${pendingPartner===p?'active-pick':''}" ${pendingAlone?'disabled':''} onclick="selectPartner('${escapeStr(p)}')">${p}${bettingStrokesFor(p,hole)?strokeDotInline():''}</button>`).join('')}
     </div>
-    <div class="btn-row" style="margin:-6px 0 16px;">
-      <button class="btn ${pendingAlone?'btn-gold':'btn-outline'} btn-full" onclick="toggleSweetLou()">${state.mode==='captain'?'🐺':'🐓'} ${pendingAlone ? `Sweet Lou selected — ${state.mode==='captain'?'Wolf':'captain'} is going alone` : `Sweet Lou — ${state.mode==='captain'?'Wolf':'captain'} goes alone vs. all ${state.players.length-1}`}</button>
-    </div>
+    ${soloButtonsHtml()}
 
     ${readyForResult ? `
     <label>Result</label>
     <div class="result-toggle">
-      <button class="${pendingResult==='captainWins'?'active-win':''}" onclick="setResult('captainWins')">${captainWord()}${pendingAlone ? ' wins' : "'s team wins"}</button>
-      <button class="${pendingResult==='captainLoses'?'active-loss':''}" onclick="setResult('captainLoses')">${captainWord()}${pendingAlone ? ' loses' : "'s team loses"}</button>
+      <button class="${pendingResult==='captainWins'?'active-win':''}" onclick="setResult('captainWins')">${soloOrCaptainLabel()}${(pendingAlone||pendingDivorce) ? ' wins' : "'s team wins"}</button>
+      <button class="${pendingResult==='captainLoses'?'active-loss':''}" onclick="setResult('captainLoses')">${soloOrCaptainLabel()}${(pendingAlone||pendingDivorce) ? ' loses' : "'s team loses"}</button>
       <button class="${pendingResult==='push'?'active-push':''}" onclick="setResult('push')">Push / halved</button>
     </div>
     ${pendingResult && pendingResult!=='push' ? `
@@ -5813,7 +5815,7 @@ function renderPlaying(){
       ${[0,1,2,3,4,5,6,7,8].map(n=>`<button onclick="pickPoints(${n})">${n}</button>`).join('')}
     </div>
     ` : ''}
-    ` : `<div class="sub" style="margin-top:-6px;">Pick a partner — or go Sweet Lou — to continue. A${strokeDotInline()} marks a stroke this hole.</div>`}
+    ` : `<div class="sub" style="margin-top:-6px;">Pick a partner — or go Sweet Lou — to continue. After picking, the partner can Divorce. A${strokeDotInline()} marks a stroke this hole.</div>`}
     `;
   }
 
@@ -5830,7 +5832,7 @@ function renderPlaying(){
       <div class="hole-badge">${hole}</div>
       <div>
         ${captain ? `<div class="captain-badge">${state.mode==='captain'?'Wolf':'Captain'}: ${captain}${bettingStrokesFor(captain,hole)?strokeDotInline():''}</div>` : ''}
-        <div class="meta">${lightning ? '<span class="lightning-tag">⚡ Lightning round</span>' : (captain ? (pendingAlone ? `Going alone (Sweet Lou ${state.mode==='captain'?'🐺':'🐓'})` : '') : `${state.mode==='captain'?'Wolf':'Captain'} on the rotation`)}</div>
+        <div class="meta">${lightning ? '<span class="lightning-tag">⚡ Lightning round</span>' : (captain ? (pendingAlone ? `Going alone (Sweet Lou ${state.mode==='captain'?'🐺':'🐓'})` : (pendingDivorce && pendingPartner ? `💔 ${pendingPartner} divorced — going alone` : '')) : `${state.mode==='captain'?'Wolf':'Captain'} on the rotation`)}</div>
         ${rateRow}
       </div>
     </div>
@@ -6013,6 +6015,7 @@ function renderScorecard(){
     const holeRec = state.holes.find(x=>x.hole===h);
     let marker = lightningHoles.includes(h) ? '⚡' : '';
     if(holeRec && holeRec.alone) marker += '🐓';
+    if(holeRec && holeRec.divorce) marker += '💔';
     head += `<th class="${h===10?'divider-col':''}">${h}${marker}</th>`;
   }
   head += `<th class="total">Total</th>`;
@@ -6050,7 +6053,7 @@ function renderScorecard(){
   <div class="card">
     ${gameTitleBadge(state.mode)}
     <h2>Scorecard</h2>
-    <div class="sub">Front nine · Back nine.${state.mode==='mrPar' ? ' 🐓 Sweet Lou (points doubled)' : ((state.mode==='captain'||state.mode==='captain5') ? ' 🐓 Sweet Lou (captain went alone)' : '')}</div>
+    <div class="sub">Front nine · Back nine.${state.mode==='mrPar' ? ' 🐓 Sweet Lou (points doubled)' : ((state.mode==='captain'||state.mode==='captain5') ? ' 🐓 Sweet Lou (captain went alone) · 💔 Divorce (partner went alone)' : '')}</div>
     <div class="view-toggle">
       <button class="${scorecardView==='hole'?'active-view':''}" onclick="setScorecardView('hole')">Hole-by-hole</button>
       <button class="${scorecardView==='cumulative'?'active-view':''}" onclick="setScorecardView('cumulative')">Cumulative</button>
