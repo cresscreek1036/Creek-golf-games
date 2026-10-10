@@ -276,6 +276,14 @@
     font-family:'IBM Plex Sans',sans-serif;color:var(--ink);transition:border-color .15s ease, background .15s ease;
   }
   .mode-card:hover{border-color:var(--gold);background:#FFFBF0;}
+  /* Course list row: ☆ favorite | course card | 🗑 (courses you added). */
+  .course-row{display:flex;gap:8px;align-items:stretch;}
+  .course-row .mode-card{flex:1;min-width:0;}
+  .course-side-btn{
+    flex:0 0 44px;height:44px;align-self:center;border:1.5px solid #cfc7a9;border-radius:12px;background:#fff;cursor:pointer;
+    font-size:1.35rem;line-height:1;color:#8a8a7a;padding:0;
+  }
+  .course-side-btn.on{color:var(--gold);border-color:var(--gold);}
   .mode-card .mode-title{font-family:'Fraunces',serif;font-weight:700;font-size:1.2rem;margin-bottom:5px;}
   .mode-card .mode-desc{font-size:0.85rem;color:#5a5648;line-height:1.5;}
 
@@ -340,6 +348,10 @@
   .point-row .btn img{height:22px !important;margin-right:6px !important;}
   .point-or{font-family:'Fraunces',serif;font-style:italic;font-weight:700;color:#8a8a7a;}
   /* Small Back link in the card's top-left corner, beside the centered title. */
+  .top-back{
+    display:block;background:none;border:none;padding:0;margin:-4px 0 8px;cursor:pointer;
+    font-family:'IBM Plex Sans',sans-serif;font-weight:600;font-size:0.85rem;color:var(--green-mid);
+  }
   .card-title-row{position:relative;}
   .card-back{
     position:absolute;left:0;top:50%;transform:translateY(-50%);
@@ -437,6 +449,8 @@
 const STORAGE_KEY = 'captain-game-state-4man-v1';
 function getSlotHoles(){
   if(state && state.mode==='captain5') return computeCaptain5SlotHoles(getLightningHoles());
+  // 3 Man Wolf: three players, six holes each as Wolf.
+  if(state && state.mode==='mrPar') return {1:[1,4,7,10,13,16], 2:[2,5,8,11,14,17], 3:[3,6,9,12,15,18]};
   return {1:[1,5,9,13,17], 2:[2,6,10,14,18], 3:[3,7,11,15], 4:[4,8,12,16]};
 }
 function getLightningHoles(){
@@ -1241,7 +1255,7 @@ function rollTheDice(){
 function recomputeHolesWithShift(shift){
   for(let idx=0; idx<state.holes.length; idx++){
     const rec = state.holes[idx];
-    if(rec.mode==='captain' || rec.mode==='captain5' || rec.mode==='six66' || rec.mode==='rollReroll'){
+    if(rec.mode==='captain' || rec.mode==='captain5' || rec.mode==='six66' || rec.mode==='rollReroll' || rec.mode==='mrPar'){
       const newBetRate = rec.betRate + shift;
       const totalsBefore = runningTotalsBefore(rec.hole); // reflects holes already recomputed, in order
       const calc = computeHolePayout(rec.captain, rec.partner, rec.outcome, rec.points, newBetRate, state.players, totalsBefore, !!rec.alone);
@@ -1316,6 +1330,7 @@ function getCurrentCaptain(){
 }
 
 function computeHolePayout(captain, partner, outcome, points, betRate, players, totalsBefore, isAlone){
+  if(state.mode==='mrPar') return computeMrParPayout(captain, outcome, points, betRate, players, isAlone);
   const payouts={}; players.forEach(p=>payouts[p]=0);
   if(outcome==='push'){
     return {payouts, pot:0, loserPay:0, roundingNote:'Push — no points change hands.', winners:[], losers:[], isAlone:!!isAlone};
@@ -1369,6 +1384,37 @@ function computeHolePayout(captain, partner, outcome, points, betRate, players, 
   return {payouts, pot, loserPay:flatAmount, winners, losers, roundingNote, isAlone:false};
 }
 
+// 3 Man Wolf, played one of two ways (state.wolf3Variant):
+//   'mrPar' — the Wolf's partner is Mr Par, a make-believe player who nets par
+//             on every hole. Mr Par isn't real, so he never wins or loses anything.
+//   'alone' — the Wolf always plays alone, counted as if he had a partner who
+//             made the same score and earned the same points.
+// Either way the Wolf collects (or gives up) the whole hole: each of the two
+// opponents gives up point value × points, and the Wolf takes twice that.
+// Sweet Lou doubles the points (with Mr Par it also drops him; playing
+// Alone it's an optional extra the group can agree to).
+function wolf3Alone(){ return state && state.wolf3Variant==='alone'; }
+function computeMrParPayout(captain, outcome, points, betRate, players, isAlone){
+  const payouts={}; players.forEach(p=>payouts[p]=0);
+  if(outcome==='push'){
+    return {payouts, pot:0, loserPay:0, roundingNote:'Push — no points change hands.', winners:[], losers:[], isAlone:!!isAlone};
+  }
+  const others = players.filter(p=>p!==captain);
+  const effectivePoints = isAlone ? points*2 : points;
+  const perPlayer = Math.round(betRate*effectivePoints);
+  const captainWins = outcome==='captainWins';
+  others.forEach(p=>payouts[p] = captainWins ? -perPlayer : perPlayer);
+  payouts[captain] = (captainWins ? 1 : -1) * perPlayer*others.length;
+  const alone = wolf3Alone();
+  const roundingNote = isAlone
+    ? `Sweet Lou 🐺 — ${alone ? `${captain} doubled the points` : `${captain} dropped Mr Par and played both alone`} (points auto-doubled to ${effectivePoints} pts).`
+    : (alone
+      ? `${captain} ${captainWins?'won':'lost'} alone, counted as two — ${captainWins?'earns':'gives up'} ${perPlayer*others.length}.`
+      : `${captain} and Mr Par ${captainWins?'won':'lost'} — Mr Par keeps nothing, so ${captain} ${captainWins?'earns':'gives up'} the full ${perPlayer*others.length}.`);
+  return {payouts, pot:perPlayer*others.length, loserPay:perPlayer, roundingNote,
+    winners: captainWins ? [captain] : others, losers: captainWins ? others : [captain], isAlone:!!isAlone};
+}
+
 function computeSettlement(finalTotals){
   let debtors=[], creditors=[];
   for(const p in finalTotals){
@@ -1413,6 +1459,17 @@ function startCaptain5(){
     lightningPick:null, teams:null, currentValue:null, lightningHoles: captain5LightningDraft.slice(),
     slotsShuffled: !keepSlotOrderDraft
   });
+  saveState(); render();
+}
+
+function startMrPar(){
+  const names = [...document.querySelectorAll('.mrpar-input')].map(i=>i.value.trim());
+  if(names.some(n=>!n)){ alert('Enter all 3 player names.'); return; }
+  if(new Set(names.map(n=>n.toLowerCase())).size<3){ alert('Player names must be unique.'); return; }
+  if(!keepSlotOrderDraft)
+    for(let i=names.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [names[i],names[j]]=[names[j],names[i]]; }
+  const rate = state.pointValue>0 ? state.pointValue : 1;
+  Object.assign(state, { phase:'lineup', mode:'mrPar', wolf3Variant: wolf3VariantDraft, players:names, betRate: rate, currentHole:1, holes:[], lightningPick:null, teams:null, currentValue:null, slotsShuffled: !keepSlotOrderDraft });
   saveState(); render();
 }
 
@@ -1636,11 +1693,12 @@ function renderLineup(){
 
   return `
   <div class="card">
+    ${topBackLink("backToSetupFromLineup()")}
     ${gameTitleBadge(state.mode)}
     <h2>${state.slotsShuffled===false ? '⛳' : '🎲'} Lineup Set</h2>
-    <div class="sub">${state.slotsShuffled===false ? 'Slots follow the order you entered' : 'Slots assigned randomly'} — this drives the captain rotation for the round.</div>
+    <div class="sub">${state.slotsShuffled===false ? 'Slots follow the order you entered' : 'Slots assigned randomly'} — this drives the ${state.mode==='mrPar' ? 'Wolf' : 'captain'} rotation for the round.${state.mode==='mrPar' ? (wolf3Alone() ? ' Playing <b>Alone</b>: the Wolf always plays alone against the other two, counted as if he had a partner with the same score and points.' : ' Playing with <b>Mr Par</b>: the Wolf always partners with Mr Par, who makes a net par on every hole.') : ''}</div>
     <table class="standings">
-      <thead><tr><th>Slot</th><th>Player</th><th>Captain on holes</th></tr></thead>
+      <thead><tr><th>Slot</th><th>Player</th><th>${(state.mode==='captain'||state.mode==='mrPar') ? 'Wolf' : 'Captain'} on holes</th></tr></thead>
       <tbody>${rows}</tbody>
     </table>
     <div class="sub" style="margin:14px 0 18px;">The Point (points multiplier): <b>${state.betRate}</b> per point.</div>
@@ -1652,6 +1710,7 @@ function renderLineup(){
 function renderLineupRoll(){
   return `
   <div class="card">
+    ${topBackLink("backToSetupFromLineup()")}
     ${gameTitleBadge('rollReroll')}
     <h2>🎲 Teams Set</h2>
     <div class="sub">Partners are locked in for the whole round — 2 on 2, no captain rotation.</div>
@@ -1676,6 +1735,7 @@ function renderLineupHammer(){
   for(let i=0;i<n;i++) for(let j=i+1;j<n;j++) pairs.push(`${players[i]} vs ${players[j]}`);
   return `
   <div class="card">
+    ${topBackLink("backToSetupFromLineup()")}
     ${gameTitleBadge('hammer')}
     <h2>🔨 Hammer Set</h2>
     <div class="sub">${n} players — ${pairs.length} individual match${pairs.length===1?'':'es'} every hole.</div>
@@ -1694,6 +1754,7 @@ function renderLineupBBB(){
   const players = state.players, n = players.length;
   return `
   <div class="card">
+    ${topBackLink("backToSetupFromLineup()")}
     ${gameTitleBadge('bbb')}
     <h2>🟢 Bingo Bango Bongo Set</h2>
     <div class="sub">${n} players · ${state.currentValue} per point · 3 points up for grabs every hole.</div>
@@ -1717,6 +1778,7 @@ function renderLineupSixSixSix(){
   };
   return `
   <div class="card">
+    ${topBackLink("backToSetupFromLineup()")}
     ${SIXSIXSIX_IMG}
     ${gameTitleBadge('six66')}
     <h2>🎯 666 Parlor Set</h2>
@@ -1769,7 +1831,7 @@ function setScorecardView(v){ scorecardView = v; render(); }
 function submitHole(){
   const captain = getCurrentCaptain();
   if(!captain){ alert('Captain not yet determined for this hole.'); return; }
-  if(!pendingAlone && pendingResult!=='push' && !pendingPartner){ alert("Select the captain's partner."); return; }
+  if(state.mode!=='mrPar' && !pendingAlone && pendingResult!=='push' && !pendingPartner){ alert("Select the captain's partner."); return; }
   let points = 0;
   if(pendingResult!=='push'){
     points = pendingPoints;
@@ -1805,7 +1867,7 @@ function undoLastHole(){
   revealUnveiled = false;
   if(state.trackMode==='both') state.holeSubPhase='game';
   if((removed.mode==='rollReroll' || removed.mode==='hammer' || removed.mode==='bbb') && typeof removed.valueBefore==='number'){ state.currentValue = removed.valueBefore; }
-  if((removed.mode==='captain' || removed.mode==='captain5' || removed.mode==='six66') && typeof removed.valueBefore==='number'){ state.betRate = removed.valueBefore; }
+  if((removed.mode==='captain' || removed.mode==='captain5' || removed.mode==='six66' || removed.mode==='mrPar') && typeof removed.valueBefore==='number'){ state.betRate = removed.valueBefore; }
   pendingResult=null; pendingPartner=null; pendingAlone=false; pendingPoints=null; pendingUmbrella=false;
   pendingRoll=false; pendingReroll=false; pendingPressCount=0; pendingHammerMatches={};
   pendingBBB = {bingo:null, bango:null, bongo:null};
@@ -1819,7 +1881,7 @@ function toggleReroll(){ if(!pendingRoll) pendingRoll = true; pendingReroll = !p
 // currently being played — Captain/666 stick to the shared bet rate; the
 // others use their own running value.
 function currentHoleBaseValue(){
-  if(state.mode==='captain'||state.mode==='captain5'||state.mode==='six66') return state.betRate;
+  if(state.mode==='captain'||state.mode==='captain5'||state.mode==='six66'||state.mode==='mrPar') return state.betRate;
   return state.currentValue;
 }
 function pressValue(){ pendingPressCount += 1; render(); }
@@ -2098,7 +2160,7 @@ function saveEditedHole(){
   if(!rec) return;
   const captain = isLightning(n) ? (editCaptainOverride || rec.captain) : captainForHole(n);
   if(!captain){ alert('Pick who captained this hole.'); return; }
-  if(!pendingAlone && pendingResult!=='push' && !pendingPartner){ alert("Select the captain's partner."); return; }
+  if(state.mode!=='mrPar' && !pendingAlone && pendingResult!=='push' && !pendingPartner){ alert("Select the captain's partner."); return; }
   let points = 0;
   if(pendingResult!=='push'){
     points = pendingPoints;
@@ -2108,7 +2170,9 @@ function saveEditedHole(){
   const totalsBefore = runningTotalsBefore(n);
   const calc = computeHolePayout(captain, pendingAlone?null:pendingPartner, pendingResult, points, rec.betRate, state.players, totalsBefore, pendingAlone);
   const idx = state.holes.findIndex(h=>h.hole===n);
-  state.holes[idx] = {
+  // Keep the rest of the record (mode, valueBefore, pressCount) — Roll the
+  // Dice and Undo both read those.
+  state.holes[idx] = { ...rec,
     hole:n, captain,
     partner:(pendingResult==='push'||pendingAlone)?null:pendingPartner,
     outcome:pendingResult, points, betRate: rec.betRate, alone: pendingAlone,
@@ -2276,6 +2340,7 @@ function renderEditHoleFormHammer(){
 }
 
 function renderEditHoleForm(){
+  if(state.mode==='mrPar') return renderEditHoleFormMrPar();
   const n = editingHole;
   const rec = state.holes.find(h=>h.hole===n);
   if(!rec){ editingHole = null; return state.phase==='complete' ? renderComplete() : renderPlaying(); }
@@ -2403,7 +2468,7 @@ function doNewRound(){
   setupMode = 'captain'; setupStartValue = null; setupTeam1Names = ['',''] ; setupTeam2Names = ['',''];
   setupHammerCount = 4; setupHammerNames = ['','','',''];
   cardDraft = { names:['','','','',''], hcps:['','','','',''], neg:[false,false,false,false,false], teammate:[false,false,false,false,false] };
-  scorecardGamesDraft = { skins:false, stableford:false, quota:false };
+  scorecardGamesDraft = { skins:false, stableford:false, quota:false, ninePoint:false };
   trackChoicePrimary = null;
   pointValueDraft = null;
   diceModeDraft = false; diceMinDraft = 1; diceMaxDraft = 5;
@@ -2608,6 +2673,30 @@ function getRulesGames(){
         'Playing solo (Sweet Lou), each of the three others loses or earns point value × (points × 2), and the captain earns or loses three times that.',
         'Press adds 1 to the point value from that hole on. You can also change The Point mid-round.']]
     ]},
+  { key:'mrPar', icon:'🐺', title:'3 Man Wolf',
+    glance:'Three players, each Wolf (Captain) on 6 holes. Two ways to play: with Mr Par, or Alone.',
+    sections:[
+      ['Setup', [
+        'Three players. The app shuffles them into slots 1-3 at the start, or choose Keep as entered to use the order you typed them in.',
+        'Then pick how you\'re playing: <b>Mr Par</b> or <b>Alone</b> (both below). Wolf and Captain mean the same thing here.']],
+      ['The Wolf', [
+        'Slot 1 is Wolf on holes 1, 4, 7, 10, 13, 16. Slot 2 on 2, 5, 8, 11, 14, 17. Slot 3 on 3, 6, 9, 12, 15, 18.',
+        'The Wolf plays the other two every hole — with Mr Par as a partner, or Alone.']],
+      ['Way 1: Mr Par', [
+        'The Wolf\'s partner is always <b>Mr Par</b>. Wolf and Mr Par play the other two, 2 on 2.',
+        'Mr Par always makes a <b>net par</b>. His par counts alongside the Wolf\'s score, so the Wolf\'s side can win low ball when the opponents both make net bogey or worse.',
+        'Agree before the round how Mr Par is scored — for example, whether he can never earn a Prox or Sneak, or earns one when nobody else does.',
+        '<b>Sweet Lou 🐺:</b> the Wolf can drop Mr Par and go alone against both. The points automatically double.']],
+      ['Way 2: Alone', [
+        'The Wolf always plays alone against the other two. His score and the points he earns count as if he had a partner who made the <b>same score</b> and earned the <b>same points</b>.',
+        'So if the points won or lost on the hole are 6, the Wolf wins or loses 12 (6 from each opponent).',
+        '<b>Sweet Lou 🐺 (optional):</b> not part of the base game, but if your group agrees, Sweet Lou doubles the points again — that 6-point hole becomes 24 for the Wolf.',
+        '<b>Wolf picks the points (optional):</b> some groups let the Wolf pick what the hole is played for at the tee. Use ➖ / ➕ Press to change The Point before recording the hole.']],
+      ['Recording a hole', [
+        'Pick the result: the Wolf\'s side wins, loses, or the hole is pushed. Then enter the net points the players worked out under their rules (0-8). Press adds 1 to the point value from that hole on.']],
+      ['Final results', [
+        'Each opponent gives up <b>point value × points</b>, and the Wolf earns (or gives up) the full amount from both opponents. With Mr Par, he isn\'t real, so he keeps nothing.']]
+    ]},
   { key:'captain5', icon:'captain5', title:'5Man Captain',
     glance:'Five players. Every hole a rotating captain picks a partner and plays 2 on 3, except three Lightning holes.',
     sections:[
@@ -2802,6 +2891,16 @@ function getRulesGames(){
       ['Starting points (optional)', [
         'Enter starting points per player (for example 20). The best finish takes all of them. A tie for best splits them evenly. With no starting points, the finish is shown × The Point.',
         'Quota can be combined with other games.']]
+    ]},
+  { key:'ninePoint', icon:'9️⃣', title:'9 Point',
+    glance:'Three players, 9 points up for grabs every hole, scored off net scores.',
+    sections:[
+      ['Points per hole (net scores)', [
+        'Low score: 5. Second: 3. Third: 1.',
+        'Tie for first: 4 each (third gets 1). Tie for second: 2 each (first gets 5). All three tied: 3 each.']],
+      ['Settling up', [
+        'Each pair settles the gap between their point totals, × The Point. Example: A 60, B 50, C 52 — B gives A 10, C gives A 8, B gives C 2.',
+        '9 Point is a scorecard game: check it on Keeping the players\' scores or under Bonus games. It needs exactly 3 players, and can be combined with other games.']]
     ]}
   ];
 }
@@ -2868,26 +2967,48 @@ document.addEventListener('keydown', e => { if(e.key==='Escape') closeRules(); }
 /* ==========================================================================
    Course select — pick the course, or build a new one by hand
    ========================================================================== */
+// Small "◀ Back" link at the top of a setup card — the same action as the
+// full-width Back button at the bottom of that card.
+function topBackLink(fn){
+  return `<button type="button" class="top-back" onclick="${fn}">◀ Back</button>`;
+}
+
 function courseSummary(c){
   const par = c.holes.reduce((s,h)=>s+h.par, 0);
   const yards = c.holes.reduce((s,h)=>s+(h.yards||0), 0);
   return yards ? `Par ${par} · ${yards} yards` : `Par ${par}`;
 }
 
-// Small text button under a course card, e.g. "☆ Add to favorites" or "Remove …".
-function courseSmallBtn(label, onclick){
-  return `<button class="btn btn-outline" style="font-size:0.75rem;padding:6px 10px;" onclick="${onclick}">${label}</button>`;
+// A course card with a ☆/★ favorite toggle on its left (and, for a course the
+// user added, a 🗑 remove button on its right), all on one line so a list of
+// courses stays compact.
+function courseRow(c, desc, opts){
+  const fav = isFavorite(c.id);
+  const id = escapeStr(c.id);
+  const starClick = opts.confirmUnfavorite ? `unfavoriteWithConfirm('${id}')` : `toggleFavorite('${id}')`;
+  return `
+    <div class="course-row">
+      <button class="course-side-btn ${fav?'on':''}" onclick="${starClick}"
+              aria-label="${fav?'Remove from':'Add to'} favorites" title="${fav?'Remove from':'Add to'} favorites">${fav?'★':'☆'}</button>
+      <button class="mode-card" onclick="chooseCourse('${id}')">
+        <div class="mode-title">${escapeHtml(c.name)}</div>
+        <div class="mode-desc">${desc}</div>
+      </button>
+      ${opts.removable ? `<button class="course-side-btn" onclick="removeCourseWithConfirm('${id}')" aria-label="Remove ${escapeAttr(c.name)}" title="Remove this course">🗑</button>` : ''}
+    </div>`;
+}
+function unfavoriteWithConfirm(id){
+  const c = courses.find(x=>x.id===id);
+  if(c && confirm(`Remove ${c.name} from your favorites?`)) toggleFavorite(id);
+}
+function removeCourseWithConfirm(id){
+  const c = courses.find(x=>x.id===id);
+  if(c && confirm(`Remove ${c.name} from this device? This can't be undone.`)) removeCourse(id);
 }
 
 function renderCourseSelect(){
   const favorites = favoriteCourseIds.map(id => courses.find(c => c.id === id)).filter(Boolean);
-  const favoriteList = favorites.map(c => `
-    <button class="mode-card" onclick="chooseCourse('${escapeStr(c.id)}')">
-      <div class="mode-title">★ ${escapeHtml(c.name)}</div>
-      <div class="mode-desc">${courseSummary(c)}</div>
-    </button>
-    <div style="align-self:flex-start;margin:-6px 0 6px;">${courseSmallBtn('Remove from favorites', `toggleFavorite('${escapeStr(c.id)}')`)}</div>
-  `).join('');
+  const favoriteList = favorites.map(c => courseRow(c, courseSummary(c), { confirmUnfavorite:true })).join('');
   return `
   <div class="card">
     <h2 style="text-align:center;">⛳ Which course?</h2>
@@ -2905,7 +3026,7 @@ function renderCourseSelect(){
     ${favorites.length ? `
     <label style="margin:18px 0 8px;">Favorites</label>
     <div class="mode-row">${favoriteList}</div>` : `
-    <div class="sub" style="text-align:center;margin:16px 0 0;">Tip: tap ☆ Add to favorites under a course and it shows up here.</div>`}
+    <div class="sub" style="text-align:center;margin:16px 0 0;">Tip: tap the ☆ beside a course and it shows up here.</div>`}
   </div>`;
 }
 
@@ -2948,6 +3069,7 @@ function renderCourseList(){
 
   return `
   <div class="card">
+    ${topBackLink("backToCourseSelectTop()")}
     <h2 style="text-align:center;">Select a state</h2>
     <div class="sub" style="text-align:center;">Every course on this device, grouped by state.</div>
     <div class="mode-row">
@@ -2964,19 +3086,11 @@ function renderCourseList(){
 function renderStateCourseList(){
   const region = state.courseListRegion;
   const inRegion = courses.filter(c => courseRegion(c) === region);
-  const list = inRegion.map(c => `
-    <button class="mode-card" onclick="chooseCourse('${escapeStr(c.id)}')">
-      <div class="mode-title">${escapeHtml(c.name)}</div>
-      <div class="mode-desc">${courseSummary(c)}${c.builtIn ? '' : ' · added by you'}</div>
-    </button>
-    <div class="btn-row" style="align-self:flex-start;margin:-6px 0 6px;">
-      ${courseSmallBtn(isFavorite(c.id) ? '★ In favorites' : '☆ Add to favorites', `toggleFavorite('${escapeStr(c.id)}')`)}
-      ${c.builtIn ? '' : courseSmallBtn(`Remove ${escapeHtml(c.name)}`, `removeCourse('${escapeStr(c.id)}')`)}
-    </div>
-  `).join('');
+  const list = inRegion.map(c => courseRow(c, `${courseSummary(c)}${c.builtIn ? '' : ' · added by you'}`, { removable: !c.builtIn })).join('');
 
   return `
   <div class="card">
+    ${topBackLink("backToCourseList()")}
     <h2 style="text-align:center;">${escapeHtml(region)}</h2>
     <div class="sub" style="text-align:center;">Pick a course, or add a new one in ${escapeHtml(region)}.</div>
     <div class="mode-row">
@@ -3244,6 +3358,7 @@ function renderCourseAdd(){
 
   return `
   <div class="card">
+    ${topBackLink("cancelAddCourse()")}
     <h2>＋ Add a course</h2>
     <div class="sub">Copy the 18 holes off the scorecard. Yards are optional; par and hole handicap are what the strokes depend on.</div>
     <label>Course name</label>
@@ -3273,7 +3388,7 @@ function renderCourseAdd(){
     </div>
     <div class="stroke-preview" id="course-check">${courseCheckHtml()}</div>
     <button class="btn btn-gold btn-full" onclick="saveNewCourse()">💾 Save course</button>
-    <div class="btn-row"><button class="btn btn-outline btn-full" onclick="cancelAddCourse()">Cancel</button></div>
+    <div class="btn-row"><button class="btn btn-outline btn-full" onclick="cancelAddCourse()">◀ Back without saving</button></div>
   </div>`;
 }
 
@@ -3364,6 +3479,7 @@ function renderCourseReview(){
 
   return `
   <div class="card">
+    ${topBackLink("backFromCourseReview()")}
     <h2>📋 Review the scorecard</h2>
     <div class="sub">${escapeHtml(c ? c.name : '')} — check this against the printed card, especially the hole handicap (the SI column), since that's what strokes are figured off. Fix anything that's off before you start.</div>
     <div class="grid-hint">↕ Scroll the table to see all 18 holes</div>
@@ -3532,6 +3648,7 @@ function renderRoster(){
     `}
 
     <button class="btn btn-gold btn-full" onclick="confirmRoster()">Continue ▶</button>
+    <div class="btn-row" style="margin-top:10px;"><button class="btn btn-outline btn-full" onclick="backToCourseSelect()">◀ Back</button></div>
   </div>`;
 }
 
@@ -3548,7 +3665,7 @@ function confirmRoster(){
   }
 
   state.roster = roster;
-  scorecardGamesDraft = { skins:false, stableford:false, quota:false };
+  scorecardGamesDraft = { skins:false, stableford:false, quota:false, ninePoint:false };
   trackChoicePrimary = null;
   quotaAnteDraft = null;
   skinsAnteDraft = null;
@@ -3570,7 +3687,7 @@ function backToRoster(){
 // Which score-derived games ride along with the scorecard — reset fresh each
 // time the roster is confirmed. The points multiplier (captured on the roster
 // screen) applies everywhere: the scorecard games and every betting game.
-let scorecardGamesDraft = { skins:false, stableford:false, quota:false };
+let scorecardGamesDraft = { skins:false, stableford:false, quota:false, ninePoint:false };
 let pointValueDraft = null;
 // Roll the Dice: play the round at a placeholder value of 1, then pick the real
 // value (within a range the scorekeeper sets) once the round is over.
@@ -3603,8 +3720,8 @@ function continueFromTrackChoice(){
   alert('Pick a game first.');
 }
 
-const SCORECARD_GAME_LABELS = { skins:'Skins', stableford:'Stableford', quota:'Quota' };
-const BETTING_GAME_LABELS = { captain:'🐺 Wolf', captain5: ROOSTER5_ICON + '5Man Captain', rollReroll:'🎲 Roll & Re-roll', hammer:'🔨 Hammer', bbb:'🟢 Bingo Bango Bongo', six66:'666 Parlor' };
+const SCORECARD_GAME_LABELS = { skins:'Skins', stableford:'Stableford', quota:'Quota', ninePoint:'9 Point' };
+const BETTING_GAME_LABELS = { captain:'🐺 Wolf', mrPar:'🐺 3 Man Wolf', captain5: ROOSTER5_ICON + '5Man Captain', rollReroll:'🎲 Roll & Re-roll', hammer:'🔨 Hammer', bbb:'🟢 Bingo Bango Bongo', six66:'666 Parlor' };
 // A small, consistent "which game is this" tag shown at the top of every
 // setup, lineup, hole, and scorecard screen — so it's never ambiguous which
 // game is currently being kept.
@@ -3617,6 +3734,10 @@ function toggleScorecardGame(key){
   capturePointValueInput();
   captureQuotaAnteInput();
   captureSkinsAnteInput();
+  // 9 Point only works as a threesome — 9 points split three ways each hole.
+  if(key==='ninePoint' && !scorecardGamesDraft[key] && (state.roster||[]).length!==3){
+    alert('9 Point is a 3-player game — enter exactly 3 players on the first screen.'); return;
+  }
   scorecardGamesDraft[key] = !scorecardGamesDraft[key];
   render();
 }
@@ -3677,16 +3798,17 @@ function renderKeepChoice(){
   const names = state.roster.map(p=>p.name).join(', ');
   return `
   <div class="card">
+    ${topBackLink("backToRoster()")}
     <h2 style="text-align:center;">What are you keeping?</h2>
     <div class="sub" style="text-align:center;">${escapeHtml(names)} on ${escapeHtml(currentCourse().name)}.</div>
     <div class="mode-row">
       <button class="mode-card" onclick="chooseKeepMode('games')">
         <div class="mode-title">🎯 Keeping the Game</div>
-        <div class="mode-desc">A points game only — no scorecard, unless you also check Skins, Stableford or Quota on the next screen, which need scores to work.</div>
+        <div class="mode-desc">A points game only — no scorecard, unless you also check Skins, Stableford, Quota or 9 Point on the next screen, which need scores to work.</div>
       </button>
       <button class="mode-card" onclick="chooseKeepMode('scores')">
         <div class="mode-title">⛳ Keeping the players' scores</div>
-        <div class="mode-desc">Post gross scores, hole by hole — with Skins, Stableford, Quota or Naper Vegas if you want.</div>
+        <div class="mode-desc">Post gross scores, hole by hole — with Skins, Stableford, Quota, 9 Point or Naper Vegas if you want.</div>
       </button>
       <button class="mode-card" onclick="chooseKeepMode('both')">
         <div class="mode-title">🎯⛳ Keeping both the Game and the scores</div>
@@ -3714,6 +3836,7 @@ function renderScoresChoice(){
   `).join('');
   return `
   <div class="card">
+    ${topBackLink("backToKeepChoice()")}
     <h2 style="text-align:center;">Keeping the players' scores</h2>
     <div class="sub" style="text-align:center;margin-bottom:14px;">Check any games scored straight off the scorecard, or leave them all off for a plain scorecard.</div>
     <div class="btn-row" style="flex-wrap:wrap;margin-bottom:14px;">${gameToggles}</div>
@@ -3763,11 +3886,12 @@ function renderTrackChoice(){
   const modeNote = trackModeChoice==='both'
     ? 'Both — scores, then the game.'
     : (anyScorecardGameChecked ? 'Game only, but a bonus game is checked — scores will be tracked too.' : 'Game only — no scorecard, unless you check a bonus game below.');
-  const trackNote = `${modeNote} Skins, Stableford, Quota are further down ↓.`;
+  const trackNote = `${modeNote} Skins, Stableford, Quota, 9 Point are further down ↓.`;
   const goLabel = trackChoicePrimary ? `▶ Continue with ${BETTING_GAME_LABELS[trackChoicePrimary].replace(/<[^>]+>/g,'').trim()}` : '▶ Start Hole 1';
 
   return `
   <div class="card">
+    ${topBackLink("backToKeepChoice()")}
     <h2 style="text-align:center;">Pick a game</h2>
     <div class="sub" style="text-align:center;">${escapeHtml(names)} on ${escapeHtml(currentCourse().name)}.</div>
 
@@ -3780,12 +3904,16 @@ function renderTrackChoice(){
         <div class="btn-row" style="flex-direction:column;margin-bottom:14px;">${fourManButtons}</div>
 
         <div style="border-top:1.5px dashed #cfc7a9;margin:2px 0 12px;"></div>
+        <label style="margin:0 0 4px;">3 Man Games</label>
+        <div class="btn-row" style="flex-direction:column;margin-bottom:14px;">${primaryBtn('mrPar', BETTING_GAME_LABELS.mrPar)}</div>
+
+        <div style="border-top:1.5px dashed #cfc7a9;margin:2px 0 12px;"></div>
         <label style="margin:0 0 4px;">Other games — 2 to 4 players</label>
         <div class="btn-row" style="flex-direction:column;margin-bottom:14px;">${otherButtons}</div>
 
         <div style="border-top:1.5px dashed #cfc7a9;margin:2px 0 12px;"></div>
         <label style="margin:0 0 4px;">Bonus games</label>
-        <div class="sub" style="margin:0 0 10px;">Skins, Stableford, Quota — check any to ride along, or on their own. Checking one tracks scores too, even with Game only picked above.</div>
+        <div class="sub" style="margin:0 0 10px;">Skins, Stableford, Quota, 9 Point — check any to ride along, or on their own. Checking one tracks scores too, even with Game only picked above.</div>
         <div class="btn-row" style="flex-wrap:wrap;margin-bottom:14px;">${gameToggles}</div>
         ${scorecardGamesDraft.skins ? `
         <label style="margin:0 0 6px;">Skins points (per player)</label>
@@ -4115,6 +4243,7 @@ function renderNassauSetup(){
 
   return `
   <div class="card">
+    ${topBackLink("backFromNassauSetup()")}
     <h2 style="text-align:center;">${NASSAU_ICON}Nassau</h2>
     <div class="sub" style="text-align:center;margin-bottom:14px;">Front, back, and total — three matches, scored on their own.</div>
     <label style="margin:0 0 6px;">Variant</label>
@@ -4188,8 +4317,8 @@ function enterGameSetup(mode){
   } else if(mode==='six66'){
     setupHammerNames = names.slice(0,4);
     while(setupHammerNames.length < 4) setupHammerNames.push('');
-  } else if(mode==='captain5'){
-    // renderSetupCaptain5 reads names straight from state.roster — nothing to prefill here.
+  } else if(mode==='captain5' || mode==='mrPar'){
+    // These setup screens read names straight from state.roster — nothing to prefill here.
   } else {
     const count = Math.min(Math.max(names.length, 2), 4) || 4;
     setupHammerCount = count;
@@ -4212,7 +4341,7 @@ function initCardPlayersFromRoster(names){
 }
 
 function chooseScorecardOnly(){
-  scorecardGamesDraft = { skins:false, stableford:false, quota:false };
+  scorecardGamesDraft = { skins:false, stableford:false, quota:false, ninePoint:false };
   trackChoicePrimary = null;
   quotaAnteDraft = null;
   skinsAnteDraft = null;
@@ -4781,6 +4910,102 @@ function renderQuotaSection(){
   </div>`;
 }
 
+// 9 Point (3 players): 9 points a hole off net scores — 5 for the low score,
+// 3 for second, 1 for third. Tied players share the points for the places
+// they cover: a tie for first is 4 each (+1 for third), a tie for second is
+// 2 each (+5 for first), and a three-way tie is 3 each. Returns null for a
+// hole that isn't fully posted, or when there aren't exactly 3 players.
+function ninePointHolePoints(h){
+  const players = state.cardPlayers || [];
+  if(players.length!==3) return null;
+  const nets = players.map((p,i)=>{ const g = cardScore(i,h); return g===null ? null : g - strokesForPlayer(i,h); });
+  if(nets.some(n=>n===null)) return null;
+  const placePoints = [5,3,1];
+  return nets.map(n => {
+    const better = nets.filter(x=>x<n).length;
+    const tied = nets.filter(x=>x===n).length; // includes this player
+    const share = placePoints.slice(better, better+tied);
+    return share.reduce((s,v)=>s+v,0) / tied;
+  });
+}
+function ninePointSum(i, from, to){
+  let sum = 0, any = false;
+  for(let h=from; h<=to; h++){
+    const pts = ninePointHolePoints(h);
+    if(pts===null) continue;
+    sum += pts[i]; any = true;
+  }
+  return any ? sum : null;
+}
+// Every pair settles the gap between their totals, × The Point. A player's
+// net is the sum of their gaps with the other two (it all adds up to zero).
+function computeNinePointNet(){
+  const players = state.cardPlayers || [];
+  if(players.length!==3) return null;
+  const pv = state.pointValue>0 ? state.pointValue : 1;
+  const totals = players.map((p,i)=>ninePointSum(i,1,18) || 0);
+  const pairs = [];
+  for(let a=0; a<3; a++) for(let b=a+1; b<3; b++){
+    const gap = totals[a]-totals[b];
+    if(gap===0) continue;
+    const [from, to] = gap>0 ? [b, a] : [a, b];
+    pairs.push({ from: players[from].name, to: players[to].name, pts: Math.abs(gap)*pv });
+  }
+  const rows = players.map((p,i)=>({
+    name: p.name, points: totals[i],
+    net: totals.reduce((s,t,j)=>s + (totals[i]-t), 0) * pv
+  }));
+  return { rows, pairs, pv };
+}
+
+function renderNinePointSection(){
+  if((state.cardPlayers||[]).length!==3){
+    return renderPlaceholderGameSection('9 Point', '9 Point needs exactly 3 players.');
+  }
+  const cell = (i,h) => {
+    const pts = ninePointHolePoints(h);
+    if(pts===null) return `<td class="sc-cell">—</td>`;
+    const v = pts[i];
+    const cls = v===5 ? 'sc-under' : (v===1 ? 'sc-over' : '');
+    return `<td class="sc-cell ${cls}">${v}</td>`;
+  };
+  let head = `<th class="player-name">Hole</th>`;
+  for(let h=1; h<=9; h++) head += `<th>${h}</th>`;
+  head += `<th class="sum-col">OUT</th>`;
+  for(let h=10; h<=18; h++) head += `<th>${h}</th>`;
+  head += `<th class="sum-col">IN</th><th class="sum-col total">TOT</th>`;
+  const rows = state.cardPlayers.map((p,i) => {
+    let cells = `<td class="player-name">${escapeHtml(p.name)}</td>`;
+    for(let h=1; h<=9; h++) cells += cell(i,h);
+    cells += `<td class="sum-col">${fmtSum(ninePointSum(i,1,9))}</td>`;
+    for(let h=10; h<=18; h++) cells += cell(i,h);
+    cells += `<td class="sum-col">${fmtSum(ninePointSum(i,10,18))}</td><td class="sum-col total">${fmtSum(ninePointSum(i,1,18))}</td>`;
+    return `<tr>${cells}</tr>`;
+  }).join('');
+
+  const { rows: netRows, pairs, pv } = computeNinePointNet();
+  const signed = v => v>0 ? `+${v}` : String(v);
+  const netTable = netRows.slice().sort((a,b)=>b.net-a.net).map(r => {
+    const cls = r.net>0 ? 'sc-under' : (r.net<0 ? 'sc-over' : '');
+    return `<tr><td>${escapeHtml(r.name)}</td><td>${r.points}</td><td class="amt ${cls}">${signed(r.net)}</td></tr>`;
+  }).join('');
+  const pairList = pairs.length
+    ? pairs.map(s=>`<li><span><b>${escapeHtml(s.from)}</b> gives <b>${escapeHtml(s.to)}</b></span><span>${s.pts} pt${s.pts===1?'':'s'}</span></li>`).join('')
+    : '<li>Dead even so far.</li>';
+
+  return `
+  <div style="margin-bottom:22px;">
+    <h3 style="margin:0 0 6px;font-family:'Fraunces',serif;">9️⃣ 9 Point</h3>
+    <div class="sub" style="margin-bottom:6px;">Net scores, 9 points a hole: 5 / 3 / 1. Tie for first 4-4-1, tie for second 5-2-2, all tied 3 each. 5s in green, 1s in red.</div>
+    <div class="scorecard-scroll">
+      <table class="scorecard"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table>
+    </div>
+    <table class="standings" style="margin-top:10px;"><thead><tr><th>Player</th><th>Points</th><th style="text-align:right;">Net</th></tr></thead><tbody>${netTable}</tbody></table>
+    <div class="sub" style="margin:8px 0 4px;">Each pair settles the gap between them${pv!==1?` × ${pv}`:''}:</div>
+    <ul class="settle-list">${pairList}</ul>
+  </div>`;
+}
+
 function renderPlaceholderGameSection(label, note){
   return `
   <div style="margin-bottom:22px;">    <h3 style="margin:0 0 6px;font-family:'Fraunces',serif;">🚧 ${escapeHtml(label)}</h3>
@@ -4995,6 +5220,7 @@ function renderCardGamesTab(){
     if(key==='skins') return renderSkinsSection();
     if(key==='stableford') return renderStablefordSection();
     if(key==='quota') return renderQuotaSection();
+    if(key==='ninePoint') return renderNinePointSection();
     if(key==='nv') return renderNaperVegasSection();
     if(key==='nassau') return renderNassauSection();
     return '';
@@ -5021,8 +5247,10 @@ function renderCardComplete(){
   const skinsNet = skinsActive ? computeSkinsNet() : null;
   const nassauActive = hasCardGames() && (state.cardGames||[]).includes('nassau');
   const nassauNet = nassauActive ? computeNassauNet() : null;
-  const moneyNet = skinsNet || nassauNet;
-  const moneySource = skinsNet ? 'skins' : (nassauNet ? 'nassau' : null);
+  const nineActive = hasCardGames() && (state.cardGames||[]).includes('ninePoint');
+  const nineNet = nineActive ? computeNinePointNet() : null;
+  const moneyNet = skinsNet || nassauNet || (nineNet && nineNet.rows);
+  const moneySource = skinsNet ? 'skins' : (nassauNet ? 'nassau' : (nineNet ? 'ninePoint' : null));
   const netMax = moneyNet ? Math.max(...moneyNet.map(r=>r.net)) : null;
   const netChampions = (moneyNet && netMax>0) ? moneyNet.filter(r=>r.net===netMax) : [];
   const useMoneyTrophy = netChampions.length>0;
@@ -5063,7 +5291,22 @@ function renderCardComplete(){
         return `<tr><td>${escapeHtml(r.name)}</td><td class="amt ${cls}">${signed(r.net)}</td></tr>`;
       }).join('')}</tbody>
     </table>
-  </div>` : '');
+  </div>` : (nineNet ? `
+  <div class="card">
+    <h2>9️⃣ 9 Point — Final Tally</h2>
+    <div class="sub">Each pair settles the gap between their point totals${nineNet.pv!==1?` × ${nineNet.pv}`:''}.</div>
+    <table class="standings">
+      <thead><tr><th>Player</th><th>Points</th><th style="text-align:right;">Net</th></tr></thead>
+      <tbody>${nineNet.rows.slice().sort((a,b)=>b.net-a.net).map(r=>{
+        const cls = r.net>0?'pos':(r.net<0?'neg':'');
+        const signed = v=> v>0?'+'+v:String(v);
+        return `<tr><td>${escapeHtml(r.name)}</td><td>${r.points}</td><td class="amt ${cls}">${signed(r.net)}</td></tr>`;
+      }).join('')}</tbody>
+    </table>
+    <ul class="settle-list">
+      ${nineNet.pairs.length ? nineNet.pairs.map(s=>`<li><span><b>${escapeHtml(s.from)}</b> gives <b>${escapeHtml(s.to)}</b></span><span>${s.pts} pt${s.pts===1?'':'s'}</span></li>`).join('') : '<li>No points to hand over — dead even.</li>'}
+    </ul>
+  </div>` : ''));
 
   return `
   ${state.diceMode ? renderDiceBlock() : ''}
@@ -5098,10 +5341,12 @@ function renderSetup(){
   if(setupMode==='hammer') return renderSetupHammer(backBar);
   if(setupMode==='six66') return renderSetupSixSixSix(backBar);
   if(setupMode==='captain5') return renderSetupCaptain5(backBar);
+  if(setupMode==='mrPar') return renderSetupMrPar(backBar);
 
   const rosterNames = (state.roster||[]).map(p=>p.name);
   return `
   <div class="card">
+    ${topBackLink("backToGameSelect()")}
     ${gameTitleBadge('captain')}
     <div class="sub">Slots drive the captain rotation for all 18 holes — shuffle them or keep the order you entered. Each hole, the captain picks one of the other three as a partner — 2 on 2. The Point (points multiplier): <b>${state.pointValue>0?state.pointValue:1}</b> per point.</div>
     <div class="grid5">
@@ -5116,6 +5361,46 @@ function renderSetup(){
   </div>`;
 }
 
+// 3 Man Wolf setup: Mr Par or Alone. Updated in place (like the player-order
+// picker) so names already typed into the form aren't wiped.
+let wolf3VariantDraft = 'mrPar';
+function wolf3VariantNote(){
+  return wolf3VariantDraft==='alone'
+    ? 'The Wolf always plays alone, counted as if he had a partner who made the same score and points — a 6-point hole is 12 for the Wolf.'
+    : 'The Wolf\'s partner is always Mr Par, who makes a net par on every hole.';
+}
+function setWolf3Variant(v){
+  wolf3VariantDraft = v;
+  document.querySelectorAll('[data-wolf3]').forEach(b=>{
+    const on = b.dataset.wolf3===v;
+    b.classList.toggle('btn-gold', on);
+    b.classList.toggle('btn-outline', !on);
+  });
+  const note = document.getElementById('wolf3-variant-note');
+  if(note) note.innerHTML = wolf3VariantNote();
+}
+function renderSetupMrPar(backBar){
+  const rosterNames = (state.roster||[]).map(p=>p.name);
+  return `
+  <div class="card">
+    ${topBackLink("backToGameSelect()")}
+    ${gameTitleBadge('mrPar')}
+    <div class="sub">Three players, each Wolf on 6 holes. The Point (points multiplier): <b>${state.pointValue>0?state.pointValue:1}</b> per point.</div>
+    <label style="margin:4px 0 6px;">How are you playing?</label>
+    <div class="btn-row" style="margin-bottom:6px;">
+      <button class="btn ${wolf3VariantDraft==='mrPar'?'btn-gold':'btn-outline'}" style="flex:1;" data-wolf3="mrPar" onclick="setWolf3Variant('mrPar')">Mr Par</button>
+      <button class="btn ${wolf3VariantDraft==='alone'?'btn-gold':'btn-outline'}" style="flex:1;" data-wolf3="alone" onclick="setWolf3Variant('alone')">Alone</button>
+    </div>
+    <div class="sub" id="wolf3-variant-note" style="margin:0 0 14px;">${wolf3VariantNote()}</div>
+    <div class="grid5">
+      ${[0,1,2].map(i=>`<div><label>${i+1} man</label><input class="mrpar-input" type="text" placeholder="Name" value="${escapeAttr(rosterNames[i]||'')}"></div>`).join('')}
+    </div>
+    ${slotOrderPicker()}
+    <button class="btn btn-gold btn-full tee-off-btn" onclick="startMrPar()">${teeOffLabel()}</button>
+    ${backBar}
+  </div>`;
+}
+
 function renderSetupCaptain5(backBar){
   const rosterNames = (state.roster||[]).map(p=>p.name);
   const lightning = captain5LightningDraft;
@@ -5126,6 +5411,7 @@ function renderSetupCaptain5(backBar){
   const rotationPreview = computeCaptain5SlotHoles(lightning);
   return `
   <div class="card">
+    ${topBackLink("backToGameSelect()")}
     ${gameTitleBadge('captain5')}
     <div class="sub">Five players. Every hole a rotating captain picks one of the other four as a partner — 2 on 3 — except the three Lightning holes, where the furthest-down player captains instead. The Point (points multiplier): <b>${state.pointValue>0?state.pointValue:1}</b> per point.</div>
     <div class="grid5">
@@ -5154,6 +5440,7 @@ function renderSetupRoll(backBar){
     : `No Teammate pair marked — the high and low handicaps here will be paired as Team 1.`;
   return `
   <div class="card">
+    ${topBackLink("backToGameSelect()")}
     ${gameTitleBadge('rollReroll')}
     <div class="sub">Teams are set from the roster's Teammate marks — partners are locked in for the whole round, no captain rotation. Starting value: <b>${state.pointValue>0?state.pointValue:1}</b> per hole.</div>
     <div class="stroke-preview" style="margin-bottom:14px;">${pairNote}</div>
@@ -5180,6 +5467,7 @@ function renderSetupBBB(backBar){
   `).join('');
   return `
   <div class="card">
+    ${topBackLink("backToGameSelect()")}
     ${gameTitleBadge('bbb')}
     <div class="sub">Bingo Bango Bongo — three points every hole: 🟢 first on the green, 🎯 closest to the pin, 🕳️ first in the hole. Each point earns the value from every other player. Value per point: <b>${state.pointValue>0?state.pointValue:1}</b>.</div>
     <label style="display:block;margin-bottom:6px;">Players</label>
@@ -5199,6 +5487,7 @@ function renderSetupHammer(backBar){
 
   return `
   <div class="card">
+    ${topBackLink("backToGameSelect()")}
     ${gameTitleBadge('hammer')}
     <div class="sub">Hammer — individual matches, everyone plays everyone else head to head. Pick how many are playing and enter names. Starting value: <b>${state.pointValue>0?state.pointValue:1}</b>.</div>
     <label style="display:block;margin-bottom:6px;">Players</label>
@@ -5222,6 +5511,7 @@ function renderSetupSixSixSix(backBar){
 
   return `
   <div class="card">
+    ${topBackLink("backToGameSelect()")}
     ${SIXSIXSIX_IMG}
     ${gameTitleBadge('six66')}
     <div class="sub">666 Parlor — scored just like Captain. Fixed 2-on-2 partners that change every 6 holes: the roster's teammate pair for holes 1-6, then the two remaining pairings, in random order, for holes 7-12 and 13-18. The Point (points multiplier): <b>${state.pointValue>0?state.pointValue:1}</b> per point.</div>
@@ -5476,6 +5766,7 @@ function renderPlayingHammer(){
 }
 
 function renderPlaying(){
+  if(state.mode==='mrPar') return renderPlayingMrPar();
   const hole = state.currentHole;
   const lightning = isLightning(hole);
   let captain = null, pickerHtml = '';
@@ -5556,6 +5847,99 @@ function renderPlaying(){
   ${showFullCard ? (state.trackMode==='both' ? renderComboTabBar() + renderComboContent(hole, renderScorecard()) : renderScorecard()) : ''}
   ${state.holes.length ? `<div class="btn-row"><button class="btn btn-outline-light" onclick="undoLastHole()">↩ Undo last hole</button></div>` : `<div class="btn-row"><button class="btn btn-outline-light" onclick="backToLineup()">◀ Back to lineup</button></div>`}
   `;
+}
+
+// 3 Man Wolf: no partner to pick — the Wolf plays with Mr Par (net par every
+// hole) or Alone, depending on how the round was set up. Then the result and
+// points, worked out by the players under their own rules (e.g. whether Mr
+// Par can earn a Prox or Sneak). No Umbrella in this game.
+function mrParResultButtons(onPick){
+  const team = (pendingAlone || wolf3Alone()) ? 'Wolf' : 'Wolf &amp; Mr Par';
+  const s = team==='Wolf' ? 's' : '';
+  return `
+    <label>Result</label>
+    <div class="result-toggle">
+      <button class="${pendingResult==='captainWins'?'active-win':''}" onclick="${onPick}('captainWins')">${team} win${s}</button>
+      <button class="${pendingResult==='captainLoses'?'active-loss':''}" onclick="${onPick}('captainLoses')">${team} lose${s}</button>
+      <button class="${pendingResult==='push'?'active-push':''}" onclick="${onPick}('push')">Push / halved</button>
+    </div>`;
+}
+function mrParSweetLouButton(){
+  return `
+    <div class="btn-row" style="margin:0 0 16px;">
+      <button class="btn ${pendingAlone?'btn-gold':'btn-outline'} btn-full" onclick="toggleSweetLou()">🐺 ${wolf3Alone()
+        ? (pendingAlone ? 'Sweet Lou selected — points doubled' : 'Sweet Lou (optional) — double the points')
+        : (pendingAlone ? 'Sweet Lou selected — Wolf drops Mr Par and goes alone' : 'Sweet Lou — Wolf drops Mr Par, goes alone vs. both')}</button>
+    </div>`;
+}
+
+function renderPlayingMrPar(){
+  const hole = state.currentHole;
+  const captain = captainForHole(hole);
+  const info = holeInfo(hole);
+  const rate = state.betRate + pendingPressCount;
+  const rateRow = state.diceMode && !state.diceRolled
+    ? `<div class="sub" style="margin:10px 0 0;">🎲 Playing at a placeholder value — <b>${rate}</b>/pt${pendingPressCount?` (pressed ${pendingPressCount>0?'+':''}${pendingPressCount})`:''}. Roll the Dice at the end sets the real value.</div>`
+    : `<div style="margin-top:10px;font-size:1.35rem;font-weight:800;color:var(--ink);">This hole: ${rate}/pt</div>${pendingPressCount?`<div class="sub" style="margin:2px 0 0;">(pressed ${pendingPressCount>0?'+':''}${pendingPressCount})</div>`:''}`;
+
+  return `
+  <div class="card">
+    ${gameTitleBadge('mrPar')}
+    <div class="hole-head">
+      <div class="hole-badge">${hole}</div>
+      <div>
+        <div class="captain-badge">Wolf: ${captain}${bettingStrokesFor(captain,hole)?strokeDotInline():''}${(pendingAlone || wolf3Alone()) ? '' : ' + Mr Par'}</div>
+        <div class="meta">${wolf3Alone() ? `Alone, counted as two${pendingAlone ? ' · Sweet Lou 🐺' : ''}` : (pendingAlone ? 'Going alone (Sweet Lou 🐺)' : `Mr Par makes a net par (${info.par})`)} · vs ${state.players.filter(p=>p!==captain).map(p=>`${p}${bettingStrokesFor(p,hole)?strokeDotInline():''}`).join(' &amp; ')}</div>
+        ${rateRow}
+        ${pressButtonsRow()}
+        ${wolf3Alone() ? `<div class="sub" style="margin:4px 0 0;">Wolf picking the points at the tee? Set them with ➖ / ➕ Press.</div>` : ''}
+      </div>
+    </div>
+    ${mrParSweetLouButton()}
+    ${mrParResultButtons('setResult')}
+    ${pendingResult && pendingResult!=='push' ? `
+    <label>Points${pendingAlone ? ' (doubled for Sweet Lou)' : ''}</label>
+    <div class="points-row">
+      ${[0,1,2,3,4,5,6,7,8].map(n=>`<button onclick="pickPoints(${n})">${n}</button>`).join('')}
+    </div>
+    ` : `<div class="sub" style="margin-top:-6px;">A${strokeDotInline()} marks a stroke this hole.</div>`}
+    <div class="btn-row">
+      <button class="btn btn-outline btn-full" onclick="toggleFullCard()">${showFullCard ? '▲ Hide the full scorecard' : '📋 Show the full scorecard'}</button>
+    </div>
+  </div>
+  ${showFullCard ? (state.trackMode==='both' ? renderComboTabBar() + renderComboContent(hole, renderScorecard()) : renderScorecard()) : ''}
+  ${state.holes.length ? `<div class="btn-row"><button class="btn btn-outline-light" onclick="undoLastHole()">↩ Undo last hole</button></div>` : `<div class="btn-row"><button class="btn btn-outline-light" onclick="backToLineup()">◀ Back to lineup</button></div>`}
+  `;
+}
+
+function renderEditHoleFormMrPar(){
+  const n = editingHole;
+  const rec = state.holes.find(h=>h.hole===n);
+  if(!rec){ editingHole = null; return state.phase==='complete' ? renderComplete() : renderPlaying(); }
+  const captain = captainForHole(n);
+  return `
+  <div class="card">
+    <div class="hole-head">
+      <div class="hole-badge">${n}</div>
+      <div>
+        <div class="captain-badge">Wolf: ${captain}${(pendingAlone || wolf3Alone()) ? '' : ' + Mr Par'}</div>
+        <div class="meta">✏️ Editing Hole ${n}</div>
+      </div>
+    </div>
+    ${mrParSweetLouButton()}
+    ${mrParResultButtons('setEditResult')}
+    ${pendingResult && pendingResult!=='push' ? `
+    <label>Points${pendingAlone ? ' (doubled for Sweet Lou)' : ''}</label>
+    <div class="points-row">
+      ${[0,1,2,3,4,5,6,7,8].map(k=>`<button class="${pendingPoints===k?'active-num':''}" onclick="pickPoints(${k})">${k}</button>`).join('')}
+    </div>
+    ${pendingPoints ? `<div class="sub" style="margin:-2px 0 10px;">Selected: <b>${pendingPoints}</b> point${pendingPoints===1?'':'s'}</div>` : ''}
+    ` : ''}
+    <div class="btn-row">
+      <button class="btn btn-primary" style="flex:1;" onclick="saveEditedHole()">💾 Save Hole ${n}</button>
+      <button class="btn btn-outline" onclick="cancelEditHole()">Cancel</button>
+    </div>
+  </div>`;
 }
 
 function renderScorecardRoll(){
@@ -5666,7 +6050,7 @@ function renderScorecard(){
   <div class="card">
     ${gameTitleBadge(state.mode)}
     <h2>Scorecard</h2>
-    <div class="sub">Front nine · Back nine.${(state.mode==='captain'||state.mode==='captain5') ? ' 🐓 Sweet Lou (captain went alone)' : ''}</div>
+    <div class="sub">Front nine · Back nine.${state.mode==='mrPar' ? ' 🐓 Sweet Lou (points doubled)' : ((state.mode==='captain'||state.mode==='captain5') ? ' 🐓 Sweet Lou (captain went alone)' : '')}</div>
     <div class="view-toggle">
       <button class="${scorecardView==='hole'?'active-view':''}" onclick="setScorecardView('hole')">Hole-by-hole</button>
       <button class="${scorecardView==='cumulative'?'active-view':''}" onclick="setScorecardView('cumulative')">Cumulative</button>
@@ -5700,8 +6084,10 @@ function renderFinalReveal(){
     const skinsNet = skinsActive ? computeSkinsNet() : null;
     const nassauActive = hasCardGames() && (state.cardGames||[]).includes('nassau');
     const nassauNet = nassauActive ? computeNassauNet() : null;
-    const moneyNet = skinsNet || nassauNet;
-    const moneySource = skinsNet ? 'skins' : (nassauNet ? 'nassau' : null);
+    const nineActive = hasCardGames() && (state.cardGames||[]).includes('ninePoint');
+    const nineNet = nineActive ? computeNinePointNet() : null;
+    const moneyNet = skinsNet || nassauNet || (nineNet && nineNet.rows);
+    const moneySource = skinsNet ? 'skins' : (nassauNet ? 'nassau' : (nineNet ? 'ninePoint' : null));
     const netMax = moneyNet ? Math.max(...moneyNet.map(r=>r.net)) : null;
     const netChampions = (moneyNet && netMax>0) ? moneyNet.filter(r=>r.net===netMax) : [];
     const useMoneyTrophy = netChampions.length>0;
@@ -5709,7 +6095,7 @@ function renderFinalReveal(){
     trophyHeadline = useMoneyTrophy
       ? `${escapeHtml(trophyName)} ${netChampions.length>1?'share':'takes home'} the rooster${netChampions.length>1?'!':' — up '+netMax+' net!'}`
       : (best ? `${escapeHtml(trophyName)} takes home the rooster!` : '');
-    const moneyLabel = moneySource==='skins' ? 'Skins' : 'Nassau';
+    const moneyLabel = moneySource==='skins' ? 'Skins' : (moneySource==='ninePoint' ? '9 Point' : 'Nassau');
     trophySub = useMoneyTrophy
       ? (netChampions.length>1 ? `Tied at <b>${netMax}</b> net for ${moneyLabel}.` : `Leads ${moneyLabel}, net.`)
       : (best ? `Low gross of the round.` : '');
