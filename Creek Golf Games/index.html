@@ -333,6 +333,7 @@
   /* ---------- Player roster / course handicap ---------- */
   /* Player | Handicap (− toggle + field) | Strokes | Teammate */
   .hcp-grid{display:grid;grid-template-columns:1fr 110px 48px 56px;gap:0 8px;align-items:end;}
+  .hcp-grid.no-mate{grid-template-columns:1fr 110px 48px;}
   .hcp-grid .card-name{padding:10px 8px;margin-bottom:8px;}
   .hcp-grid .card-hcp{padding:10px 4px;text-align:center;}
   /* Handicap header: a slot over the − toggle (holds the blue ⓘ), then the
@@ -3595,18 +3596,24 @@ function refreshStrokePreview(){
   });
 }
 
+// Games that pair two players up from the roster's Teammate marks.
+const TEAMMATE_GAMES = ['rollReroll','six66','nv','nassau'];
+
 function renderRoster(){
   const d = cardDraft;
+  // Only show the Teammate column for a game that uses it.
+  const showMate = TEAMMATE_GAMES.includes(state.gamePick && state.gamePick.primary);
+  const grid = showMate ? 'hcp-grid' : 'hcp-grid no-mate';
   const header = `
-    <div class="hcp-grid" style="margin-bottom:2px;">
+    <div class="${grid}" style="margin-bottom:2px;">
       <label style="margin:0;">Player</label>
       <div class="hcp-head"><span class="hcp-slot"><span class="hcp-info">i</span></span><label>Handicap</label></div>
       <label class="col-head">Strokes</label>
-      <label class="col-head">Teammate</label>
+      ${showMate ? '<label class="col-head">Teammate</label>' : ''}
     </div>`;
   const strokes = draftStrokes();
   const rows = [0,1,2,3,4].map(i => `
-    <div class="hcp-grid">
+    <div class="${grid}">
       <div>
         <input class="card-name" type="text" placeholder="Name" autocomplete="off" value="${escapeAttr(d.names[i])}" oninput="refreshStrokePreview()">
       </div>
@@ -3618,10 +3625,10 @@ function renderRoster(){
         </div>
       </div>
       <div class="strokes-box" id="strokes-${i}">${strokes[i]}</div>
-      <div>
+      ${showMate ? `<div>
         <button type="button" class="teammate-toggle ${d.teammate[i]?'on':''}" onclick="toggleTeammate(${i})"
                 title="Mark as one of the two teammates">${d.teammate[i]?'✓':''}</button>
-      </div>
+      </div>` : ''}
     </div>`).join('');
 
   return `
@@ -3630,7 +3637,7 @@ function renderRoster(){
     <h2 style="text-align:center;">Who's playing?</h2>
     <div class="sub">${escapeHtml(currentCourse().name)} · Par ${parTotal(1,18)}<br><button type="button" style="background:none;border:none;padding:0;font:inherit;font-weight:600;color:var(--green-mid);text-decoration:underline;cursor:pointer;" onclick="openCourseReview()">📋 Review/edit scorecard</button></div>
 
-    <div class="sub" style="margin:0 0 14px;">Check <b>Teammate</b> for the two who are partnered up.</div>
+    ${showMate ? `<div class="sub" style="margin:0 0 14px;">Check <b>Teammate</b> for the two who are partnered up.</div>` : ''}
     ${header}
     ${rows}
     <div class="sub" style="margin:-4px 0 14px;"><span class="hcp-info">i</span>Tap − for a plus handicap.</div>
