@@ -76,6 +76,7 @@
   #rules-overlay{display:none;position:fixed;inset:0;z-index:1000;overflow-y:auto;padding:calc(28px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) calc(60px + env(safe-area-inset-bottom)) calc(16px + env(safe-area-inset-left));
     background:radial-gradient(circle at 20% 0%, var(--green-mid), var(--green-deep) 65%);}
   .rules-body h2{margin:0 0 10px;}
+  .rules-agree{margin:8px 0 12px;padding:8px 10px;border:1.5px dashed #cfc7a9;border-radius:9px;font-size:0.85rem;line-height:1.45;color:var(--ink);}
   .rules-body h3{font-family:'Fraunces',serif;font-size:1.05rem;margin:18px 0 6px;color:var(--ink);}
   .rules-body p{margin:0 0 8px;font-size:0.92rem;line-height:1.55;color:var(--ink);}
   .rules-body ul{margin:0 0 6px;padding-left:20px;}
@@ -2627,14 +2628,16 @@ function getRulesGames(){
       ['Choosing a partner', [
         'The captain (Wolf) tees off last, after watching the other three hit.',
         'Right after each of the first three players hits, the captain can choose them as a partner on the spot, or wait and see the next one. Once play moves on to the next player, an earlier one can\'t be picked anymore.',
-        'If the captain passes on all three, they\'re playing the hole alone — that\'s Sweet Lou (Lone Wolf), below.']],
+        'If the captain passes on all three, they\'re playing the hole alone — that\'s Sweet Lou (Lone Wolf), below.',
+        'If the group allows it, the picked partner can turn the captain down and go alone instead — that\'s Divorce (optional), below.']],
       ['⚡ Lightning holes (17 and 18)', [
         'On a Lightning hole, whoever is furthest down in the running total is suggested as captain — tap any name to hand the pick to someone else instead. Ties are decided by the group.',
         'Everything else about the hole — partner, Sweet Lou, Divorce, result, points, Umbrella — works exactly the same as a rotation hole.']],
       ['Sweet Lou (Lone Wolf) 🐺', [
         'The captain can go alone against all three. The points automatically double.',
         'Some groups prefer a lighter version instead of the full double: enter half of what the hole was actually worth, rounding up if it isn\'t a whole number (1.5 rounds up to 2). The captain still feels it for going alone, just not as steep as doubling.']],
-      ['Divorce 💔', [
+      ['Divorce 💔 (optional)', [
+        'An option the group can allow or not — agree before the round.',
         'After the captain picks a partner, that player can <b>divorce</b> (reject) the captain. The partner then becomes the captain for that hole and goes alone against the other three.',
         'It works just like Sweet Lou: the points automatically double, and the player who divorced wins or loses the full amount from each of the other three.',
         'Divorce doesn\'t change the rotation. The next hole\'s captain is the same as it would have been.',
@@ -2696,14 +2699,16 @@ function getRulesGames(){
       ['Choosing a partner', [
         'On a rotation hole, the captain tees off last, after watching the other four hit.',
         'Right after each of the first three players hits, the captain can choose them as a partner on the spot, or wait and see the next one. Once play moves on to the next player, an earlier one can\'t be picked anymore.',
-        'If the captain passes on all four, they\'re playing the hole alone — that\'s Sweet Lou, below.']],
+        'If the captain passes on all four, they\'re playing the hole alone — that\'s Sweet Lou, below.',
+        'If the group allows it, the picked partner can turn the captain down and go alone instead — that\'s Divorce (optional), below.']],
       ['⚡ Lightning holes', [
         'On a Lightning hole, whoever is furthest down in the running total is suggested as captain — tap any name to hand the pick to someone else instead, the same way the table would talk through deferring it in person. Ties are decided by the group.',
-        'Everything else about the hole — partner, Sweet Lou, result, points, Umbrella — works exactly the same as a rotation hole.']],
+        'Everything else about the hole — partner, Sweet Lou, Divorce, result, points, Umbrella — works exactly the same as a rotation hole.']],
       ['Sweet Lou 🐓', [
         'The captain can go alone against all four. The points automatically double.',
         'Some groups prefer a lighter version instead of the full double: enter half of what the hole was actually worth, rounding up if it isn\'t a whole number (1.5 rounds up to 2). The captain still feels it for going alone, just not as steep as doubling.']],
-      ['Divorce 💔', [
+      ['Divorce 💔 (optional)', [
+        'An option the group can allow or not — agree before the round.',
         'After the captain picks a partner, that player can <b>divorce</b> (reject) the captain. The partner then becomes the captain for that hole and goes alone against the other four.',
         'It works just like Sweet Lou: the points automatically double, and the player who divorced wins or loses the full amount from each of the other four.',
         'Divorce doesn\'t change the rotation. The next hole\'s captain is the same as it would have been.',
@@ -2927,6 +2932,8 @@ function rulesIcon(g){
   if(g.icon==='captain5') return ROOSTER5_ICON;
   return g.icon + ' ';
 }
+// Shown on the rules list and every game's page.
+const RULES_AGREE_NOTE = '🤝 All of these rules can be changed by the players. Agree before the round starts on what\'s allowed.';
 function renderRules(){
   const card = document.getElementById('rules-card');
   const games = getRulesGames();
@@ -2934,6 +2941,7 @@ function renderRules(){
     card.innerHTML = `
       <h2 style="text-align:center;">📖 Game Rules</h2>
       <div class="sub" style="text-align:center;">Tap a game to read how it works.</div>
+      <div class="rules-agree">${RULES_AGREE_NOTE}</div>
       <div class="btn-row" style="flex-direction:column;margin-bottom:14px;">
         ${games.map(g=>`<button class="btn btn-outline btn-full" onclick="showRulesGame('${g.key}')">${rulesIcon(g)}${g.title}</button>`).join('')}
       </div>
@@ -2948,6 +2956,7 @@ function renderRules(){
     </div>
     <h2>${rulesIcon(g)}${g.title}</h2>
     <div class="rules-glance">${g.glance}</div>
+    <div class="rules-agree">${RULES_AGREE_NOTE}</div>
     ${g.sections.map(([h, items])=>`<h3>${h}</h3><ul>${items.map(t=>`<li>${t}</li>`).join('')}</ul>`).join('')}
     <div class="btn-row" style="margin-top:16px;">
       <button class="btn btn-gold" style="flex:1;" onclick="backToRulesList()">◀ All games</button>
