@@ -440,6 +440,10 @@
   table.scorecard .sc-here{box-shadow:inset 0 0 0 2px var(--gold);}
   .sc-under{color:#3f7a3f;font-weight:700;}
   .sc-over{color:var(--red);}
+  /* Skins grid: a won skin is circled; a win that didn't validate is struck through. */
+  .skin-win{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 2px;box-sizing:border-box;
+    border-radius:50%;border:2px solid #3f7a3f;background:#e3f0dc;color:#3f7a3f;font-weight:700;}
+  .skin-void{color:#8a8a7a;text-decoration:line-through;}
 </style>
 </head>
 <body>
@@ -2610,7 +2614,7 @@ function getRulesGames(){
       ['Picking a game', [
         'Pick the game first, then the course, then the players and The Point.',
         'Points games keep both the scores and the game by default: enter scores each hole, then record the game\'s result. Tap <b>Game only (no scorecard)</b> to skip the scores. <b>⛳ Just keep the scores</b>, beside the Pick a game title, is a plain scorecard.',
-        'Skins, Stableford, Quota and 9 Point need scores, so checking one always keeps scores. Naper Vegas and Nassau are played on their own.']],
+        'Skins, Stableford, Quota and 5-3-1 need scores, so checking one always keeps scores. Naper Vegas and Nassau are played on their own.']],
       ['Roll the Dice', [
         'An option next to The Point on the Who\'s playing? screen. Turn it on and set a Low and High instead of a fixed point value.',
         'The round is played at a placeholder of 1 per point (presses still add +1 each, and stick). At the end, tap 🎲 Roll the Dice — it picks a number in your range and reapplies the whole round at that value, presses included.',
@@ -2891,7 +2895,7 @@ function getRulesGames(){
         'Enter starting points per player (for example 20). The best finish takes all of them. A tie for best splits them evenly. With no starting points, the finish is shown × The Point.',
         'Quota can be combined with other games.']]
     ]},
-  { key:'ninePoint', icon:'9️⃣', title:'9 Point',
+  { key:'ninePoint', icon:'5️⃣', title:'5-3-1',
     glance:'Three players, 9 points up for grabs every hole, scored off net scores.',
     sections:[
       ['Points per hole (net scores)', [
@@ -2899,7 +2903,7 @@ function getRulesGames(){
         'Tie for first: 4 each (third gets 1). Tie for second: 2 each (first gets 5). All three tied: 3 each.']],
       ['Settling up', [
         'Each pair settles the gap between their point totals, × The Point. Example: A 60, B 50, C 52 — B gives A 10, C gives A 8, B gives C 2.',
-        '9 Point is a scorecard game: check it under Bonus games on Pick a game. It needs exactly 3 players, and can be combined with other games.']]
+        'Pick 5-3-1 on Pick a game. It keeps scores, needs exactly 3 players, and can be combined with the Bonus games.']]
     ]}
   ];
 }
@@ -3750,6 +3754,8 @@ function continueFromTrackChoice(){
   captureSkinsAnteInput();
   const standalone = trackChoicePrimary==='nv' || trackChoicePrimary==='nassau';
   const bonus = standalone ? { skins:false, stableford:false, quota:false, ninePoint:false } : { ...scorecardGamesDraft };
+  // 5-3-1 is picked in the top section but is scored as a scorecard game.
+  bonus.ninePoint = trackChoicePrimary==='ninePoint';
   if(!trackChoicePrimary && !Object.values(bonus).some(v=>v)){ alert('Pick a game first.'); return; }
   // Kept in state (not just the drafts) so the pick survives the app being
   // reloaded on the course or players screen.
@@ -3779,9 +3785,9 @@ function restoreGamePickDrafts(){
 function launchPickedGame(){
   if(!restoreGamePickDrafts()){ state.phase = 'trackChoice'; saveState(); render(); return; }
   const pick = state.gamePick;
-  // 9 Point only works as a threesome — 9 points split three ways each hole.
+  // 5-3-1 only works as a threesome — 9 points split three ways each hole.
   if(scorecardGamesDraft.ninePoint && state.roster.length!==3){
-    alert('9 Point is a 3-player game — enter exactly 3 players.'); return;
+    alert('5-3-1 is a 3-player game — enter exactly 3 players.'); return;
   }
   if(pick.primary==='nv'){ startNaperVegas(); return; }
   if(pick.primary==='nassau'){ openNassauSetup(); return; }
@@ -3789,7 +3795,9 @@ function launchPickedGame(){
   startScorecardOnly(); // ⛳ Just keep the scores, or bonus games on their own
 }
 
-const SCORECARD_GAME_LABELS = { skins:'Skins', stableford:'Stableford', quota:'Quota', ninePoint:'9 Point' };
+const SCORECARD_GAME_LABELS = { skins:'Skins', stableford:'Stableford', quota:'Quota', ninePoint:'5-3-1' };
+// The Bonus games toggles — 5-3-1 is picked from the main game list instead.
+const BONUS_GAME_KEYS = ['skins','stableford','quota'];
 // Pick a game choices that aren't points games: they start the scorecard directly.
 const OTHER_GAME_LABELS = { nv: NAPERVEGAS_ICON + 'Naper Vegas', nassau: NASSAU_ICON + 'Nassau', scores: '⛳ Just keep the scores' };
 const BETTING_GAME_LABELS = { captain:'🐺 Wolf', mrPar:'🐺 3 Man Wolf', captain5: ROOSTER5_ICON + '5Man Captain', rollReroll:'🎲 Roll & Re-roll', hammer:'🔨 Hammer', bbb:'🟢 Bingo Bango Bongo', six66:'666 Parlor' };
@@ -3858,15 +3866,17 @@ function setTrackModeChoice(mode){
 }
 
 function renderTrackChoice(){
-  const gameToggles = Object.keys(SCORECARD_GAME_LABELS).map(key => `
+  const gameToggles = BONUS_GAME_KEYS.map(key => `
     <button class="btn game-btn ${scorecardGamesDraft[key]?'btn-gold':'btn-outline'}" onclick="toggleScorecardGame('${key}')">${SCORECARD_GAME_LABELS[key]}</button>
   `).join('');
   const gameBtn = (mode, label) =>
     `<button class="btn game-btn ${trackChoicePrimary===mode?'btn-gold':'btn-outline'}" onclick="selectPrimaryGame('${mode}')">${label}</button>`;
-  const gameOrder = ['captain5','captain','rollReroll','six66','mrPar','hammer','bbb'];
+  const gameOrder = ['captain5','captain','rollReroll','six66','bbb'];
   const gameButtons = gameOrder.map(mode =>
     gameBtn(mode, `${mode==='six66'?SIXSIXSIX_ICON:''}${BETTING_GAME_LABELS[mode]}`)
-  ).join('') + gameBtn('nv', OTHER_GAME_LABELS.nv) + gameBtn('nassau', OTHER_GAME_LABELS.nassau);
+  ).join('') + gameBtn('nv', OTHER_GAME_LABELS.nv) + gameBtn('nassau', OTHER_GAME_LABELS.nassau)
+    + gameBtn('mrPar', BETTING_GAME_LABELS.mrPar) + gameBtn('hammer', BETTING_GAME_LABELS.hammer)
+    + gameBtn('ninePoint', SCORECARD_GAME_LABELS.ninePoint);
   // Naper Vegas and Nassau need the round to themselves — no bonus games.
   const standalone = trackChoicePrimary==='nv' || trackChoicePrimary==='nassau';
   const isBettingGame = !!BETTING_GAME_LABELS[trackChoicePrimary];
@@ -3887,8 +3897,7 @@ function renderTrackChoice(){
 
     ${standalone ? '' : `
     <div style="border-top:1.5px dashed #cfc7a9;margin:12px 0 8px;"></div>
-    <label style="margin:0 0 2px;">Bonus games</label>
-    <div class="sub" style="margin:0 0 6px;">Combine with a game, or play alone.</div>
+    <div style="margin:0 0 6px;white-space:nowrap;"><label style="display:inline;margin:0;">Bonus games</label> <span class="sub" style="margin:0;font-size:min(0.85rem,3vw);">— combine with a game, or play alone.</span></div>
     <div class="game-grid three" style="margin-bottom:10px;">${gameToggles}</div>
     ${scorecardGamesDraft.skins ? `
     <label style="margin:0 0 6px;">Skins points (per player)</label>
@@ -4773,30 +4782,58 @@ function renderSkinsSection(){
   const r2 = v => Math.round(v*100)/100;
   const perSkin = (ante>0 && totalSkins>0) ? (ante*n)/totalSkins : 0;
   const signed = v => v>0 ? `+${v}` : String(v);
-  // Which holes each player actually kept a skin on — a push or a voided
-  // (un-validated) win doesn't count here, only the ones that paid off.
-  const holesByName = {};
-  state.cardPlayers.forEach(p => { holesByName[p.name] = []; });
-  log.forEach(l => {
-    if(l.winner!=null && !l.voided) holesByName[state.cardPlayers[l.winner].name].push(l.hole);
-  });
-  const holesCell = name => `<td style="font-size:0.78rem;color:#6b6656;">${(holesByName[name]||[]).join(', ') || '—'}</td>`;
+  // Scorecard grid: the winner's box on each hole shows the skins it was
+  // worth (1, or more with carryovers), circled. A tied hole is left blank;
+  // a hole not worked out yet shows —.
+  const byHole = {};
+  log.forEach(l => { byHole[l.hole] = l; });
+  const skinsSum = (i, from, to) => {
+    let sum = 0, any = false;
+    for(let h=from; h<=to; h++){
+      const l = byHole[h];
+      if(!l) continue;
+      any = true;
+      if(l.winner===i && !l.voided) sum += l.skins;
+    }
+    return any ? sum : null;
+  };
+  const cell = (i,h) => {
+    const l = byHole[h];
+    if(!l) return `<td class="sc-cell">—</td>`;
+    if(l.winner!==i) return `<td class="sc-cell"></td>`;
+    return l.voided
+      ? `<td class="sc-cell"><span class="skin-void">${l.skins}</span></td>`
+      : `<td class="sc-cell"><span class="skin-win">${l.skins}</span></td>`;
+  };
+  let gridHead = `<th class="player-name">Hole</th>`;
+  for(let h=1; h<=9; h++) gridHead += `<th>${h}</th>`;
+  gridHead += `<th class="sum-col">OUT</th>`;
+  for(let h=10; h<=18; h++) gridHead += `<th>${h}</th>`;
+  gridHead += `<th class="sum-col">IN</th><th class="sum-col total">TOT</th>`;
+  const gridRows = state.cardPlayers.map((p,i) => {
+    let cells = `<td class="player-name">${escapeHtml(p.name)}</td>`;
+    for(let h=1; h<=9; h++) cells += cell(i,h);
+    cells += `<td class="sum-col">${fmtSum(skinsSum(i,1,9))}</td>`;
+    for(let h=10; h<=18; h++) cells += cell(i,h);
+    cells += `<td class="sum-col">${fmtSum(skinsSum(i,10,18))}</td><td class="sum-col total">${fmtSum(skinsSum(i,1,18))}</td>`;
+    return `<tr>${cells}</tr>`;
+  }).join('');
   let head, rows, potNote = '';
   if(ante>0){
     const net = computeSkinsNet();
-    head = '<th>Player</th><th>Skins</th><th>Points won</th><th style="text-align:right;">Net</th><th>Holes</th>';
+    head = '<th>Player</th><th>Skins</th><th>Points won</th><th style="text-align:right;">Net</th>';
     rows = net.map(r => {
       const cls = r.net>0 ? 'sc-under' : (r.net<0 ? 'sc-over' : '');
-      return `<tr><td>${escapeHtml(r.name)}</td><td>${r.skins}</td><td>${r.pts}</td><td class="amt ${cls}">${signed(r.net)}</td>${holesCell(r.name)}</tr>`;
+      return `<tr><td>${escapeHtml(r.name)}</td><td>${r.skins}</td><td>${r.pts}</td><td class="amt ${cls}">${signed(r.net)}</td></tr>`;
     }).join('');
     potNote = totalSkins>0
       ? `<div class="stroke-preview" style="margin-top:10px;">Points pool: <b>${ante*n}</b> (${ante} × ${n} players) — ${totalSkins} skin${totalSkins===1?'':'s'} won, <b>${r2(perSkin)}</b> per skin.</div>`
       : `<div class="stroke-preview" style="margin-top:10px;">Points pool: <b>${ante*n}</b> (${ante} × ${n} players) — no skins won yet.</div>`;
   } else {
-    head = '<th>Player</th><th>Skins</th><th>Holes</th>';
+    head = '<th>Player</th><th>Skins</th>';
     rows = state.cardPlayers.map((p,i) => {
       const amt = pt ? ` <span style="color:#8a8a7a;">(${won[i]*pt})</span>` : '';
-      return `<tr><td>${escapeHtml(p.name)}</td><td class="amt">${won[i]}${amt}</td>${holesCell(p.name)}</tr>`;
+      return `<tr><td>${escapeHtml(p.name)}</td><td class="amt">${won[i]}${amt}</td></tr>`;
     }).join('');
   }
   const carryNote = carry>0 ? `<div class="sub" style="margin-top:6px;">${carry} skin${carry===1?'':'s'} carrying into the next hole.</div>` : '';
@@ -4806,8 +4843,11 @@ function renderSkinsSection(){
   return `
   <div style="margin-bottom:22px;">
     <h3 style="margin:0 0 6px;font-family:'Fraunces',serif;">⛳ Skins</h3>
-    <div class="sub" style="margin-bottom:6px;">Net score wins the hole outright; ${carryDesc}${validateDesc}.</div>
-    <table class="standings"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table>
+    <div class="sub" style="margin-bottom:6px;">Net score wins the hole outright; ${carryDesc}${validateDesc}. Circled numbers are skins won on that hole.</div>
+    <div class="scorecard-scroll">
+      <table class="scorecard"><thead><tr>${gridHead}</tr></thead><tbody>${gridRows}</tbody></table>
+    </div>
+    <table class="standings" style="margin-top:10px;"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table>
     ${potNote}
     ${carryNote}
     ${voidedNote}
@@ -4872,8 +4912,43 @@ function computeQuota(){
   });
 }
 
+// Points on one hole for one player (gross, no strokes), or null if not posted.
+function quotaHolePoints(i, h){
+  const g = cardScore(i, h);
+  return g===null ? null : quotaPoints(g, holeInfo(h).par);
+}
+function quotaSum(i, from, to){
+  let sum = 0, any = false;
+  for(let h=from; h<=to; h++){
+    const pts = quotaHolePoints(i,h);
+    if(pts===null) continue;
+    sum += pts; any = true;
+  }
+  return any ? sum : null;
+}
+
 function renderQuotaSection(){
   const results = computeQuota().slice().sort((a,b)=>b.finish-a.finish);
+  // Per-hole points grid, same look as Stableford: birdie or better in green, 0 in red.
+  const cell = (i,h) => {
+    const pts = quotaHolePoints(i,h);
+    const cls = pts===null ? '' : (pts>=3 ? 'sc-under' : (pts===0 ? 'sc-over' : ''));
+    return `<td class="sc-cell ${cls}">${pts===null ? '—' : pts}</td>`;
+  };
+  let head = `<th class="player-name">Hole</th>`;
+  for(let h=1; h<=9; h++) head += `<th>${h}</th>`;
+  head += `<th class="sum-col">OUT</th>`;
+  for(let h=10; h<=18; h++) head += `<th>${h}</th>`;
+  head += `<th class="sum-col">IN</th><th class="sum-col total">TOT</th>`;
+  const gridRows = results.map(r => {
+    const i = state.cardPlayers.findIndex(p=>p.name===r.name);
+    let cells = `<td class="player-name">${escapeHtml(r.name)}</td>`;
+    for(let h=1; h<=9; h++) cells += cell(i,h);
+    cells += `<td class="sum-col">${fmtSum(quotaSum(i,1,9))}</td>`;
+    for(let h=10; h<=18; h++) cells += cell(i,h);
+    cells += `<td class="sum-col">${fmtSum(quotaSum(i,10,18))}</td><td class="sum-col total">${fmtSum(quotaSum(i,1,18))}</td>`;
+    return `<tr>${cells}</tr>`;
+  }).join('');
   const ante = state.quotaAnte;
   const pt = state.pointValue;
   const rows = results.map(r => {
@@ -4898,13 +4973,16 @@ function renderQuotaSection(){
   return `
   <div style="margin-bottom:22px;">
     <h3 style="margin:0 0 6px;font-family:'Fraunces',serif;">📊 Quota</h3>
-    <div class="sub" style="margin-bottom:6px;">Gross points per hole (par 2, birdie 3, eagle 4, bogey 1, worse 0) against a quota of 36 minus handicap.</div>
-    <table class="standings"><thead><tr><th>Player</th><th>Points</th><th style="text-align:right;">Finish</th></tr></thead><tbody>${rows}</tbody></table>
+    <div class="sub" style="margin-bottom:6px;">Gross points per hole (par 2, birdie 3, eagle 4, bogey 1, worse 0) against a quota of 36 minus handicap. Birdies or better in green, worse than bogey in red.</div>
+    <div class="scorecard-scroll">
+      <table class="scorecard"><thead><tr>${head}</tr></thead><tbody>${gridRows}</tbody></table>
+    </div>
+    <table class="standings" style="margin-top:10px;"><thead><tr><th>Player</th><th>Points</th><th style="text-align:right;">Finish</th></tr></thead><tbody>${rows}</tbody></table>
     ${potNote}
   </div>`;
 }
 
-// 9 Point (3 players): 9 points a hole off net scores — 5 for the low score,
+// 5-3-1 (3 players): 9 points a hole off net scores — 5 for the low score,
 // 3 for second, 1 for third. Tied players share the points for the places
 // they cover: a tie for first is 4 each (+1 for third), a tie for second is
 // 2 each (+5 for first), and a three-way tie is 3 each. Returns null for a
@@ -4954,7 +5032,7 @@ function computeNinePointNet(){
 
 function renderNinePointSection(){
   if((state.cardPlayers||[]).length!==3){
-    return renderPlaceholderGameSection('9 Point', '9 Point needs exactly 3 players.');
+    return renderPlaceholderGameSection('5-3-1', '5-3-1 needs exactly 3 players.');
   }
   const cell = (i,h) => {
     const pts = ninePointHolePoints(h);
@@ -4989,7 +5067,7 @@ function renderNinePointSection(){
 
   return `
   <div style="margin-bottom:22px;">
-    <h3 style="margin:0 0 6px;font-family:'Fraunces',serif;">9️⃣ 9 Point</h3>
+    <h3 style="margin:0 0 6px;font-family:'Fraunces',serif;">5️⃣ 5-3-1</h3>
     <div class="sub" style="margin-bottom:6px;">Net scores, 9 points a hole: 5 / 3 / 1. Tie for first 4-4-1, tie for second 5-2-2, all tied 3 each. 5s in green, 1s in red.</div>
     <div class="scorecard-scroll">
       <table class="scorecard"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table>
@@ -5287,7 +5365,7 @@ function renderCardComplete(){
     </table>
   </div>` : (nineNet ? `
   <div class="card">
-    <h2>9️⃣ 9 Point — Final Tally</h2>
+    <h2>5️⃣ 5-3-1 — Final Tally</h2>
     <div class="sub">Each pair settles the gap between their point totals${nineNet.pv!==1?` × ${nineNet.pv}`:''}.</div>
     <table class="standings">
       <thead><tr><th>Player</th><th>Points</th><th style="text-align:right;">Net</th></tr></thead>
@@ -5909,7 +5987,7 @@ function renderFinalReveal(){
     trophyHeadline = useMoneyTrophy
       ? `${escapeHtml(trophyName)} ${netChampions.length>1?'share':'takes home'} the rooster${netChampions.length>1?'!':' — up '+netMax+' net!'}`
       : (best ? `${escapeHtml(trophyName)} takes home the rooster!` : '');
-    const moneyLabel = moneySource==='skins' ? 'Skins' : (moneySource==='ninePoint' ? '9 Point' : 'Nassau');
+    const moneyLabel = moneySource==='skins' ? 'Skins' : (moneySource==='ninePoint' ? '5-3-1' : 'Nassau');
     trophySub = useMoneyTrophy
       ? (netChampions.length>1 ? `Tied at <b>${netMax}</b> net for ${moneyLabel}.` : `Leads ${moneyLabel}, net.`)
       : (best ? `Low gross of the round.` : '');
