@@ -148,11 +148,12 @@
   /* Same border width selected or not, so tapping doesn't shift the layout. */
   .just-scores-btn.btn-gold, .game-grid .game-btn.btn-gold{border:1.5px solid var(--gold);}
   .game-grid{display:flex;flex-wrap:wrap;gap:6px;}
-  .game-grid .game-btn{flex:1 1 calc(50% - 3px);min-width:0;padding:9px 6px;font-size:1.05rem;line-height:1.2;}
+  .game-grid{gap:8px;}
+  .game-grid .game-btn{flex:1 1 calc(50% - 4px);min-width:0;min-height:52px;padding:10px 8px;font-size:1.12rem;font-weight:700;line-height:1.2;letter-spacing:0.2px;}
   /* Bonus games three across; a lone fourth stays the same width. */
   /* Shuffle & Tee Off / Just Tee Off side by side on one line each. */
   .tee-btn{flex:1;padding:12px 4px;font-size:0.9rem;white-space:nowrap;}
-  .game-grid.three .game-btn{flex:0 0 calc((100% - 12px) / 3);padding:9px 2px;}
+  .game-grid.three .game-btn{flex:0 0 calc((100% - 16px) / 3);padding:9px 2px;}
   .game-grid .game-btn img{max-height:24px;width:auto !important;margin-right:4px !important;}
 
   /* Final Results reveal screen — a quick ceremony before the numbers. */
@@ -949,8 +950,189 @@ const GALLERY_NORTH = {
     {hole:18, yards:435, par:4, si:14}
   ]
 };
+// Courses imported from a scorecard list (2026-10): name, state, then par and
+// men's hole handicap for holes 1-18. No yardages. A row that fails the check
+// (18 pars of 3-6, handicaps 1-18 each used once) is skipped with a warning
+// rather than breaking the course list.
+const IMPORTED_COURSE_ROWS = [
+  ['The Classics Country Club at Lely Resort','Florida',[4,4,5,3,4,3,5,4,4,4,5,3,4,4,4,3,5,4],[13,9,1,11,7,17,5,15,3,6,8,16,18,4,12,14,10,2]],
+  ['Lely Resort Golf & Country Club - Flamingo Island','Florida',[4,5,3,4,3,4,4,5,4,4,3,5,4,4,3,5,4,4],[9,7,17,1,11,15,13,3,5,16,14,2,12,10,18,6,4,8]],
+  ['Lely Resort Golf & Country Club - Mustang','Florida',[5,4,4,4,3,4,5,3,4,5,4,3,4,5,4,3,4,4],[11,9,7,1,17,5,13,15,3,10,4,14,6,8,2,16,12,18]],
+  ['Waterlefe Golf & River Club','Florida',[5,4,4,3,4,5,4,4,3,5,3,4,4,5,3,4,4,4],[11,5,13,17,9,3,7,1,15,6,18,14,4,2,16,8,10,12]],
+  ['TPC Treviso Bay','Florida',[4,5,3,5,4,4,3,4,4,4,4,5,4,3,4,4,3,5],[13,7,15,3,11,5,17,1,9,10,8,2,12,16,14,6,18,4]],
+  ['Naples National Golf Club','Florida',[4,5,3,5,4,3,4,4,4,4,4,3,4,4,5,4,3,5],[11,7,15,1,13,17,5,9,3,10,12,18,6,14,2,8,16,4]],
+  ['Naples Lakes Country Club','Florida',[4,4,5,4,3,5,3,4,4,4,5,4,3,4,3,4,4,5],[14,10,12,6,18,4,16,2,8,7,11,3,13,9,17,15,1,5]],
+  ['Royal Wood Golf & Country Club','Florida',[4,4,4,4,4,3,4,3,4,4,5,3,4,5,4,3,4,4],[14,12,4,10,6,18,2,16,8,15,11,13,1,3,7,17,9,5]],
+  ['Eagle Lakes Golf Club','Florida',[4,4,3,4,5,4,4,3,4,5,4,3,5,4,3,4,4,5],[1,3,15,9,5,7,13,17,11,2,12,18,4,10,16,6,14,8]],
+  ['Old Corkscrew Golf Club','Florida',[4,3,5,4,4,4,3,5,4,4,5,3,4,4,5,4,3,4],[12,16,6,18,2,10,14,8,4,1,9,15,13,7,5,11,17,3]],
+  ['Naples Heritage Golf & Country Club','Florida',[4,4,5,3,4,4,3,5,4,4,4,3,5,4,3,4,5,4],[11,5,1,17,7,9,15,3,13,12,4,16,2,14,18,10,6,8]],
+  ['The Country Club of Naples','Florida',[4,3,4,4,5,3,5,4,4,4,4,3,5,4,3,4,4,5],[13,17,5,11,1,15,3,7,9,10,4,18,2,6,16,12,8,14]],
+  ['The Golf Club at Fiddler\'s Creek','Florida',[4,4,5,4,4,3,4,3,5,5,4,5,4,3,4,4,3,4],[11,15,3,1,9,5,17,13,7,6,2,14,10,18,8,12,16,4]],
+  ['Tiburon Golf Club - Black Course','Florida',[4,4,4,3,4,5,3,4,5,3,4,4,3,4,5,4,4,5],[5,1,9,15,13,7,17,11,3,16,14,8,18,6,12,2,4,10]],
+  ['Tiburon Golf Club - Gold Course','Florida',[5,4,4,4,3,5,4,3,4,4,4,3,4,5,4,3,5,4],[11,9,7,5,13,1,15,17,3,18,8,12,16,6,2,14,10,4]],
+  ['CAVU Golf Club (formerly Naples Grande Golf Club)','Florida',[5,3,4,3,4,4,4,4,5,4,4,5,4,3,4,5,3,4],[17,7,3,9,11,1,15,5,13,8,4,10,2,12,18,14,16,6]],
+  ['The Rookery at Marco','Florida',[4,4,3,5,4,4,4,3,5,4,5,4,4,3,5,3,4,4],[13,11,17,15,1,9,3,7,5,10,4,12,2,14,16,18,8,6]],
+  ['LaPlaya Beach & Golf Resort','Florida',[5,4,3,4,4,5,4,4,3,4,5,3,4,5,3,4,4,4],[7,13,11,9,5,3,15,1,17,2,12,18,6,8,14,4,16,10]],
+  ['Talis Park Golf Club','Florida',[4,4,3,4,5,3,4,5,4,4,5,4,3,4,5,4,3,4],[15,9,5,13,11,17,1,3,7,4,6,14,18,2,16,8,12,10]],
+  ['Hammock Bay Golf & Country Club','Florida',[4,3,4,4,5,4,3,5,4,4,3,5,4,4,4,5,3,4],[5,17,11,7,13,1,15,3,9,14,18,4,12,8,2,16,10,6]],
+  ['Eagle Creek Country Club','Florida',[4,4,4,5,3,4,5,3,4,4,5,3,4,4,5,4,3,4],[11,9,3,1,15,13,5,17,7,14,6,18,8,16,2,10,12,4]],
+  ['Stonebridge Country Club (Naples)','Florida',[4,4,5,4,3,4,4,3,4,4,3,4,4,4,5,4,3,5],[13,5,9,1,17,11,7,15,3,6,18,4,14,10,12,2,16,8]],
+  ['Countryside Golf Club (Naples)','Florida',[4,5,4,4,4,3,4,4,3,4,4,4,3,5,4,4,3,4],[9,11,1,5,17,15,3,13,7,8,4,16,2,10,18,12,14,6]],
+  ['Island Country Club (Marco Island)','Florida',[4,3,5,4,4,3,4,4,5,4,4,5,3,5,3,4,4,4],[13,17,9,11,1,15,5,7,3,8,6,10,12,4,18,14,16,2]],
+  ['Quail Creek Country Club - Quail Course','Florida',[5,4,5,4,3,4,3,4,4,4,5,4,5,4,3,4,3,4],[8,12,2,14,18,4,16,6,10,9,1,13,11,7,15,3,17,5]],
+  ['Quail Creek Country Club - Creek Course','Florida',[4,4,3,4,5,4,4,3,5,4,4,5,3,4,4,3,5,4],[3,11,15,13,5,7,9,17,1,2,10,8,18,14,4,16,12,6]],
+  ['Quail West Golf & Country Club - Lakes','Florida',[4,4,3,5,4,3,4,4,5,4,5,3,4,5,4,4,3,4],[9,3,17,15,1,11,5,13,7,18,8,10,4,12,14,6,16,2]],
+  ['Quail West Golf & Country Club - Preserve','Florida',[5,3,4,4,5,4,3,4,4,5,3,4,4,4,4,3,4,5],[17,15,9,3,7,5,11,13,1,12,18,10,6,2,16,14,4,8]],
+  ['Pelican Marsh Golf Club','Florida',[4,5,4,3,4,5,4,3,4,4,4,3,5,4,4,5,3,4],[13,7,3,17,11,1,9,15,5,14,2,16,4,12,8,10,18,6]],
+  ['Imperial Golf Club - West','Florida',[5,4,4,3,4,3,5,4,4,5,4,3,4,5,4,4,3,4],[11,5,7,13,15,17,9,1,3,14,10,12,6,2,8,16,18,4]],
+  ['Imperial Golf Club - East','Florida',[5,4,4,4,4,3,5,3,4,5,4,3,4,4,4,3,4,5],[3,13,9,7,11,17,1,15,5,6,4,16,8,10,12,18,14,2]],
+  ['Kensington Golf & Country Club','Florida',[4,4,3,5,3,4,4,3,5,4,3,5,4,3,4,5,4,4],[5,11,17,9,15,1,7,13,3,18,16,6,14,12,4,2,8,10]],
+  ['Grey Oaks Country Club - Estuary Course','Florida',[4,4,5,5,4,4,3,4,3,4,5,3,5,3,4,4,3,5],[15,5,1,3,9,11,13,7,17,10,2,16,4,14,6,12,18,8]],
+  ['The Club at Mediterra - South Course','Florida',[5,4,3,4,4,3,5,4,4,4,4,4,3,4,5,4,3,5],[9,13,15,7,5,17,3,1,11,4,10,14,16,8,2,12,18,6]],
+  ['The Club at Mediterra - North Course','Florida',[5,3,4,4,5,4,4,3,4,4,3,4,4,4,5,3,5,4],[7,13,3,9,5,15,1,17,11,8,18,10,12,14,2,16,4,6]],
+  ['The Club at Olde Cypress','Florida',[4,5,4,3,4,4,3,5,4,4,4,3,5,3,4,4,4,5],[6,10,12,18,2,4,14,16,8,9,11,17,1,15,13,5,3,7]],
+  ['The Club at the Strand - Sabal/Preserve','Florida',[5,4,4,4,3,4,5,3,4,4,5,5,3,3,4,4,4,4],[3,11,13,5,15,7,1,17,9,8,2,6,12,10,14,16,18,4]],
+  ['TwinEagles Golf & Country Club - Eagle Course','Florida',[4,5,4,3,5,4,4,3,4,4,4,3,4,5,4,4,3,4],[11,13,1,17,5,9,7,15,3,2,6,16,12,4,10,14,18,8]],
+  ['TwinEagles Golf & Country Club - Talon Course','Florida',[4,3,5,4,3,5,4,4,4,4,4,3,5,4,4,3,5,4],[5,13,15,1,17,9,11,3,7,14,6,10,12,2,8,18,16,4]],
+  ['Wilderness Country Club','Florida',[4,5,3,4,5,3,4,3,4,4,3,4,4,3,4,5,4,5],[9,5,15,7,3,17,1,13,11,4,16,14,8,18,10,2,12,6]],
+  ['Vineyards Country Club - North Course','Florida',[4,4,4,3,4,5,4,3,5,4,3,4,4,5,4,4,3,5],[7,13,3,15,17,5,1,9,11,6,12,18,8,2,16,4,14,10]],
+  ['Vineyards Country Club - South Course','Florida',[4,5,4,3,4,5,4,3,4,5,4,3,4,4,5,4,3,4],[13,9,7,17,15,1,3,11,5,14,16,18,6,2,12,8,10,4]],
+  ['Forest Glen Golf & Country Club','Florida',[4,4,5,4,3,5,3,4,4,5,3,4,4,4,4,4,3,5],[9,13,5,1,15,3,17,7,11,8,12,2,16,6,18,4,14,10]],
+  ['Glen Eagle Golf & Country Club','Florida',[4,3,5,3,4,3,4,4,5,4,4,3,4,3,4,4,5,4],[10,14,4,16,6,18,8,2,12,15,5,17,3,9,1,13,7,11]],
+  ['Bay Colony Golf Club','Florida',[4,3,4,3,4,5,4,4,5,5,3,4,4,5,4,3,4,4],[10,16,14,18,8,2,6,12,4,3,15,11,5,1,13,17,7,9]],
+  ['Wyndemere Country Club - White/Gold','Florida',[4,4,5,3,4,5,3,4,4,5,4,3,4,4,4,4,3,5],[17,3,13,9,5,7,11,1,15,12,4,10,18,2,8,6,16,14]],
+  ['Wyndemere Country Club - Gold/Green','Florida',[5,4,3,4,4,4,4,3,5,4,5,3,4,4,4,4,3,5],[11,5,13,15,1,9,7,17,3,2,8,12,14,4,16,6,18,10]],
+  ['Wyndemere Country Club - Green/White','Florida',[4,5,3,4,4,4,4,3,5,4,4,5,3,4,5,3,4,4],[2,8,12,14,4,16,6,18,10,9,3,13,17,11,5,15,1,7]],
+  ['Collier\'s Reserve Country Club','Florida',[5,4,4,3,4,4,3,5,4,4,4,3,5,4,4,4,3,5],[5,3,13,17,9,1,15,11,7,6,4,16,2,10,12,14,18,8]],
+  ['Hole in the Wall Golf Club','Florida',[4,4,4,4,3,4,5,4,3,4,5,3,5,4,4,4,3,5],[15,9,11,5,13,1,7,3,17,6,4,18,10,12,16,2,8,14]],
+  ['The River Club (Bradenton)','Florida',[4,3,5,4,5,4,4,3,4,4,4,3,5,4,3,4,5,4],[4,14,8,18,2,10,6,16,12,7,5,15,9,3,17,1,11,13]],
+  ['Bonita Bay Club - Marsh','Florida',[4,4,4,4,5,5,3,3,4,4,5,4,5,4,4,3,3,4],[9,13,5,11,1,3,17,15,7,14,2,4,8,10,12,16,18,6]],
+  ['Bonita Bay East - Sabal Course','Florida',[4,4,3,5,4,4,5,3,4,3,5,4,3,4,5,4,3,5],[13,9,17,5,11,1,3,15,7,12,2,6,18,4,10,14,16,8]],
+  ['Spanish Wells Country Club - South/East','Florida',[4,5,4,3,4,4,3,5,4,4,4,5,3,4,5,4,3,4],[8,10,18,14,12,6,16,4,2,11,7,13,9,3,1,15,17,5]],
+  ['Spanish Wells Country Club - South/North','Florida',[4,3,4,4,5,4,5,3,4,4,5,4,3,4,4,3,5,4],[14,18,8,6,4,10,2,16,12,7,9,17,13,11,5,15,3,1]],
+  ['The Colony Golf & Country Club','Florida',[4,4,4,3,4,5,4,3,5,4,3,5,4,4,3,5,4,4],[12,14,4,16,2,8,6,18,10,5,17,7,13,1,15,9,3,11]],
+  ['Pelican\'s Nest Golf Club - Hurricane Course','Florida',[3,4,4,5,4,4,3,5,4,4,3,4,4,5,3,4,4,5],[17,9,5,15,1,13,11,7,3,8,18,2,4,16,14,6,10,12]],
+  ['Spring Run Golf Club','Florida',[4,5,4,3,4,3,5,4,4,5,4,5,4,3,4,4,3,4],[17,7,3,13,11,15,5,1,9,4,18,2,10,14,8,16,12,6]],
+  ['The Club at Grandezza','Florida',[4,5,4,4,3,4,5,3,4,4,5,3,4,4,4,3,4,5],[13,1,9,3,15,11,5,17,7,12,2,18,8,14,4,16,10,6]],
+  ['Shadow Wood Country Club - South Course','Florida',[5,4,3,4,3,4,5,4,4,4,3,4,5,4,4,4,3,5],[3,5,17,7,15,11,1,13,9,10,18,8,2,4,12,14,16,6]],
+  ['Shadow Wood Country Club - North Course','Florida',[5,4,3,4,4,5,4,3,4,4,4,5,3,4,4,3,4,5],[5,13,15,11,9,3,1,17,7,14,2,10,16,12,4,18,8,6]],
+  ['Wildcat Run Country Club','Florida',[4,4,3,5,4,3,5,4,4,4,3,5,4,4,4,3,4,5],[15,7,11,1,13,17,9,5,3,2,18,12,10,14,8,16,6,4]],
+  ['Pelican Sound Golf & River Club - Sound/River','Florida',[4,5,4,4,3,4,3,5,4,4,5,4,4,3,4,3,4,5],[9,11,3,5,13,17,15,1,7,6,10,4,8,18,16,12,2,14]],
+  ['Pelican Sound Golf & River Club - River/Lakes','Florida',[4,5,4,4,3,4,3,4,5,4,3,5,4,4,3,5,4,4],[5,9,3,7,17,15,11,1,13,16,18,8,6,4,14,10,12,2]],
+  ['Pelican Sound Golf & River Club - Lakes/Sound','Florida',[4,3,5,4,4,3,5,4,4,4,5,4,4,3,4,3,5,4],[15,17,7,5,3,13,9,11,1,10,12,4,6,14,18,16,2,8]],
+  ['Stoneybrook Golf Club (Estero)','Florida',[4,5,4,4,3,4,3,4,5,5,4,4,4,3,4,4,3,5],[5,3,9,11,15,17,13,1,7,12,6,4,2,10,8,16,14,18]],
+  ['West Bay Club (Estero)','Florida',[4,5,3,4,4,5,4,3,4,4,4,3,4,4,5,3,5,4],[7,11,17,5,9,15,1,13,3,2,6,18,10,4,12,14,16,8]],
+  ['Copperleaf Golf Club','Florida',[4,5,4,4,3,5,4,3,4,4,3,5,3,5,4,4,4,4],[13,7,1,3,17,9,5,15,11,6,16,12,18,8,2,4,10,14]],
+  ['Worthington Country Club','Florida',[4,4,4,5,3,4,3,5,4,4,5,4,3,4,4,3,5,4],[10,2,8,16,12,4,18,14,6,1,11,7,17,3,13,15,5,9]],
+  ['Bonita National Golf & Country Club','Florida',[4,4,4,5,4,3,5,3,4,4,4,4,3,5,3,5,4,4],[1,5,15,11,13,17,7,9,3,4,8,16,12,10,18,14,6,2]],
+  ['Heritage Palms Golf & Country Club - Sabal Course','Florida',[4,5,3,4,4,3,5,4,4,4,3,4,5,3,4,4,5,4],[17,7,11,13,5,15,3,1,9,4,14,16,8,18,12,2,6,10]],
+  ['Magnolia Landing Golf & Country Club','Florida',[4,4,4,5,4,3,4,3,5,4,4,3,5,4,3,4,4,5],[3,13,1,9,11,15,5,17,7,16,6,10,8,2,18,4,12,14]],
+  ['Palmetto-Pine Country Club','Florida',[4,4,3,4,5,3,4,4,5,4,5,3,4,5,3,4,4,4],[1,7,9,5,11,17,3,15,13,14,16,18,2,10,12,6,8,4]],
+  ['Coral Oaks Golf Course','Florida',[5,4,4,4,4,3,4,3,5,4,5,3,4,4,4,5,4,3],[2,14,10,8,16,18,12,6,4,9,1,17,15,13,7,5,3,11]],
+  ['Cape Royal Golf Club - King/Prince','Florida',[4,5,4,4,3,5,4,3,4,4,3,4,5,4,4,5,3,4],[15,7,13,9,17,5,1,11,3,10,8,2,4,16,14,12,18,6]],
+  ['The Dunes Golf & Tennis Club (Sanibel)','Florida',[4,3,5,4,4,3,4,4,3,4,3,4,4,4,4,5,3,5],[12,18,6,10,4,14,2,8,16,1,17,11,3,5,13,9,15,7]],
+  ['Aileron Golf Club (Sunseeker Resort)','Florida',[4,4,5,3,4,4,5,3,4,5,4,4,3,4,5,3,4,4],[7,13,1,15,5,17,3,11,9,8,4,16,14,2,12,18,10,6]],
+  ['Pelican\'s Nest Golf Club - Gator Course','Florida',[4,4,5,3,5,3,4,4,4,4,5,3,5,4,4,5,3,4],[9,3,13,17,11,15,5,1,7,6,16,18,14,10,2,12,8,4]],
+  ['Lakewood Ranch Golf & Country Club - Royal Lakes Course','Florida',[4,5,4,3,4,5,3,4,4,4,4,5,3,4,4,4,3,5],[5,7,9,17,13,1,11,15,3,8,4,16,10,2,12,6,14,18]],
+  ['Lakewood Ranch Golf & Country Club - King\'s Dunes Course','Florida',[4,5,4,3,4,4,3,5,4,4,3,4,4,5,3,4,5,4],[7,13,1,15,11,5,17,9,3,10,18,4,6,12,16,2,14,8]],
+  ['Esplanade at Azario Lakewood Ranch','Florida',[4,5,4,4,3,5,4,3,4,4,5,3,4,4,4,4,3,5],[13,7,1,9,11,5,15,17,3,14,18,10,4,2,16,12,6,8]],
+  ['Rosedale Golf & Country Club','Florida',[4,4,4,3,4,5,3,5,4,4,4,5,3,4,4,4,3,5],[5,3,13,17,1,11,15,9,7,8,6,14,18,10,2,4,16,12]],
+  ['The Concession Golf Club','Florida',[4,4,5,3,4,3,5,4,4,4,3,4,5,3,4,4,5,4],[13,7,5,15,3,17,1,9,11,10,18,14,2,16,12,8,4,6]],
+  ['The Links at Greenfield Plantation','Florida',[5,4,3,4,4,3,4,5,4,5,4,3,4,4,3,5,4,4],[7,11,15,5,13,17,3,1,9,6,4,12,8,18,10,14,16,2]],
+  ['The Club at River Wilderness','Florida',[4,4,4,5,3,4,3,5,4,4,5,3,4,4,5,4,3,4],[14,8,16,10,12,2,18,4,6,3,11,13,15,1,7,9,17,5]],
+  ['University Park Country Club - 10 & 19','Florida',[4,3,5,4,5,4,3,4,4,5,4,4,3,4,3,4,5,4],[9,13,17,11,3,7,15,1,5,6,12,4,18,2,16,8,14,10]],
+  ['University Park Country Club - 1 & 10','Florida',[4,5,4,4,3,4,5,3,4,4,3,5,4,5,4,3,4,4],[9,13,1,5,15,7,11,17,3,10,14,18,12,4,8,16,2,6]],
+  ['University Park Country Club - 19 & 1','Florida',[5,4,4,3,4,3,4,5,4,4,5,4,4,3,4,5,3,4],[5,11,3,17,1,15,7,13,9,10,14,2,6,16,8,12,18,4]],
+  ['Tara Golf & Country Club','Florida',[4,5,4,3,4,3,4,4,5,5,4,4,3,4,5,4,3,4],[10,12,2,16,8,18,6,4,14,9,7,1,15,11,3,5,17,13]],
+  ['The Preserve Golf Club at Tara','Florida',[4,3,4,4,5,4,4,3,5,5,4,3,4,4,4,5,3,4],[13,17,1,5,7,15,11,9,3,6,2,16,18,14,12,10,8,4]],
+  ['Palm-Aire Country Club - Lakes Course (Sarasota)','Florida',[4,4,4,3,5,4,4,3,5,4,4,4,4,3,5,5,3,4],[15,3,1,13,7,9,11,5,17,8,6,4,2,16,10,12,18,14]],
+  ['St. Petersburg Country Club','Florida',[4,5,4,3,4,5,3,4,4,4,4,4,4,3,4,5,3,5],[5,3,7,9,17,1,11,15,13,10,4,6,8,16,2,14,18,12]],
+  ['Feather Sound Country Club','Florida',[5,4,3,4,4,5,4,3,4,4,5,3,4,5,3,4,4,4],[13,7,17,3,9,1,11,15,5,12,4,16,10,14,18,8,6,2]],
+  ['Bardmoor Golf & Tennis Club','Florida',[4,4,3,4,3,5,4,5,4,4,3,4,3,4,4,5,4,5],[15,3,7,1,17,13,5,9,11,10,18,6,4,16,2,14,12,8]],
+  ['Isla Del Sol Yacht & Country Club','Florida',[4,3,4,5,4,4,3,4,5,4,3,4,4,4,3,5,3,5],[9,11,13,1,3,15,17,7,5,8,16,2,6,10,14,4,18,12]],
+  ['Pasadena Yacht & Country Club','Florida',[4,3,5,4,5,4,4,3,4,4,3,5,4,5,4,3,4,4],[3,17,15,1,9,7,5,13,11,14,18,6,2,16,10,12,8,4]],
+  ['Mangrove Bay Golf Course','Florida',[4,5,3,4,4,5,4,3,4,4,3,4,4,5,3,4,5,4],[14,2,18,8,4,6,12,16,10,15,17,1,11,5,13,9,3,7]],
+  ['Innisbrook Resort - Copperhead Course','Florida',[5,4,4,3,5,4,4,3,4,4,5,4,3,5,3,4,3,4],[5,11,7,17,1,3,13,15,9,8,6,12,18,2,14,4,16,10]],
+  ['Lansbrook Golf Club','Florida',[4,5,3,4,4,5,3,4,4,4,3,4,5,4,4,5,3,4],[5,7,17,13,1,3,15,9,11,8,12,6,10,14,18,2,16,4]],
+  ['Dunedin Golf Club','Florida',[4,4,3,4,4,3,5,4,4,5,3,4,4,4,5,3,5,4],[7,1,15,3,13,17,5,11,9,10,18,14,8,6,4,16,12,2]],
+  ['Palma Ceia Golf & Country Club','Florida',[4,4,5,3,4,4,4,3,4,4,4,4,3,4,4,4,3,5],[9,17,1,15,13,5,7,11,3,14,6,2,12,4,16,18,8,10]],
+  ['Tampa Palms Golf & Country Club','Florida',[4,3,4,4,5,4,4,5,3,4,4,5,3,4,4,5,3,4],[4,18,14,2,6,16,8,12,10,9,3,15,13,11,1,5,17,7]],
+  ['TPC Tampa Bay','Florida',[4,3,4,4,4,3,5,4,4,4,3,5,4,5,4,4,3,4],[11,13,7,3,15,17,9,5,1,10,18,14,16,6,2,8,12,4]],
+  ['Old Memorial Golf Club','Florida',[4,4,5,3,4,4,3,4,5,4,3,5,4,4,4,4,5,3],[9,5,3,13,1,11,17,15,7,12,8,4,18,14,2,6,16,10]],
+  ['Avila Golf & Country Club','Florida',[4,4,4,5,3,4,4,3,4,4,5,4,4,3,4,5,3,4],[9,11,5,1,17,7,3,15,13,10,2,8,14,16,6,4,18,12]],
+  ['The Club at Cheval','Florida',[5,4,4,3,4,3,5,3,5,4,4,3,4,4,4,5,3,4],[4,2,6,16,8,18,10,14,12,15,11,17,7,5,1,9,13,3]],
+  ['Carrollwood Country Club - Meadows/Pines','Florida',[4,4,3,4,5,4,3,5,4,5,4,4,4,3,4,4,3,5],[5,3,9,15,11,13,17,1,7,6,4,10,16,12,14,18,2,8]],
+  ['Carrollwood Country Club - Pines/Cypress','Florida',[5,4,4,4,3,4,4,3,5,4,5,3,4,4,3,5,4,4],[7,13,3,9,15,1,11,17,5,12,4,18,6,14,16,2,8,10]],
+  ['Bloomingdale Golfers Club','Florida',[4,4,3,5,4,4,3,4,5,4,4,4,3,5,4,5,3,4],[7,3,13,9,11,1,17,5,15,4,8,10,14,12,2,16,18,6]],
+  ['Hunter\'s Green Country Club','Florida',[4,4,5,3,4,4,3,4,5,4,3,5,4,3,4,5,4,4],[17,11,9,13,7,1,15,3,5,12,14,10,18,16,4,2,6,8]],
+  ['Westchase Golf Club','Florida',[4,5,3,4,4,4,3,5,4,5,3,4,5,4,3,4,4,4],[13,5,9,15,1,7,17,11,3,6,14,8,16,12,18,4,2,10]],
+  ['Rocky Point Golf Course','Florida',[4,4,5,3,4,3,4,5,4,4,3,5,3,4,5,3,4,4],[13,11,1,15,5,17,9,3,7,14,16,4,18,8,2,10,12,6]],
+  ['Naperbrook Golf Course (Plainfield)','Illinois',[4,4,5,3,4,4,5,3,4,4,4,3,4,5,3,4,4,5],[11,13,1,17,7,3,5,15,9,16,14,18,4,2,8,10,12,6]],
+  ['Springbrook Golf Course (Naperville)','Illinois',[4,5,4,3,5,4,3,4,4,4,5,4,3,4,5,4,3,4],[10,8,4,16,6,14,18,12,2,5,13,15,17,1,9,7,11,3]],
+  ['Cantigny Golf - Woodside/Lakeside','Illinois',[4,5,3,4,4,4,5,3,4,4,5,4,3,5,4,4,3,4],[11,1,15,17,9,3,5,13,7,10,2,12,14,6,18,8,16,4]],
+  ['Cantigny Golf - Lakeside/Hillside','Illinois',[4,5,4,3,5,4,4,3,4,4,5,4,4,3,4,5,3,4],[9,1,11,13,5,17,7,15,3,10,4,16,12,18,2,6,14,8]],
+  ['Cantigny Golf - Hillside/Woodside','Illinois',[4,5,3,4,4,4,5,3,4,4,5,4,4,3,4,5,3,4],[11,1,15,17,9,3,5,13,7,10,4,16,12,18,2,6,14,8]],
+  ['Naperville Country Club','Illinois',[4,4,3,4,5,4,3,5,4,3,4,5,5,4,4,4,3,4],[9,5,15,11,3,7,17,1,13,18,6,2,4,10,12,8,14,16]],
+  ['Medinah Country Club - No. 2','Illinois',[4,4,4,5,4,3,5,3,4,4,4,3,4,4,3,5,4,5],[11,3,7,1,9,17,5,13,15,12,2,18,8,14,16,4,6,10]],
+  ['Olympia Fields Country Club - South','Illinois',[4,4,4,4,3,5,3,4,5,5,4,3,4,3,4,4,4,5],[11,5,7,3,17,9,15,13,1,4,12,16,8,18,10,14,2,6]],
+  ['Chicago Golf Club','Illinois',[4,4,3,5,4,4,3,4,4,3,4,4,3,4,4,5,4,4],[5,3,17,1,13,9,15,7,11,16,4,6,18,14,10,2,12,8]],
+  ['Exmoor Country Club','Illinois',[5,4,4,4,3,5,4,3,4,4,5,3,4,3,5,4,4,4],[17,3,5,1,11,15,7,13,9,4,10,18,16,14,12,2,6,8]],
+  ['Shoreacres','Illinois',[5,4,4,4,4,3,4,3,4,4,4,3,4,3,5,4,4,5],[15,9,17,5,1,11,3,13,7,2,8,18,6,10,16,4,14,12]],
+  ['Westmoreland Country Club','Illinois',[4,4,4,4,3,4,4,5,4,4,5,4,3,4,5,4,3,4],[13,5,1,11,15,17,9,7,3,4,8,12,14,16,2,6,18,10]],
+  ['Skokie Country Club','Illinois',[4,3,5,4,3,4,5,4,3,4,5,3,5,4,4,3,4,5],[5,15,1,7,13,11,9,3,17,12,2,14,6,8,16,18,4,10]],
+  ['Lake Shore Country Club','Illinois',[4,3,5,5,3,4,4,3,4,4,3,4,5,4,3,4,4,5],[5,13,9,3,17,11,1,15,7,12,14,4,16,8,18,2,6,10]],
+  ['Knollwood Club','Illinois',[4,4,4,3,4,5,3,5,4,5,4,3,4,4,4,5,3,4],[7,5,9,15,1,11,17,3,13,2,8,16,10,4,6,14,18,12]],
+  ['Onwentsia Club','Illinois',[5,4,5,4,3,4,4,4,3,5,3,4,4,3,4,4,4,4],[9,13,11,1,17,5,3,7,15,16,12,6,4,18,14,2,10,8]],
+  ['Hinsdale Golf Club','Illinois',[4,4,4,3,4,3,5,4,4,4,5,4,3,4,4,3,5,4],[7,5,9,17,11,15,1,13,3,16,4,2,18,8,14,12,6,10]],
+  ['Beverly Country Club','Illinois',[4,5,3,4,4,3,5,4,4,3,5,3,4,4,4,4,3,5],[17,5,15,9,3,13,1,11,7,16,2,18,10,14,4,8,12,6]],
+  ['Ridgemoor Country Club','Illinois',[4,5,5,3,4,4,4,3,4,5,5,4,3,4,4,4,4,3],[15,9,7,17,3,5,1,13,11,6,4,12,14,18,8,2,10,16]],
+  ['Conway Farms Golf Club','Illinois',[4,3,4,4,4,3,4,5,4,4,3,4,4,5,4,4,3,5],[11,17,9,3,1,13,15,5,7,10,18,12,2,6,14,4,16,8]],
+  ['Medinah Country Club - No. 1','Illinois',[5,4,4,4,3,4,3,4,5,4,4,4,4,4,3,4,5,3],[9,13,17,3,11,1,15,5,7,12,8,6,18,10,16,2,4,14]],
+  ['Medinah Country Club - No. 3','Illinois',[4,3,4,4,5,4,5,4,4,5,3,4,3,4,4,4,3,5],[13,15,11,3,5,7,1,17,9,4,16,8,14,10,6,12,18,2]],
+  ['Glen Oak Country Club','Illinois',[4,4,3,4,5,3,5,4,4,5,3,4,4,4,4,3,5,4],[5,9,15,7,3,17,1,13,11,4,18,8,14,2,12,16,10,6]],
+  ['Ravisloe Country Club','Illinois',[4,5,5,3,4,3,3,4,4,4,3,4,5,4,3,4,4,4],[5,3,9,7,15,17,13,11,1,12,8,2,4,6,18,10,14,16]],
+  ['Sunset Ridge Country Club','Illinois',[4,4,4,4,3,4,5,3,4,4,4,4,5,4,3,5,3,4],[11,1,7,13,17,9,5,15,3,6,4,16,12,2,14,8,18,10]],
+  ['Ravinia Green Country Club','Illinois',[4,5,3,4,4,5,4,3,4,4,5,4,3,4,4,4,3,5],[15,9,13,7,5,3,1,17,11,2,14,8,18,4,12,10,16,6]],
+  ['Bull Valley Golf Club','Illinois',[4,4,5,4,3,4,5,3,4,4,4,4,3,4,5,3,5,4],[6,12,8,10,16,2,4,18,14,3,11,5,15,13,1,17,9,7]],
+  ['Elgin Country Club','Illinois',[5,4,4,3,4,3,4,5,3,5,4,4,4,5,4,3,4,4],[12,14,10,8,2,16,4,6,18,11,17,9,1,5,3,13,15,7]],
+  ['Evanston Golf Club','Illinois',[4,4,4,3,4,5,3,4,4,4,4,3,5,4,4,4,3,4],[5,1,7,17,13,3,15,11,9,12,2,18,6,10,14,8,16,4]],
+  ['Oak Park Country Club','Illinois',[5,3,4,5,4,3,4,4,4,4,4,4,3,4,5,5,3,4],[9,17,1,7,3,15,11,5,13,10,12,8,16,14,4,2,18,6]],
+  ['Stonebridge Country Club (Aurora)','Illinois',[5,4,3,4,4,4,4,3,5,4,4,3,4,5,4,4,3,5],[5,15,13,7,11,3,1,17,9,18,2,14,10,6,8,12,16,4]],
+  ['Biltmore Country Club','Illinois',[4,4,4,4,3,5,3,4,4,4,4,3,4,4,5,3,4,5],[4,8,14,10,16,2,18,6,12,11,3,15,1,13,7,17,9,5]],
+  ['Bryn Mawr Country Club','Illinois',[5,4,4,4,5,3,4,3,4,3,4,4,5,3,5,3,4,5],[17,5,13,1,9,7,15,11,3,8,18,6,4,10,12,16,2,14]],
+  ['River Forest Country Club','Illinois',[4,4,3,5,4,4,3,5,4,4,3,4,5,4,4,3,5,4],[13,7,17,3,5,9,15,1,11,10,18,4,2,6,12,16,8,14]],
+  ['Park Ridge Country Club','Illinois',[4,4,5,5,3,4,4,4,3,5,4,3,4,3,4,4,3,4],[7,9,1,5,15,13,11,3,17,4,12,16,10,18,2,8,14,6]],
+  ['Royal Melbourne Country Club','Illinois',[5,4,4,5,3,4,4,3,4,3,4,4,4,3,5,4,5,4],[9,11,5,1,17,15,3,13,7,18,10,4,14,16,8,12,2,6]],
+  ['Mill Creek Golf Club (Geneva)','Illinois',[4,3,4,5,4,3,4,3,5,4,5,4,3,4,4,3,5,4],[9,17,7,1,5,13,11,15,3,18,2,8,14,12,10,16,4,6]],
+  ['Elmhurst Country Club','Illinois',[4,4,3,5,4,4,3,5,4,4,3,4,5,4,4,3,5,4],[13,7,17,3,5,9,15,1,11,10,18,4,2,6,12,16,8,14]],
+  ['Rich Harvest Farms','Illinois',[4,5,4,3,4,4,3,4,5,4,5,3,4,3,4,5,4,4],[9,5,15,17,11,3,13,1,7,8,14,18,2,16,10,6,12,4]],
+  ['Idlewild Country Club','Illinois',[4,5,3,5,4,3,5,4,3,4,5,3,4,4,4,3,4,5],[7,9,15,3,11,13,1,5,17,10,6,14,16,12,4,18,2,8]],
+  ['Oak Brook Golf Club','Illinois',[5,3,5,4,4,4,3,4,4,4,4,4,5,3,4,5,3,4],[5,15,1,9,7,11,17,13,3,16,8,12,2,18,10,4,14,6]],
+  ['Merit Club','Illinois',[4,3,5,4,4,4,3,5,4,4,3,5,4,4,4,3,4,5],[9,15,1,5,13,11,17,3,7,10,18,2,14,6,12,16,8,4]],
+  ['Wynstone Golf Club','Illinois',[4,4,5,3,4,4,3,4,5,4,3,5,4,3,4,4,4,5],[18,10,2,14,6,4,16,12,8,1,17,7,15,13,3,11,5,9]],
+  ['Cog Hill Golf & Country Club - Dubsdread (No. 4)','Illinois',[4,3,4,4,5,3,4,4,5,4,5,3,4,3,5,4,4,4],[9,17,7,5,3,15,11,13,1,14,2,18,6,16,4,10,12,8]],
+  ['Kemper Lakes Golf Club','Illinois',[4,4,3,5,4,3,5,4,4,4,5,4,3,4,5,4,3,4],[14,12,18,8,4,16,6,10,2,3,9,11,17,13,5,1,15,7]],
+  ['Prairie Landing Golf Club','Illinois',[4,4,3,5,4,3,5,4,4,5,4,3,5,3,4,4,3,5],[11,13,17,7,1,15,3,9,5,10,12,2,4,18,14,8,16,6]],
+  ['Hughes Creek Golf Club','Illinois',[4,5,3,4,4,3,5,4,4,4,3,4,4,4,5,4,3,5],[13,5,17,9,1,15,3,11,7,10,16,2,4,14,8,12,18,6]],
+  ['Bolingbrook Golf Club','Illinois',[4,4,5,3,5,4,4,3,4,5,4,5,3,4,3,4,4,4],[13,7,3,17,1,11,5,15,9,12,8,2,18,16,14,4,10,6]],
+  ['Orchard Valley Golf Course','Illinois',[4,3,4,5,4,3,4,5,4,4,5,3,4,4,4,5,3,4],[14,12,10,4,16,18,8,6,2,15,5,17,1,9,11,3,13,7]],
+  ['Ruffled Feathers Golf Club','Illinois',[4,4,3,5,4,5,4,3,4,4,3,4,5,4,5,4,3,4],[11,13,15,3,1,7,9,17,5,4,14,16,8,12,2,10,18,6]],
+  ['Butterfield Country Club - Red/Blue','Illinois',[4,4,4,4,3,4,4,5,3,4,4,4,3,5,3,5,4,4],[9,1,11,5,17,7,15,3,13,4,14,6,16,12,10,18,8,2]],
+  ['Itasca Country Club','Illinois',[4,4,4,3,5,3,4,4,5,3,4,4,5,4,4,5,3,4],[5,11,9,17,1,13,3,15,7,12,2,14,16,4,10,8,18,6]],
+  ['Chicago Highlands Club','Illinois',[4,4,4,3,5,3,5,4,4,4,4,5,3,4,4,4,3,5],[5,7,9,15,13,17,1,3,11,10,4,6,16,14,2,12,18,8]],
+  ['Mount Prospect Golf Club','Illinois',[5,4,4,3,4,4,3,4,4,3,4,3,4,4,5,3,5,4],[5,1,11,15,7,3,17,9,13,18,4,16,12,8,2,14,6,10]]
+];
+const IMPORTED_COURSES = IMPORTED_COURSE_ROWS.filter(([name, region, pars, sis]) => {
+  const ok = pars.length===18 && pars.every(p=>p>=3 && p<=6) && sis.length===18 && [...sis].sort((a,b)=>a-b).every((s,i)=>s===i+1);
+  if(!ok) console.warn('Skipping bad built-in course:', name);
+  return ok;
+}).map(([name, region, pars, sis]) => ({
+  id: name.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,''),
+  name, region, builtIn: true,
+  holes: pars.map((par, i) => ({ hole:i+1, yards:0, par, si:sis[i] }))
+}));
 const BUILT_IN_COURSES = [CRESS_CREEK, SEDGE_VALLEY, THE_LIDO, MAMMOTH_DUNES, SAND_VALLEY, CANYATA, YACHT_CC, BLACK_DIAMOND_QUARRY, BLACK_DIAMOND_RANCH, TIDEWATER, BAREFOOT_DYE, GRANDE_DUNES, MB_NATIONAL_KINGS_NORTH, INTERNATIONAL_OAKS,
-  GOLF_CLUB_HOUSTON_TOURNAMENT, PURSELL_FARMS_FARMLINKS, GALLERY_NORTH];
+  GOLF_CLUB_HOUSTON_TOURNAMENT, PURSELL_FARMS_FARMLINKS, GALLERY_NORTH, ...IMPORTED_COURSES];
 // The course library: built-ins plus anything added on this device. Kept under
 // its own storage key so starting a new round never wipes out saved courses.
 const COURSES_KEY = 'creek-golf-courses-v1';
@@ -3030,6 +3212,7 @@ function courseRow(c, opts){
               aria-label="${fav?'Remove from':'Add to'} favorites" title="${fav?'Remove from':'Add to'} favorites">${fav?'★':'☆'}</button>
       <button class="mode-card" onclick="chooseCourse('${id}')">
         <div class="mode-title">${escapeHtml(c.name)}</div>
+        ${opts.showRegion ? `<div class="mode-desc">${escapeHtml(courseRegion(c))}</div>` : ''}
       </button>
       ${opts.removable ? `<button class="course-side-btn" onclick="removeCourseWithConfirm('${id}')" aria-label="Remove ${escapeAttr(c.name)}" title="Remove this course">🗑</button>` : ''}
     </div>`;
@@ -3051,6 +3234,10 @@ function renderCourseSelect(){
     ${topBackLink("backToPickGame()")}
     <h2 style="text-align:center;">⛳ Which course?</h2>
     <div class="sub" style="text-align:center;">Pick where you're playing. Par and hole handicaps drive the strokes.</div>
+    <label for="course-search" style="margin:14px 0 6px;">🔍 Search by name</label>
+    <input id="course-search" type="text" enterkeyhint="search" placeholder="Start typing a course name" autocomplete="off" autocorrect="off" spellcheck="false"
+           value="${escapeAttr(courseSearchQuery)}" oninput="onCourseSearchInput(this.value)">
+    <div id="course-search-results">${renderCourseSearchResults()}</div>
     ${favorites.length ? `
     <label style="margin:14px 0 8px;">Favorites</label>
     <div class="mode-row course-list">${favoriteList}</div>
@@ -3069,6 +3256,33 @@ function renderCourseSelect(){
     <div class="sub" style="text-align:center;margin:16px 0 0;">Tip: tap the ☆ beside a course and it shows up at the top here.</div>`}
     <div class="btn-row" style="margin-top:10px;"><button class="btn btn-outline btn-full" onclick="backToPickGame()">◀ Back</button></div>
   </div>`;
+}
+
+// Search by name on the Which course? screen. Every word typed has to appear
+// in the name (any order, ignoring case and punctuation), so "cantigny lake"
+// finds both Cantigny Lakeside layouts. Only the results box is redrawn while
+// typing, so the keyboard stays up.
+let courseSearchQuery = '';
+const COURSE_SEARCH_LIMIT = 30;
+function searchWords(s){ return s.toLowerCase().replace(/['’]/g, '').replace(/[^a-z0-9]+/g, ' ').trim().split(' ').filter(Boolean); }
+function onCourseSearchInput(value){
+  courseSearchQuery = value;
+  const box = document.getElementById('course-search-results');
+  if(box) box.innerHTML = renderCourseSearchResults();
+}
+function renderCourseSearchResults(){
+  const words = searchWords(courseSearchQuery);
+  if(!words.length) return '';
+  const matches = courses
+    .filter(c => { const name = searchWords(c.name).join(' '); return words.every(w => name.includes(w)); })
+    .sort((a, b) => a.name.localeCompare(b.name));
+  if(!matches.length){
+    return `<div class="sub" style="margin:8px 0 0;">No course matches "${escapeHtml(courseSearchQuery.trim())}". Try fewer letters, or add it with ＋ Add a course below.</div>`;
+  }
+  const shown = matches.slice(0, COURSE_SEARCH_LIMIT);
+  return `
+    <div class="mode-row course-list" style="margin-top:8px;">${shown.map(c => courseRow(c, { removable: !c.builtIn, showRegion: true })).join('')}</div>
+    ${matches.length > shown.length ? `<div class="sub" style="margin:6px 0 0;">Showing ${shown.length} of ${matches.length} — keep typing to narrow it down.</div>` : ''}`;
 }
 
 function openCourseList(){
@@ -3126,7 +3340,7 @@ function renderCourseList(){
 
 function renderStateCourseList(){
   const region = state.courseListRegion;
-  const inRegion = courses.filter(c => courseRegion(c) === region);
+  const inRegion = courses.filter(c => courseRegion(c) === region).sort((a, b) => a.name.localeCompare(b.name));
   const list = inRegion.map(c => courseRow(c, { removable: !c.builtIn })).join('');
 
   return `
@@ -3146,6 +3360,7 @@ function renderStateCourseList(){
 }
 
 function chooseCourse(id){
+  courseSearchQuery = '';
   state.courseId = id;
   state.phase = 'roster';
   saveState(); render();
@@ -3663,7 +3878,8 @@ function renderRoster(){
   return `
   <div class="card">
     ${topBackLink("backToCourseSelect()")}
-    <h2 style="text-align:center;">Who's playing?</h2>
+    <h2 style="text-align:center;${pickedGameLine() ? 'margin-bottom:2px;' : ''}">Who's playing?</h2>
+    ${pickedGameLine() ? `<div style="text-align:center;font-size:1.15rem;font-weight:700;color:var(--green-mid);margin:0 0 10px;">${escapeHtml(pickedGameLine())}</div>` : ''}
     <div class="sub">${escapeHtml(currentCourse().name)} · Par ${parTotal(1,18)}<br><button type="button" style="background:none;border:none;padding:0;font:inherit;font-weight:600;color:var(--green-mid);text-decoration:underline;cursor:pointer;" onclick="openCourseReview()">📋 Review/edit scorecard</button></div>
 
     ${showMate ? `<div class="sub" style="margin:0 0 14px;">Check <b>Teammate</b> for the two who are partnered up.</div>` : ''}
@@ -3816,6 +4032,22 @@ const BONUS_GAME_KEYS = ['skins','stableford','quota'];
 // Pick a game choices that aren't points games: they start the scorecard directly.
 const OTHER_GAME_LABELS = { nv: NAPERVEGAS_ICON + 'Naper Vegas', nassau: NASSAU_ICON + 'Nassau', scores: '⛳ Just keep the scores' };
 const BETTING_GAME_LABELS = { captain:'🐺 Wolf', mrPar:'🐺 3 Man Wolf', captain5: ROOSTER5_ICON + '5Man Captain', rollReroll:'🎲 Roll & Re-roll', hammer:'🔨 Hammer', bbb:'🟢 Bingo Bango Bongo', six66:'666 Parlor' };
+// Plain game names — no emoji or pictures — for the Pick a game screen and
+// the game line under "Who's playing?".
+const GAME_PLAIN_NAMES = {
+  captain5:'5Man Captain', captain:'Wolf', rollReroll:'Roll & Re-roll', six66:'666 Parlor', bbb:'Bingo Bango Bongo',
+  nv:'Naper Vegas', nassau:'Nassau', mrPar:'3 Man Wolf', hammer:'Hammer', ninePoint:'5-3-1',
+  skins:'Skins', stableford:'Stableford', quota:'Quota', scores:'Just keep the scores'
+};
+// "5Man Captain + Skins" for the game picked on Pick a game, or '' if none yet.
+function pickedGameLine(){
+  const pick = state.gamePick;
+  if(!pick) return '';
+  const bonus = Object.keys(pick.bonus || {}).filter(k => pick.bonus[k] && k!==pick.primary && GAME_PLAIN_NAMES[k]).map(k => GAME_PLAIN_NAMES[k]);
+  const main = (pick.primary && pick.primary!=='scores') ? GAME_PLAIN_NAMES[pick.primary] : '';
+  if(main) return [main, ...bonus].join(' + ');
+  return bonus.length ? bonus.join(' + ') : 'Just keeping the scores';
+}
 // A small, consistent "which game is this" tag shown at the top of every
 // setup, lineup, hole, and scorecard screen — so it's never ambiguous which
 // game is currently being kept.
@@ -3887,11 +4119,8 @@ function renderTrackChoice(){
   const gameBtn = (mode, label) =>
     `<button class="btn game-btn ${trackChoicePrimary===mode?'btn-gold':'btn-outline'}" onclick="selectPrimaryGame('${mode}')">${label}</button>`;
   const gameOrder = ['captain5','captain','rollReroll','six66','bbb'];
-  const gameButtons = gameOrder.map(mode =>
-    gameBtn(mode, `${mode==='six66'?SIXSIXSIX_ICON:''}${BETTING_GAME_LABELS[mode]}`)
-  ).join('') + gameBtn('nv', OTHER_GAME_LABELS.nv) + gameBtn('nassau', OTHER_GAME_LABELS.nassau)
-    + gameBtn('mrPar', BETTING_GAME_LABELS.mrPar) + gameBtn('hammer', BETTING_GAME_LABELS.hammer)
-    + gameBtn('ninePoint', SCORECARD_GAME_LABELS.ninePoint);
+  const gameButtons = gameOrder.concat(['nv','nassau','mrPar','hammer','ninePoint'])
+    .map(mode => gameBtn(mode, GAME_PLAIN_NAMES[mode])).join('');
   // Naper Vegas and Nassau need the round to themselves — no bonus games.
   const standalone = trackChoicePrimary==='nv' || trackChoicePrimary==='nassau';
   const isBettingGame = !!BETTING_GAME_LABELS[trackChoicePrimary];
@@ -3902,7 +4131,7 @@ function renderTrackChoice(){
     <!-- "Pick a game … or Just keep the scores" -->
     <div class="pick-game-head">
       <h2 class="pick-game-title">Pick a game</h2>
-      <button class="btn just-scores-btn ${trackChoicePrimary==='scores'?'btn-gold':'btn-outline'}" onclick="selectPrimaryGame('scores')">or ${OTHER_GAME_LABELS.scores}</button>
+      <button class="btn just-scores-btn ${trackChoicePrimary==='scores'?'btn-gold':'btn-outline'}" onclick="selectPrimaryGame('scores')">or ${GAME_PLAIN_NAMES.scores}</button>
     </div>
     <div class="game-grid">${gameButtons}</div>
     ${gameOptionsHtml()}
@@ -3930,7 +4159,7 @@ function renderTrackChoice(){
            value="${quotaAnteDraft===null?'':quotaAnteDraft}" oninput="captureQuotaAnteInput()">
     <div class="sub" style="margin:4px 0 14px;">Best finish over quota takes the points pool.</div>
     ` : ''}`}
-    <button class="btn btn-gold btn-full" style="margin-top:10px;" onclick="continueFromTrackChoice()">Continue ▶</button>
+    <button class="btn btn-gold btn-full" style="margin-top:10px;" onclick="continueFromTrackChoice()">Continue</button>
   </div>`;
 }
 
@@ -3941,7 +4170,7 @@ function gameOptionsHtml(){
   if(trackChoicePrimary==='captain5'){
     const is = o => JSON.stringify(captain5LightningDraft)===JSON.stringify(o);
     return `
-    <label style="margin:10px 0 4px;">⚡ Lightning holes</label>
+    <label style="margin:10px 0 4px;">Lightning holes</label>
     <div class="btn-row" style="margin:0;">
       ${opt(is([16,17,18]), 'setCaptain5Lightning([16,17,18])', '16, 17, 18')}
       ${opt(is([14,17,18]), 'setCaptain5Lightning([14,17,18])', '14, 17, 18')}
