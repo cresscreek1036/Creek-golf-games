@@ -4141,7 +4141,7 @@ function renderTrackChoice(){
 
     ${standalone ? '' : `
     <div style="border-top:1.5px dashed #cfc7a9;margin:12px 0 8px;"></div>
-    <div style="margin:0 0 6px;white-space:nowrap;"><label style="display:inline;margin:0;">Bonus games</label> <span class="sub" style="margin:0;font-size:min(0.85rem,3vw);">— combine with a game, or play alone.</span></div>
+    <div style="margin:0 0 12px;white-space:nowrap;"><label style="display:inline;margin:0;">Bonus games</label> <span class="sub" style="margin:0;font-size:min(0.85rem,3vw);">— combine with a game, or play alone.</span></div>
     <div class="game-grid three" style="margin-bottom:10px;">${gameToggles}</div>
     ${scorecardGamesDraft.skins ? `
     <label style="margin:0 0 6px;">Skins points (per player)</label>
@@ -6179,7 +6179,7 @@ function renderScorecardRoll(){
   <div class="card">
     ${gameTitleBadge('rollReroll')}
     <h2>Scorecard</h2>
-    <div class="sub">Front nine · Back nine. ⬆ press · 🎲 roll · 🎲🎲 re-roll. Amounts are per player.</div>
+    <div class="sub">Swipe the table sideways for the back nine. ⬆ press · 🎲 roll · 🎲🎲 re-roll. Amounts are per player.</div>
     <div class="view-toggle">
       <button class="${scorecardView==='hole'?'active-view':''}" onclick="setScorecardView('hole')">Hole-by-hole</button>
       <button class="${scorecardView==='cumulative'?'active-view':''}" onclick="setScorecardView('cumulative')">Cumulative</button>
@@ -6237,7 +6237,7 @@ function renderScorecard(){
   <div class="card">
     ${gameTitleBadge(state.mode)}
     <h2>Scorecard</h2>
-    <div class="sub">Front nine · Back nine.${state.mode==='mrPar' ? ' 🐓 Sweet Lou (points doubled)' : ((state.mode==='captain'||state.mode==='captain5') ? ' 🐓 Sweet Lou (captain went alone) · 💔 Divorce (partner went alone)' : '')}</div>
+    <div class="sub">Swipe the table sideways for the back nine.${state.mode==='mrPar' ? ' 🐓 Sweet Lou (points doubled)' : ((state.mode==='captain'||state.mode==='captain5') ? ' 🐓 Sweet Lou (captain went alone) · 💔 Divorce (partner went alone)' : '')}</div>
     <div class="view-toggle">
       <button class="${scorecardView==='hole'?'active-view':''}" onclick="setScorecardView('hole')">Hole-by-hole</button>
       <button class="${scorecardView==='cumulative'?'active-view':''}" onclick="setScorecardView('cumulative')">Cumulative</button>
@@ -6368,6 +6368,27 @@ function escapeStr(s){ return s.replace(/'/g, "\\'"); }
 loadState();
 initDownloadsCapability();
 addEventListener('scroll', () => document.body.classList.toggle('scrolled', window.scrollY > 0), { passive: true });
+
+// With the keyboard up, a tap on plain text or empty space just closes the
+// keyboard. Without this, iOS snaps a near-miss tap onto the closest button
+// (e.g. tapping the "Bonus games" caption to dismiss the keyboard toggled
+// Skins off), and tapping truly empty space didn't close the keyboard at all.
+let dismissTouch = null;
+addEventListener('touchstart', e => {
+  const t = e.touches[0];
+  dismissTouch = (e.touches.length === 1) ? { x: t.clientX, y: t.clientY } : null;
+}, { passive: true });
+addEventListener('touchend', e => {
+  const start = dismissTouch;
+  dismissTouch = null;
+  const field = document.activeElement;
+  if(!start || !field || !field.matches('input, textarea, select')) return;
+  const t = e.changedTouches[0];
+  if(Math.abs(t.clientX - start.x) > 10 || Math.abs(t.clientY - start.y) > 10) return; // a scroll, not a tap
+  if(e.target.closest('input, textarea, select, button, a, label, [onclick]')) return;
+  e.preventDefault(); // no click, so the tap can't land on a nearby button
+  field.blur();
+});
 </script>
 </body>
 </html>
