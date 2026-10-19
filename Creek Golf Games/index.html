@@ -1180,6 +1180,11 @@ async function loadState(){
   // Those two setup screens were removed when Pick a game moved to the start.
   if(state.phase==='keepChoice' || state.phase==='scoresChoice') state.phase = 'trackChoice';
   if(state.phase==='setup') state.phase = 'roster';
+  // Add a course / Review the course keep their in-progress course in memory
+  // only, so after the app is closed there's nothing to show — go back to the
+  // course picker instead of a blank screen.
+  if(state.phase==='courseAdd' || state.phase==='courseReview') state.phase = 'courseSelect';
+  if(state.phase==='stateCourseList' && !state.courseListRegion) state.phase = 'courseList';
   render();
 }
 let storageWarned = false;
@@ -1693,7 +1698,12 @@ function renderLineupRoll(){
   </div>`;
 }
 
-function pickLightningCaptain(name){ state.lightningPick=name; render(); }
+// Making the picked partner the captain would pair them with themselves — clear the partner.
+function pickLightningCaptain(name){
+  state.lightningPick=name;
+  if(pendingPartner===name){ pendingPartner=null; pendingDivorce=false; pendingResult=null; }
+  render();
+}
 
 function renderLineupHammer(){
   const players = state.players, n = players.length;
@@ -2136,7 +2146,11 @@ function chooseEditHole(n){
   render();
 }
 
-function setEditCaptain(name){ editCaptainOverride = name; render(); }
+function setEditCaptain(name){
+  editCaptainOverride = name;
+  if(pendingPartner===name){ pendingPartner=null; pendingDivorce=false; pendingResult=null; }
+  render();
+}
 function setEditResult(r){ pendingResult = r; render(); }
 
 function cancelEditHole(){
@@ -2485,6 +2499,7 @@ function render(){
   else if(state.phase==='courseReview') app.innerHTML = renderCourseReview();
   else if(state.phase==='stateCourseList') app.innerHTML = renderStateCourseList();
   else if(state.phase==='cardPlaying') app.innerHTML = renderCardPlaying();
+  else if(state.scoreEditHole && state.trackMode==='both' && (state.phase==='playing' || state.phase==='complete')) app.innerHTML = renderScoreEditBoth();
   else if((state.phase==='cardComplete' || state.phase==='complete') && !state.revealedThisRound) app.innerHTML = renderFinalReveal();
   else if(state.phase==='cardComplete') app.innerHTML = renderCardComplete();
   else if(editingHole !== null){
@@ -2509,7 +2524,7 @@ function render(){
 // button, typing) keep the scroll position so nothing jumps.
 var lastScreenKey = null; // var, not let: render() may run before this line does
 function scrollToTopOnNewScreen(){
-  const key = [state.phase, state.holeSubPhase, editingHole, state.currentHole].join('|');
+  const key = [state.phase, state.holeSubPhase, editingHole, state.currentHole, state.scoreEditHole].join('|');
   if(key !== lastScreenKey) window.scrollTo(0, 0);
   lastScreenKey = key;
 }
@@ -4478,10 +4493,61 @@ function cardPrevHole(){
   window.scrollTo({top:0, behavior:'smooth'});
 }
 function goToCardHole(n){
+  // A betting game with scores kept too: fix that hole's scores in place and
+  // come back to the game. Switching to 'cardPlaying' here would drop the
+  // round into scorecard-only play and the betting game would never return.
+  if(state.trackMode==='both' && (state.phase==='playing' || state.phase==='complete')){
+    state.scoreEditHole = n;
+    showFullCard = false;
+    saveState(); render();
+    window.scrollTo({top:0, behavior:'smooth'});
+    return;
+  }
   state.cardHole = n;
   state.phase = 'cardPlaying';
   saveState(); render();
   window.scrollTo({top:0, behavior:'smooth'});
+}
+function closeScoreEdit(){
+  state.scoreEditHole = null;
+  saveState(); render();
+}
+
+// "Both" mode: edit one hole's posted scores, then return to wherever the
+// betting game was — it never leaves the game's own flow.
+function renderScoreEditBoth(){
+  const h = state.scoreEditHole;
+  const info = holeInfo(h);
+  const blocks = state.cardPlayers.map((p, i) => {
+    const st = strokesForPlayer(i, h);
+    const total = totalStrokesFor(i);
+    const cur = cardScore(i, h);
+    const dots = st ? `<span class="stroke-dot" title="Gets a stroke on this hole"></span>`.repeat(st) : '';
+    return `
+      <div class="score-line">
+        <span class="nm">${escapeHtml(p.name)} (${total})${dots}</span>
+        <input class="score-input" type="number" inputmode="numeric" pattern="[0-9]*" min="1" max="20" step="1"
+               value="${cur===null?'':cur}"
+               aria-label="Score for ${escapeAttr(p.name)} on hole ${h}"
+               onfocus="this.select()"
+               oninput="inputCardScore(${i},${h},this)">
+      </div>`;
+  }).join('');
+  const missing = state.cardPlayers.filter((p,i)=>cardScore(i,h)===null).length;
+  return `
+  <div class="card">
+    ${gameTitleBadge(state.mode)}
+    <div class="hole-head">
+      <div class="hole-badge">${h}</div>
+      <div>
+        <div class="meta"><b>Par ${info.par}</b> · handicap <b>${info.si}</b></div>
+        <div class="meta" style="margin-top:3px;">✏️ Fixing scores for Hole ${h}</div>
+      </div>
+    </div>
+    ${blocks}
+    <div class="sub" id="hole-note" style="margin:2px 0 12px;">${missingNote(missing)}</div>
+    <button class="btn btn-gold btn-full score-go" onclick="closeScoreEdit()">💾 Save — back to the game</button>
+  </div>`;
 }
 function toggleFullCard(){ showFullCard = !showFullCard; render(); }
 
