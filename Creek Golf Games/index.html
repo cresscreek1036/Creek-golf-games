@@ -373,6 +373,12 @@
   .point-row .btn{width:100%;height:45px;padding-left:6px;padding-right:6px;display:flex;align-items:center;justify-content:center;white-space:nowrap;}
   .point-row .btn img{height:22px !important;margin-right:6px !important;}
   .point-or{font-family:'Fraunces',serif;font-style:italic;font-weight:700;color:#8a8a7a;}
+  .screen-head{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px;margin:-8px 0 4px;}
+  .screen-head .top-back{margin:0;}
+  .screen-head h2{margin:0;text-align:center;line-height:1.2;}
+  /* A long game name drops onto its own line rather than getting cut off. */
+  .screen-head .title-game{display:inline-block;font-family:'IBM Plex Sans',sans-serif;font-size:1rem;font-weight:700;color:var(--green-mid);margin-left:8px;white-space:nowrap;}
+  .screen-head-spacer{visibility:hidden;font-size:0.85rem;font-weight:600;}
   /* Small Back link in the card's top-left corner, above the title. */
   .top-back{
     display:block;background:none;border:none;padding:0;margin:-4px 0 8px;cursor:pointer;
@@ -396,7 +402,36 @@
   .rating-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px;}
   .rating-row label{margin:0 0 4px;font-size:0.7rem;}
   .rating-row input{margin:0;padding:10px 6px;text-align:center;}
-  .pick-grid{display:grid;grid-template-columns:minmax(0,1fr) 110px 48px 40px;gap:0 8px;align-items:end;}
+  .pick-grid{display:grid;grid-template-columns:minmax(0,1fr) 110px 56px 40px;gap:0 8px;align-items:end;}
+  /* Course handicap + the player's tees; tap to pick their tees. */
+  .pick-ch{
+    height:44px;margin-bottom:8px;padding:0 2px;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    border:1.5px solid #e3dbc3;border-radius:8px;background:#EFE6CF;cursor:pointer;color:var(--ink);min-width:0;
+  }
+  .pick-ch b{font-family:'IBM Plex Mono',monospace;font-size:1rem;line-height:1.1;}
+  .pick-ch span{font-size:0.62rem;font-weight:600;line-height:1.1;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#4a463a;}
+  .pick-ch.own span{color:var(--green-mid);font-weight:700;}
+  .pick-ch.open{border-color:var(--gold);}
+  .tee-row{display:flex;flex-wrap:wrap;gap:8px;}
+  .tee-chip{
+    min-height:44px;padding:6px 10px;border:1.5px solid #cfc7a9;border-radius:10px;background:#fff;cursor:pointer;
+    font-family:'IBM Plex Sans',sans-serif;font-size:0.92rem;font-weight:700;color:var(--ink);line-height:1.15;
+  }
+  .tee-chip small{display:block;font-size:0.68rem;font-weight:500;color:#6b6656;}
+  .tee-chip.on{background:var(--gold);border-color:var(--gold);}
+  .tee-chip.on small{color:var(--ink);}
+  .tee-chip.add{border-style:dashed;font-weight:600;}
+  /* The group's tees fit on one line: equal shares of the width, Add as a small ＋. */
+  .tee-row.one-line{flex-wrap:nowrap;gap:6px;}
+  .tee-row.one-line .tee-chip{flex:1 1 0;min-width:0;padding:6px 2px;font-size:0.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .tee-row.one-line .tee-chip small{font-size:0.62rem;overflow:hidden;text-overflow:ellipsis;}
+  .tee-row.one-line .tee-chip.add{flex:0 0 44px;font-size:1.2rem;}
+  .tee-panel .tee-chip{flex:1 1 auto;}
+  .tee-add .btn{min-height:44px;}
+  .tee-panel{grid-column:1 / -1;border:1.5px dashed var(--gold);border-radius:10px;background:#FFFDF6;padding:10px;margin:0 0 10px;}
+  .tee-add{border:1.5px dashed var(--gold);border-radius:10px;background:#FFFDF6;padding:10px 12px;margin:8px 0 14px;}
+  .tee-add #cr-name{margin:0;}
+  .tee-saved{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:0.85rem;margin-top:4px;}
   .pick-grid.pick-head{margin-bottom:4px;}
   .pick-grid .course-side-btn{height:44px;margin-bottom:8px;align-self:end;}
   .pick-name{
@@ -405,9 +440,13 @@
     overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
   }
   .pick-name.on{background:var(--green-mid);border-color:var(--green-mid);color:#fff;}
-  .pick-add{display:grid;grid-template-columns:minmax(0,1fr) 110px 96px;gap:0 8px;align-items:end;}
+  .pick-add{display:grid;grid-template-columns:minmax(0,1fr) 110px 104px;gap:0 8px;align-items:end;}
   .pick-add input#pick-new-name{margin:0 0 8px;padding:10px 8px;}
   .pick-add .btn{height:44px;margin-bottom:8px;}
+  /* Calculator mistakes: a red line under the boxes, and the box at fault outlined. */
+  .calc-error{color:var(--red);font-size:0.85rem;font-weight:600;line-height:1.35;margin:4px 0 0;}
+  .calc-error:empty{display:none;}
+  input.bad{border-color:var(--red) !important;outline:2px solid rgba(178,34,34,0.25);}
   .stroke-preview{
     background:#fff;border:1.5px dashed var(--gold);border-radius:10px;padding:12px 14px;
     font-size:0.82rem;color:#5a5648;line-height:1.75;margin-bottom:16px;
@@ -462,6 +501,9 @@
   .skin-win{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 2px;box-sizing:border-box;
     border-radius:50%;border:2px solid #3f7a3f;background:#e3f0dc;color:#3f7a3f;font-weight:700;}
   .skin-void{color:#8a8a7a;text-decoration:line-through;}
+  /* Best Ball grid: the nets that counted toward the team score, and the team row. */
+  table.scorecard td.bb-used{background:#F3E3B0;font-weight:700;}
+  table.scorecard tr.bb-team-row td{border-top:2px solid var(--green-deep);}
 </style>
 </head>
 <body>
@@ -1385,6 +1427,8 @@ async function loadState(){
   // course picker instead of a blank screen.
   if(state.phase==='courseAdd' || state.phase==='courseReview') state.phase = 'courseSelect';
   if(state.phase==='stateCourseList' && !state.courseListRegion) state.phase = 'courseList';
+  // Who's playing? rows live in memory only; rebuild them from today's picks.
+  if(state.phase==='roster' && !state.tourneyLink && state.playerPick && (state.playerPick.playing || []).length) fillCardDraftFromPick(false);
   render();
 }
 let storageWarned = false;
@@ -2668,9 +2712,9 @@ function doNewRound(){
   pendingResult = null; pendingPartner = null; pendingAlone = false; pendingDivorce = false; pendingPoints = null; pendingUmbrella = false;
   pendingRoll = false; pendingReroll = false; pendingPressCount = 0; pendingHammerMatches = {};
   pendingBBB = {bingo:null, bango:null, bongo:null};
-  captain5LightningDraft = [16,17,18]; wolf3VariantDraft = 'mrPar'; keepSlotOrderDraft = false;
+  captain5LightningDraft = [16,17,18]; wolf3VariantDraft = 'mrPar'; keepSlotOrderDraft = false; bestBallCountDraft = 2;
   cardDraft = { names:['','','','',''], hcps:['','','','',''], neg:[false,false,false,false,false], teammate:[false,false,false,false,false] };
-  scorecardGamesDraft = { skins:false, stableford:false, quota:false, ninePoint:false };
+  scorecardGamesDraft = { skins:false, stableford:false, quota:false, ninePoint:false, bestBall:false };
   trackChoicePrimary = null;
   pointValueDraft = null;
   diceModeDraft = false; diceMinDraft = 1; diceMaxDraft = 5;
@@ -3120,6 +3164,18 @@ function getRulesGames(){
       ['Settling up', [
         'Each pair settles the gap between their point totals, × The Point. Example: A 60, B 50, C 52 — B gives A 10, C gives A 8, B gives C 2.',
         'Pick 5-3-1 on Pick a game. It keeps scores, needs exactly 3 players, and can be combined with the Bonus games.']]
+    ]},
+  { key:'bestBall', icon:'🏌️', title:'Best Ball',
+    glance:'The group plays as one team. The best 1 to 5 net scores on each hole make the team score.',
+    sections:[
+      ['How many count', [
+        'Pick 1, 2, 3, 4 or 5 before the round. With 1, the low net score in the group is the team score for that hole. With 2, the two lowest nets add up, and so on.',
+        'A hole counts once enough players have posted. With 3 counting, a hole needs at least 3 scores.']],
+      ['Handicap strokes', [
+        'Best Ball uses <b>full handicap</b>, not strokes off the low man. A 14 gets a stroke on the 14 hardest holes. A plus handicap gives strokes back on the easiest holes.']],
+      ['Score', [
+        'The team score is shown against par. With 2 counting on a par 4, par for the team is 8.',
+        'Best Ball can be combined with the Bonus games.']]
     ]}
   ];
 }
@@ -3214,6 +3270,16 @@ document.addEventListener('focusin', e => {
    ========================================================================== */
 // Small "◀ Back" link at the top of a setup card — the same action as the
 // full-width Back button at the bottom of that card.
+// Back on the left, then the title with the game beside it, all on one line —
+// it saves the two lines the stacked Back link and game name used to take.
+function screenHead(backFn, title, game){
+  return `
+    <div class="screen-head">
+      <button type="button" class="top-back" onclick="${backFn}">◀ Back</button>
+      <h2>${title}${game ? `<span class="title-game">${escapeHtml(game)}</span>` : ''}</h2>
+      <span class="screen-head-spacer" aria-hidden="true">◀ Back</span>
+    </div>`;
+}
 function topBackLink(fn){
   return `<button type="button" class="top-back" onclick="${fn}">◀ Back</button>`;
 }
@@ -3794,6 +3860,7 @@ async function loadPlayerFavorites(){
     const r = (res && res.value) ? JSON.parse(res.value) : {};
     courseRatings = (r && typeof r === 'object') ? r : {};
   }catch(e){ courseRatings = {}; }
+  await loadCourseTees();
 }
 async function savePlayerFavorites(){
   try{ await storageSet(PLAYER_FAVORITES_KEY, JSON.stringify(playerFavorites)); }
@@ -3805,6 +3872,41 @@ async function saveCourseRatings(){
 }
 const sameName = (a, b) => a.trim().toLowerCase() === b.trim().toLowerCase();
 function findFavorite(name){ return playerFavorites.find(p => sameName(p.name, name)); }
+
+// Tees, each with its own Course Rating, Slope and Par. Cress Creek's are built
+// in; any course can have more added on this phone (kept under their own key).
+const COURSE_TEES_KEY = 'creek-golf-course-tees-v1';
+const BUILT_IN_TEES = {
+  'cress-creek': [
+    { name:'Black',         rating:73.6, slope:136, par:72 },
+    { name:'Blue',          rating:72.6, slope:134, par:72 },
+    { name:'White',         rating:69.7, slope:127, par:72 },
+    { name:'Green',         rating:66.5, slope:119, par:72 }
+  ]
+};
+let customTees = {};   // { courseId: [{ name, rating, slope, par }] }
+async function loadCourseTees(){
+  try{
+    const res = await storageGet(COURSE_TEES_KEY);
+    const t = (res && res.value) ? JSON.parse(res.value) : {};
+    customTees = (t && typeof t === 'object') ? t : {};
+  }catch(e){ customTees = {}; }
+  // Slope/Rating/Par typed for a course before tees existed become its first tee.
+  let moved = false;
+  Object.entries(courseRatings).forEach(([cid, r]) => {
+    if(cid.startsWith('__') || BUILT_IN_TEES[cid] || (customTees[cid] || []).length) return;
+    if(!r || r.slope === '' || r.rating === '' || r.par === '' || r.slope === undefined || valuesProblem(r)) return;
+    customTees[cid] = [{ name:'My tees', rating:Number(r.rating), slope:Number(r.slope), par:Number(r.par) }];
+    moved = true;
+  });
+  if(moved) saveCourseTees();
+}
+async function saveCourseTees(){
+  try{ await storageSet(COURSE_TEES_KEY, JSON.stringify(customTees)); }
+  catch(e){ console.warn('Could not save tees:', e.message || e); }
+}
+function teesFor(cid){ return (BUILT_IN_TEES[cid] || []).concat(customTees[cid] || []); }
+function findTee(cid, name){ return name ? teesFor(cid).find(t => sameName(t.name, name)) || null : null; }
 
 // Today's picks live in the round state so they survive closing the app:
 // playing = names in the order they were tapped, guests = players added just
@@ -3825,27 +3927,60 @@ function currentRatingInputs(){
   const saved = courseRatings[state.courseId] || {};
   return { slope: saved.slope ?? '', rating: saved.rating ?? '', par: saved.par ?? String(parTotal(1,18)) };
 }
+// Sensible limits for an 18-hole course, to catch typos. Slope tops out at
+// 155 in the rules (a few championship tees really are 155), and forward tees
+// can rate in the low 60s with a slope in the 90s.
+const CALC_LIMITS = { slope:[90,155], rating:[60,80], par:[65,74], ratingVsPar:10, index:54, plusIndex:10 };
+// What's wrong with the Slope / Course Rating / Par as typed: { field, message },
+// or null if nothing is. Blank boxes aren't an error here (just not filled in yet).
+function ratingProblem(){ return valuesProblem(currentRatingInputs()); }
+function valuesProblem(r){
+  const L = CALC_LIMITS;
+  r = { slope: String(r.slope ?? '').trim(), rating: String(r.rating ?? '').trim(), par: String(r.par ?? '').trim() };
+  const check = (field, label, raw, [lo, hi], whole) => {
+    if(raw === '') return null;
+    const n = Number(raw);
+    if(!Number.isFinite(n) || n < lo || n > hi || (whole && Math.round(n) !== n))
+      return { field, message: `${label} should be ${whole ? 'a whole number ' : ''}from ${lo} to ${hi} — check the scorecard.` };
+    return null;
+  };
+  const p = check('slope', 'Slope', r.slope, L.slope, true)
+    || check('rating', 'Course Rating', r.rating, L.rating, false)
+    || check('par', 'Par', r.par, L.par, true);
+  if(p) return p;
+  if(r.rating !== '' && r.par !== '' && Math.abs(Number(r.rating) - Number(r.par)) > L.ratingVsPar)
+    return { field:'rating', message: `A Course Rating of ${r.rating} is more than ${L.ratingVsPar} strokes from par ${r.par} — check both.` };
+  return null;
+}
 function ratingNumbers(){
   const r = currentRatingInputs();
-  const slope = Number(r.slope), rating = Number(r.rating), par = Number(r.par);
-  const ok = r.slope !== '' && r.rating !== '' && r.par !== '' &&
-    slope >= 55 && slope <= 155 && rating >= 40 && rating <= 90 && par >= 27 && par <= 90;
-  return ok ? { slope, rating, par } : null;
+  if(r.slope === '' || r.rating === '' || r.par === '' || ratingProblem()) return null;
+  return { slope: Number(r.slope), rating: Number(r.rating), par: Number(r.par) };
+}
+// Show what's wrong under the calculator, and outline the box at fault.
+function paintRatingProblem(){
+  const prob = ratingProblem();
+  const box = document.getElementById('cr-error');
+  if(box) box.textContent = prob ? prob.message : '';
+  ['slope','rating','par'].forEach(f => { const el = document.getElementById('cr-' + f); if(el) el.classList.toggle('bad', !!prob && prob.field === f); });
 }
 // World Handicap System: Index × Slope ÷ 113 + (Course Rating − Par), rounded.
 // A negative result is a plus course handicap; halves round away from zero
 // either way, so a +5.5 is a +6 just as a 5.5 is a 6.
-function courseHandicapFor(index){
-  const r = ratingNumbers();
+// With a tee, its numbers are used; without one, the numbers typed in the boxes.
+// When the group plays tees with different pars, the rules add the difference
+// (parAdj) for whoever plays the higher-par tees.
+function courseHandicapFor(index, tee, parAdj = 0){
+  const r = tee === undefined ? ratingNumbers() : tee;
   if(!r || index === null || index === undefined || !Number.isFinite(index)) return null;
   const ch = index * r.slope / 113 + (r.rating - r.par);
-  return (ch < 0 ? -1 : 1) * Math.round(Math.abs(ch)) || 0;
+  return ((ch < 0 ? -1 : 1) * Math.round(Math.abs(ch)) || 0) + parAdj;
 }
 function onRatingInput(){
   const v = id => (document.getElementById(id) || {}).value ?? '';
-  courseRatings[state.courseId] = { slope: v('cr-slope').trim(), rating: v('cr-rating').trim(), par: v('cr-par').trim() };
+  courseRatings[state.courseId] = { ...(courseRatings[state.courseId] || {}), slope: v('cr-slope').trim(), rating: v('cr-rating').trim(), par: v('cr-par').trim() };
   saveCourseRatings();
-  refreshPickHandicaps();
+  paintRatingProblem();
 }
 
 // The rows on screen, in order: favorites (most recently played first), then
@@ -3864,6 +3999,128 @@ function buildPickRows(){
   return pickRows;
 }
 function isPlayingToday(name){ return playerPickState().playing.some(n => sameName(n, name)); }
+
+// ---- Tees on the Players screen ----
+// The group's tees (tapped at the top) are used for anyone without their own.
+// A favorite's own tees here are their usual tees at this course (kept with the
+// favorite); a guest's are just for today.
+function pickCourseId(){ return state.courseId; }
+function groupTee(){
+  const pick = playerPickState(), cid = pickCourseId();
+  return findTee(cid, pick.groupTee) || findTee(cid, (courseRatings[cid] || {}).lastTee) || null;
+}
+function ownTeeName(p){ return (p.tees && p.tees[pickCourseId()]) || p.tee || null; }
+function teeForPlayer(p){ return (p && findTee(pickCourseId(), ownTeeName(p))) || groupTee(); }
+function pickPlayerByName(name){
+  return findFavorite(name) || playerPickState().guests.find(g => sameName(g.name, name)) || null;
+}
+// Playing different pars: whoever is on the higher-par tees gets the difference.
+function parAdjFor(p){
+  const tee = teeForPlayer(p);
+  if(!tee) return 0;
+  const pars = playerPickState().playing.map(n => teeForPlayer(pickPlayerByName(n))).filter(Boolean).map(t => t.par);
+  return pars.length ? Math.max(0, tee.par - Math.min(...pars, tee.par)) : 0;
+}
+function playerCourseHandicap(p){
+  const tee = teeForPlayer(p);
+  return tee ? courseHandicapFor(p.index, tee, parAdjFor(p)) : null;
+}
+let pickTeeOpen = null;     // which row's tee picker is open
+let addTeeOpen = false;     // the Add a tee form
+function setGroupTee(ti){
+  capturePickInputs();
+  const cid = pickCourseId(), tee = teesFor(cid)[ti]; if(!tee) return;
+  playerPickState().groupTee = tee.name;
+  courseRatings[cid] = { ...(courseRatings[cid] || {}), lastTee: tee.name };
+  saveCourseRatings(); saveState(); render();
+}
+function togglePickTeePanel(i){ capturePickInputs(); pickTeeOpen = pickTeeOpen === i ? null : i; render(); }
+// ti = -1 means "same as the group".
+function setPlayerTee(i, ti){
+  capturePickInputs();
+  const row = pickRows[i]; if(!row) return;
+  const cid = pickCourseId(), tee = ti >= 0 ? teesFor(cid)[ti] : null;
+  if(row.kind === 'fav'){
+    row.ref.tees = { ...(row.ref.tees || {}) };
+    if(tee) row.ref.tees[cid] = tee.name; else delete row.ref.tees[cid];
+    savePlayerFavorites();
+  } else {
+    row.ref.tee = tee ? tee.name : null;
+  }
+  pickTeeOpen = null;
+  saveState(); render();
+}
+// The form always opens empty (Par from the course), so numbers left over
+// from before can't be saved as new tees by mistake.
+function toggleAddTee(){
+  capturePickInputs();
+  addTeeOpen = !addTeeOpen;
+  if(addTeeOpen){ const cid = pickCourseId(); courseRatings[cid] = { lastTee: (courseRatings[cid] || {}).lastTee }; saveCourseRatings(); }
+  render();
+}
+function saveNewTee(){
+  capturePickInputs();
+  const cid = pickCourseId();
+  const name = ((document.getElementById('cr-name') || {}).value || '').trim();
+  const r = currentRatingInputs();
+  if(!name){ alert('Give the tees a name, like White or Blue.'); return; }
+  if(findTee(cid, name)){ alert(`${currentCourse().name} already has ${name} tees.`); return; }
+  if(r.slope === '' || r.rating === '' || r.par === ''){ alert('Fill in the Slope, Course Rating and Par from the scorecard.'); return; }
+  const prob = valuesProblem(r);
+  if(prob){ alert(prob.message); return; }
+  customTees[cid] = (customTees[cid] || []).concat({ name, rating:Number(r.rating), slope:Number(r.slope), par:Number(r.par) });
+  if(!groupTee()) playerPickState().groupTee = name;
+  courseRatings[cid] = { lastTee: groupTee() ? groupTee().name : name };
+  addTeeOpen = false;
+  saveCourseTees(); saveCourseRatings(); saveState(); render();
+}
+function removeCustomTee(ti){
+  const cid = pickCourseId(), list = customTees[cid] || [], tee = list[ti];
+  if(!tee || !confirm(`Remove the ${tee.name} tees from ${currentCourse().name}?`)) return;
+  customTees[cid] = list.filter((_, k) => k !== ti);
+  saveCourseTees(); render();
+}
+function teeChipsHtml(){
+  const cid = pickCourseId(), tees = teesFor(cid), g = groupTee();
+  return tees.map((t, ti) => `
+      <button type="button" class="tee-chip ${g && sameName(g.name, t.name)?'on':''}" onclick="setGroupTee(${ti})">${escapeHtml(t.name)}<small>${t.rating}/${t.slope}</small></button>`).join('');
+}
+function addTeeFormHtml(){
+  const r = currentRatingInputs(), cid = pickCourseId(), mine = customTees[cid] || [];
+  return `
+    <div class="tee-add">
+      <label for="cr-name" style="margin:0 0 4px;">Tee name</label>
+      <input id="cr-name" type="text" placeholder="e.g. White" maxlength="20" autocomplete="off">
+      <div class="rating-row">
+        <div><label for="cr-slope">Slope</label>
+          <input id="cr-slope" type="number" inputmode="numeric" min="90" max="155" step="1" placeholder="e.g. 131" value="${escapeAttr(r.slope)}" oninput="onRatingInput()"></div>
+        <div><label for="cr-rating">Course Rating</label>
+          <input id="cr-rating" type="number" inputmode="decimal" min="60" max="80" step="0.1" placeholder="e.g. 71.4" value="${escapeAttr(r.rating)}" oninput="onRatingInput()"></div>
+        <div><label for="cr-par">Par</label>
+          <input id="cr-par" type="number" inputmode="numeric" min="65" max="74" step="1" value="${escapeAttr(r.par)}" oninput="onRatingInput()"></div>
+      </div>
+      <div class="calc-error" id="cr-error">${ratingProblem() ? ratingProblem().message : ''}</div>
+      <div class="sub" style="margin:4px 0 8px;">From the scorecard. Saved with this course for next time.</div>
+      <div class="btn-row" style="margin:0;">
+        <button class="btn btn-gold btn-compact" style="flex:1;" onclick="saveNewTee()">Save tees</button>
+        ${teesFor(cid).length ? `<button class="btn btn-outline btn-compact" style="flex:1;" onclick="toggleAddTee()">Cancel</button>` : ''}
+      </div>
+      ${mine.length ? `<div class="sub" style="margin:10px 0 4px;">Tees you've added here:</div>
+      ${mine.map((t, ti) => `<div class="tee-saved"><span>${escapeHtml(t.name)} · ${t.rating} / ${t.slope} · par ${t.par}</span>
+        <button type="button" class="course-side-btn" onclick="removeCustomTee(${ti})" aria-label="Remove ${escapeAttr(t.name)}" title="Remove these tees">🗑</button></div>`).join('')}` : ''}
+    </div>`;
+}
+function teePanelHtml(i, row){
+  const cid = pickCourseId(), own = ownTeeName(row.ref), g = groupTee();
+  return `
+    <div class="tee-panel">
+      <div class="sub" style="margin:0 0 6px;">${row.kind==='fav' ? `${escapeHtml(row.ref.name)}'s usual tees here` : `${escapeHtml(row.ref.name)}'s tees today`}</div>
+      <div class="tee-row">
+        <button type="button" class="tee-chip ${!own?'on':''}" onclick="setPlayerTee(${i}, -1)">Same as group<small>${g ? escapeHtml(g.name) : 'none picked'}</small></button>
+        ${teesFor(cid).map((t, ti) => `<button type="button" class="tee-chip ${own && sameName(own, t.name)?'on':''}" onclick="setPlayerTee(${i}, ${ti})">${escapeHtml(t.name)}<small>${t.rating} / ${t.slope}</small></button>`).join('')}
+      </div>
+    </div>`;
+}
 function fmtIndex(i){ return (i === null || i === undefined) ? '' : String(Math.abs(i)); }
 function fmtCourseHcp(ch){ return ch === null ? '—' : fmtHcp(ch); }
 
@@ -3900,14 +4157,16 @@ function toggleFavoritePlayer(i){
     if(!confirm(`Remove ${row.ref.name} from your favorites?`)) return;
     playerFavorites = playerFavorites.filter(p => p !== row.ref);
     // Still playing today? Keep them as a guest for this round.
-    if(isPlayingToday(row.ref.name)) pick.guests.push({ name: row.ref.name, index: row.ref.index ?? null, neg: !!row.ref.neg });
+    if(isPlayingToday(row.ref.name)) pick.guests.push({ name: row.ref.name, index: row.ref.index ?? null, neg: !!row.ref.neg, tee: ownTeeName(row.ref) });
   } else {
     if(playerFavorites.length >= PLAYER_FAVORITES_LIMIT){
       alert(`You can keep up to ${PLAYER_FAVORITES_LIMIT} favorites. Remove one (tap its ★) to make room.`);
       return;
     }
     pick.guests = pick.guests.filter(g => g !== row.ref);
-    playerFavorites.push({ name: row.ref.name, index: row.ref.index ?? null, neg: !!row.ref.neg, lastPlayed: 0 });
+    const tee = ownTeeName(row.ref);
+    playerFavorites.push({ name: row.ref.name, index: row.ref.index ?? null, neg: !!row.ref.neg, lastPlayed: 0,
+                           tees: tee ? { [pickCourseId()]: tee } : {} });
   }
   savePlayerFavorites(); saveState(); render();
 }
@@ -3921,7 +4180,7 @@ function addPickPlayer(){
     alert(`${name} is already on the list.`); return;
   }
   const index = parseIndex(pickNewDraft.index, pickNewDraft.neg);
-  if(index === undefined){ alert('Enter a Handicap Index from 0 to 54, like 12.4.'); return; }
+  if(index === undefined){ alert(indexLimitMessage()); return; }
   pick.guests.push({ name, index, neg: pickNewDraft.neg });
   // A new player is usually playing today; add them if there's room.
   if(pick.playing.length < playerPickLimit()) pick.playing.push(name);
@@ -3929,6 +4188,7 @@ function addPickPlayer(){
   saveState(); render();
 }
 let pickNewDraft = { name:'', index:'', neg:false };
+let pickIndexProblem = null;   // name of the first player whose index box doesn't make sense
 function togglePickNewSign(){ capturePickInputs(); pickNewDraft.neg = !pickNewDraft.neg; render(); }
 
 // '' → null (no index yet); a bad number → undefined.
@@ -3936,18 +4196,27 @@ function parseIndex(raw, neg){
   const s = String(raw ?? '').trim();
   if(s === '') return null;
   const n = Number(s);
-  if(!Number.isFinite(n) || n < 0 || n > 54) return undefined;
+  if(!Number.isFinite(n) || n < 0 || n > (neg ? CALC_LIMITS.plusIndex : CALC_LIMITS.index)) return undefined;
   const v = Math.round(n * 10) / 10;
   return neg ? -v : v;
+}
+function indexLimitMessage(name){
+  return `${name ? name + '\u2019s' : 'A'} Handicap Index should be from 0 to ${CALC_LIMITS.index} (like 12.4), or up to +${CALC_LIMITS.plusIndex} with − on.`;
 }
 // Read every index box back into its player, so a re-render (or leaving the
 // screen) never drops something typed.
 function capturePickInputs(){
+  let bad = null;
   document.querySelectorAll('[data-pick-index]').forEach(el => {
     const row = pickRows[Number(el.dataset.pickIndex)]; if(!row) return;
     const v = parseIndex(el.value, !!row.ref.neg);
+    el.classList.toggle('bad', v === undefined);
     if(v !== undefined) row.ref.index = v;
+    else if(!bad) bad = row.ref.name;
   });
+  pickIndexProblem = bad;
+  const err = document.getElementById('pick-error');
+  if(err) err.textContent = bad ? indexLimitMessage(bad) : '';
   const n = document.getElementById('pick-new-name'), x = document.getElementById('pick-new-index');
   if(n) pickNewDraft.name = n.value;
   if(x) pickNewDraft.index = x.value;
@@ -3960,8 +4229,8 @@ function onPickIndexInput(){
 // Update the course handicap boxes in place, so the keyboard stays up.
 function refreshPickHandicaps(){
   pickRows.forEach((row, i) => {
-    const el = document.getElementById('pick-ch-' + i);
-    if(el) el.textContent = fmtCourseHcp(courseHandicapFor(row.ref.index));
+    const el = document.querySelector('#pick-ch-' + i + ' b');
+    if(el) el.textContent = fmtCourseHcp(playerCourseHandicap(row.ref));
   });
 }
 
@@ -3980,28 +4249,25 @@ function renderPlayerPick(){
         <input class="card-hcp" type="number" inputmode="decimal" min="0" max="54" step="0.1" placeholder="Index"
                data-pick-index="${i}" value="${escapeAttr(fmtIndex(p.index))}" oninput="onPickIndexInput()">
       </div>
-      <div class="strokes-box" id="pick-ch-${i}">${fmtCourseHcp(courseHandicapFor(p.index))}</div>
+      <button type="button" class="pick-ch ${ownTeeName(p)?'own':''} ${pickTeeOpen===i?'open':''}" id="pick-ch-${i}" onclick="togglePickTeePanel(${i})"
+              aria-label="Course handicap; tap to change ${escapeAttr(p.name)}'s tees"><b>${fmtCourseHcp(playerCourseHandicap(p))}</b><span>${teeForPlayer(p) ? escapeHtml(teeForPlayer(p).name) : 'Tees?'}</span></button>
       <button type="button" class="course-side-btn ${row.kind==='fav'?'on':''}" onclick="toggleFavoritePlayer(${i})"
               aria-label="${row.kind==='fav'?'Remove from':'Add to'} favorites" title="${row.kind==='fav'?'Remove from favorites':'Save as a favorite'}">${row.kind==='fav'?'★':'☆'}</button>
+      ${pickTeeOpen===i ? teePanelHtml(i, row) : ''}
     </div>`;
   }).join('');
 
   return `
   <div class="card">
-    ${topBackLink("backToCourseSelect()")}
-    <h2 style="text-align:center;${pickedGameLine() ? 'margin-bottom:2px;' : ''}">Players</h2>
-    ${pickedGameLine() ? `<div style="text-align:center;font-size:1.15rem;font-weight:700;color:var(--green-mid);margin:0 0 10px;">${escapeHtml(pickedGameLine())}</div>` : ''}
+    ${screenHead("backToCourseSelect()", "Players", pickedGameLine())}
     <div class="sub" style="text-align:center;">${escapeHtml(currentCourse().name)}</div>
 
-    <div class="rating-row">
-      <div><label for="cr-slope">Slope</label>
-        <input id="cr-slope" type="number" inputmode="numeric" min="55" max="155" step="1" placeholder="e.g. 131" value="${escapeAttr(r.slope)}" oninput="onRatingInput()"></div>
-      <div><label for="cr-rating">Course Rating</label>
-        <input id="cr-rating" type="number" inputmode="decimal" min="40" max="90" step="0.1" placeholder="e.g. 71.4" value="${escapeAttr(r.rating)}" oninput="onRatingInput()"></div>
-      <div><label for="cr-par">Par</label>
-        <input id="cr-par" type="number" inputmode="numeric" min="27" max="90" step="1" value="${escapeAttr(r.par)}" oninput="onRatingInput()"></div>
-    </div>
-    <div class="sub" style="margin:4px 0 14px;">From the scorecard, for the tees you're playing. Saved for this course.</div>
+    <label style="margin:10px 0 6px;">Tees</label>
+    ${teesFor(pickCourseId()).length ? `<div class="tee-row one-line">${teeChipsHtml()}
+      <button type="button" class="tee-chip add" onclick="toggleAddTee()" aria-label="Add tees" title="Add tees">＋</button></div>
+    <div class="sub" style="margin:6px 0 14px;">Tap the tees the group plays. Tap a player's course handicap to give them their own.</div>` : `
+    <div class="sub" style="margin:0 0 8px;">No tees saved for this course yet. Add the ones you play — the rating and slope are on the scorecard.</div>`}
+    ${(addTeeOpen || !teesFor(pickCourseId()).length) ? addTeeFormHtml() : ''}
 
     <div class="pick-grid pick-head">
       <label class="col-head" style="text-align:left;">Tap who's playing</label>
@@ -4010,6 +4276,7 @@ function renderPlayerPick(){
       <span></span>
     </div>
     ${rowHtml || `<div class="sub" style="margin:0 0 12px;">No favorites yet. Add a player below, then tap ☆ to keep them for next time.</div>`}
+    <div class="calc-error" id="pick-error" style="margin:-4px 0 8px;"></div>
     <div class="sub" style="margin:-4px 0 14px;">${pick.playing.length} of ${limit} playing · ★ = favorite (${playerFavorites.length} of ${PLAYER_FAVORITES_LIMIT}) · Tap − for a plus index.</div>
 
     <label style="margin:0 0 6px;">Add a player</label>
@@ -4030,8 +4297,30 @@ function renderPlayerPick(){
 // Fill Who's playing? with today's players. With the calculator, each gets
 // their course handicap (still editable there); skipped, or without an index
 // or the course's Slope/Rating, the handicap is left for that screen.
+// Before using the calculator: a bad number stops here with what to fix; a
+// blank Slope/Rating (with players who have an index) asks first.
+function calculatorReady(names){
+  capturePickInputs();
+  const players = names.map(pickPlayerByName).filter(Boolean);
+  if(pickIndexProblem && names.some(n => sameName(n, pickIndexProblem))){ alert(indexLimitMessage(pickIndexProblem)); return false; }
+  const noTees = players.filter(p => p.index !== null && p.index !== undefined && !teeForPlayer(p)).map(p => p.name);
+  if(noTees.length){
+    return confirm(`No tees picked for ${noTees.join(', ')}, so their course handicap can\u2019t be worked out. Go on and type it on the next screen?`);
+  }
+  return true;
+}
 function continueFromPlayerPick(skipCalc){
   capturePickInputs();
+  const pick = playerPickState();
+  if(!skipCalc && !calculatorReady(pick.playing)) return;
+  fillCardDraftFromPick(skipCalc);
+  savePlayerFavorites();
+  state.phase = 'roster';
+  saveState(); render();
+}
+// Who's playing? rows from today's picks (names, plus course handicaps unless
+// the calculator was skipped).
+function fillCardDraftFromPick(skipCalc){
   const pick = playerPickState();
   const byName = name => findFavorite(name) || pick.guests.find(g => sameName(g.name, name));
   const blank = () => ({ names:['','','','',''], hcps:['','','','',''], neg:[false,false,false,false,false], teammate:[false,false,false,false,false] });
@@ -4039,15 +4328,12 @@ function continueFromPlayerPick(skipCalc){
   pick.playing.slice(0, 5).forEach((name, i) => {
     const p = byName(name);
     cardDraft.names[i] = p ? p.name : name;
-    const ch = (skipCalc || !p) ? null : courseHandicapFor(p.index);
+    const ch = (skipCalc || !p) ? null : playerCourseHandicap(p);
     if(ch !== null && Math.abs(ch) <= 54){
       cardDraft.hcps[i] = String(Math.abs(ch));
       cardDraft.neg[i] = ch < 0;
     }
   });
-  savePlayerFavorites();
-  state.phase = 'roster';
-  saveState(); render();
 }
 function backToPlayerPick(){
   captureCardDraft();
@@ -4188,9 +4474,7 @@ function renderRoster(){
 
   return `
   <div class="card">
-    ${topBackLink("backToPlayerPick()")}
-    <h2 style="text-align:center;${pickedGameLine() ? 'margin-bottom:2px;' : ''}">Who's playing?</h2>
-    ${pickedGameLine() ? `<div style="text-align:center;font-size:1.15rem;font-weight:700;color:var(--green-mid);margin:0 0 10px;">${escapeHtml(pickedGameLine())}</div>` : ''}
+    ${screenHead("backToPlayerPick()", "Who's playing?", pickedGameLine())}
     <div class="sub">${escapeHtml(currentCourse().name)} · Par ${parTotal(1,18)}<br><button type="button" style="background:none;border:none;padding:0;font:inherit;font-weight:600;color:var(--green-mid);text-decoration:underline;cursor:pointer;" onclick="openCourseReview()">📋 Review/edit scorecard</button></div>
 
     ${showMate ? `<div class="sub" style="margin:0 0 14px;">Check <b>Teammate</b> for the two who are partnered up.</div>` : ''}
@@ -4264,7 +4548,7 @@ function backToRoster(){
 // Which score-derived games ride along with the scorecard — reset fresh each
 // time the roster is confirmed. The points multiplier (captured on the roster
 // screen) applies everywhere: the scorecard games and every betting game.
-let scorecardGamesDraft = { skins:false, stableford:false, quota:false, ninePoint:false };
+let scorecardGamesDraft = { skins:false, stableford:false, quota:false, ninePoint:false, bestBall:false };
 let pointValueDraft = null;
 // Roll the Dice: play the round at a placeholder value of 1, then pick the real
 // value (within a range the scorekeeper sets) once the round is over.
@@ -4296,16 +4580,19 @@ function continueFromTrackChoice(){
   captureQuotaAnteInput();
   captureSkinsAnteInput();
   const standalone = trackChoicePrimary==='nv' || trackChoicePrimary==='nassau';
-  const bonus = standalone ? { skins:false, stableford:false, quota:false, ninePoint:false } : { ...scorecardGamesDraft };
+  const bonus = standalone ? { skins:false, stableford:false, quota:false, ninePoint:false, bestBall:false } : { ...scorecardGamesDraft };
   // 5-3-1 is picked in the top section but is scored as a scorecard game.
+  // 5-3-1 and Best Ball are picked in the top section but scored as scorecard games.
   bonus.ninePoint = trackChoicePrimary==='ninePoint';
+  bonus.bestBall = trackChoicePrimary==='bestBall';
   if(!trackChoicePrimary && !Object.values(bonus).some(v=>v)){ alert('Pick a game first.'); return; }
   // Kept in state (not just the drafts) so the pick survives the app being
   // reloaded on the course or players screen.
   state.gamePick = {
     primary: trackChoicePrimary, trackMode: trackModeChoice, bonus,
     skinsAnte: skinsAnteDraft, skinsCarry: skinsCarryDraft, skinsValidate: skinsValidateDraft, quotaAnte: quotaAnteDraft,
-    captain5Lightning: captain5LightningDraft.slice(), wolf3Variant: wolf3VariantDraft
+    captain5Lightning: captain5LightningDraft.slice(), wolf3Variant: wolf3VariantDraft,
+    bestBallCount: bestBallCountDraft
   };
   state.phase = 'courseSelect';
   saveState(); render();
@@ -4323,6 +4610,7 @@ function restoreGamePickDrafts(){
   skinsAnteDraft = pick.skinsAnte; skinsCarryDraft = !!pick.skinsCarry; skinsValidateDraft = !!pick.skinsValidate; quotaAnteDraft = pick.quotaAnte;
   if(pick.captain5Lightning) captain5LightningDraft = pick.captain5Lightning.slice();
   if(pick.wolf3Variant) wolf3VariantDraft = pick.wolf3Variant;
+  if(pick.bestBallCount) bestBallCountDraft = pick.bestBallCount;
   return true;
 }
 function launchPickedGame(){
@@ -4332,13 +4620,19 @@ function launchPickedGame(){
   if(scorecardGamesDraft.ninePoint && state.roster.length!==3){
     alert('5-3-1 is a 3-player game — enter exactly 3 players.'); return;
   }
+  if(scorecardGamesDraft.bestBall && state.roster.length < bestBallCountDraft){
+    alert(`${bestBallLabel(bestBallCountDraft)} needs at least ${bestBallCountDraft} players — you entered ${state.roster.length}.`); return;
+  }
   if(pick.primary==='nv'){ startNaperVegas(); return; }
   if(pick.primary==='nassau'){ openNassauSetup(); return; }
   if(BETTING_GAME_LABELS[pick.primary]){ pickBettingGame(trackModeChoice, pick.primary); return; }
   startScorecardOnly(); // ⛳ Just keep the scores, or bonus games on their own
 }
 
-const SCORECARD_GAME_LABELS = { skins:'Skins', stableford:'Stableford', quota:'Quota', ninePoint:'5-3-1' };
+const SCORECARD_GAME_LABELS = { skins:'Skins', stableford:'Stableford', quota:'Quota', ninePoint:'5-3-1', bestBall:'Best Ball' };
+// Best Ball: how many of the group's best net scores count on each hole.
+let bestBallCountDraft = 2;
+function setBestBallCount(n){ captureQuotaAnteInput(); captureSkinsAnteInput(); bestBallCountDraft = n; render(); }
 // The Bonus games toggles — 5-3-1 is picked from the main game list instead.
 const BONUS_GAME_KEYS = ['skins','stableford','quota'];
 // Pick a game choices that aren't points games: they start the scorecard directly.
@@ -4348,7 +4642,7 @@ const BETTING_GAME_LABELS = { captain:'🐺 Wolf', mrPar:'🐺 3 Man Wolf', capt
 // the game line under "Who's playing?".
 const GAME_PLAIN_NAMES = {
   captain5:'5Man Captain', captain:'Wolf', rollReroll:'Roll & Re-roll', six66:'666 Parlor', bbb:'Bingo Bango Bongo',
-  nv:'Naper Vegas', nassau:'Nassau', mrPar:'3 Man Wolf', hammer:'Hammer', ninePoint:'5-3-1',
+  nv:'Naper Vegas', nassau:'Nassau', mrPar:'3 Man Wolf', hammer:'Hammer', ninePoint:'5-3-1', bestBall:'Best Ball',
   skins:'Skins', stableford:'Stableford', quota:'Quota', scores:'Just keep the scores'
 };
 // "5Man Captain + Skins" for the game picked on Pick a game, or '' if none yet.
@@ -4431,7 +4725,7 @@ function renderTrackChoice(){
   const gameBtn = (mode, label) =>
     `<button class="btn game-btn ${trackChoicePrimary===mode?'btn-gold':'btn-outline'}" onclick="selectPrimaryGame('${mode}')">${label}</button>`;
   const gameOrder = ['captain5','captain','rollReroll','six66','bbb'];
-  const gameButtons = gameOrder.concat(['nv','nassau','mrPar','hammer','ninePoint'])
+  const gameButtons = gameOrder.concat(['nv','nassau','mrPar','hammer','ninePoint','bestBall'])
     .map(mode => gameBtn(mode, GAME_PLAIN_NAMES[mode])).join('');
   // Naper Vegas and Nassau need the round to themselves — no bonus games.
   const standalone = trackChoicePrimary==='nv' || trackChoicePrimary==='nassau';
@@ -4497,7 +4791,15 @@ function gameOptionsHtml(){
     </div>
     <div class="sub" style="margin:4px 0 0;">${wolf3VariantNote()}</div>`;
   }
+  if(trackChoicePrimary==='bestBall') return bestBallCountPicker(bestBallCountDraft, 'setBestBallCount');
   return '';
+}
+function bestBallCountPicker(count, setFn){
+  const opt = n => `<button class="btn btn-compact ${count===n?'btn-gold':'btn-outline'}" style="flex:1;" onclick="${setFn}(${n})">${n}</button>`;
+  return `
+    <label style="margin:10px 0 4px;">How many scores count each hole?</label>
+    <div class="btn-row" style="margin:0;">${[1,2,3,4,5].map(opt).join('')}</div>
+    <div class="sub" style="margin:4px 0 0;">${count===1 ? 'The low net score in the group is the team score.' : `The ${count} lowest net scores in the group add up to the team score.`} Full handicap strokes.</div>`;
 }
 
 function pickBettingGame(trackMode, gameMode){
@@ -4899,7 +5201,7 @@ function initCardPlayersFromRoster(names){
 }
 
 function chooseScorecardOnly(){
-  scorecardGamesDraft = { skins:false, stableford:false, quota:false, ninePoint:false };
+  scorecardGamesDraft = { skins:false, stableford:false, quota:false, ninePoint:false, bestBall:false };
   trackChoicePrimary = null;
   quotaAnteDraft = null;
   skinsAnteDraft = null;
@@ -4915,6 +5217,7 @@ function startScorecardOnly(){
   captureSkinsAnteInput();
   state.pointValue = pointValueDraft;
   state.quotaAnte = quotaAnteDraft; state.skinsAnte = skinsAnteDraft; state.skinsCarry = skinsCarryDraft; state.skinsValidate = skinsValidateDraft;
+  state.bestBallCount = bestBallCountDraft;
   state.cardPlayers = state.roster.map(p=>({name:p.name, hcp:p.hcp, teammate:!!p.teammate}));
   state.cardScores = state.cardPlayers.map(()=>({}));
   state.cardHole = 1;
@@ -5685,6 +5988,85 @@ function renderNinePointSection(){
   </div>`;
 }
 
+/* ==========================================================================
+   Best Ball — the group plays as one team; the best N net scores on each
+   hole (full handicap strokes) make the team score.
+   ========================================================================== */
+// Full-handicap strokes on a hole (not off the low man): a 14 gets one on the
+// 14 hardest holes. A plus handicap gives strokes back on the easiest holes,
+// so a +2 adds one on the handicap-17 and -18 holes.
+function fullHandicapStrokes(hcp, si){
+  if(hcp >= 0) return strokesGiven(hcp, si);
+  return (19 - si) <= -hcp ? -1 : 0;
+}
+function fmtToPar(n){ return n===0 ? 'E' : (n>0 ? `+${n}` : String(n)); }
+// The best `count` net scores on one hole. Null until at least `count`
+// players have posted, so a half-finished hole never counts short.
+function teamPick(values, count){
+  const order = values.map((v,i)=>({v,i})).filter(x=>x.v!==null).sort((a,b)=>a.v-b.v);
+  if(order.length < count) return null;
+  const used = order.slice(0, count);
+  return { total: used.reduce((t,x)=>t+x.v, 0), used: used.map(x=>x.i) };
+}
+function bestBallRound(playerCount, holes, count, netAt){
+  let total = 0, par = 0, thru = 0;
+  const perHole = {};
+  holes.forEach(hi => {
+    const pick = teamPick([...Array(playerCount)].map((_,i)=>netAt(i, hi.hole)), count);
+    perHole[hi.hole] = pick;
+    if(pick){ total += pick.total; par += hi.par * count; thru++; }
+  });
+  return { total, toPar: total - par, thru, perHole };
+}
+function bestBallLabel(count){ return count===1 ? 'Best ball (low net)' : `Best ${count} balls`; }
+function bestBallNet(i, h){
+  const g = cardScore(i, h);
+  const p = state.cardPlayers[i];
+  return (g===null || !p) ? null : g - fullHandicapStrokes(p.hcp, holeInfo(h).si);
+}
+function bbSumRange(cell, from, to){
+  let t = 0, any = false;
+  for(let h=from; h<=to; h++){ const v = cell(h); if(v!==null){ t += v; any = true; } }
+  return any ? t : null;
+}
+// One grid row: cellHtml(h) draws a hole, cell(h) is its number for OUT/IN/TOT.
+function bbRow(label, cellHtml, cell, cls){
+  let cells = `<td class="player-name">${label}</td>`;
+  for(let h=1; h<=9; h++) cells += cellHtml(h);
+  cells += `<td class="sum-col">${fmtSum(bbSumRange(cell,1,9))}</td>`;
+  for(let h=10; h<=18; h++) cells += cellHtml(h);
+  cells += `<td class="sum-col">${fmtSum(bbSumRange(cell,10,18))}</td><td class="sum-col total">${fmtSum(bbSumRange(cell,1,18))}</td>`;
+  return `<tr class="${cls||''}">${cells}</tr>`;
+}
+// Each player's net score, the ones that counted highlighted, and the team row.
+function renderBestBallSection(){
+  const count = state.bestBallCount || 1;
+  const holes = currentCourse().holes;
+  const round = bestBallRound(state.cardPlayers.length, holes, count, bestBallNet);
+  let head = `<th class="player-name">Hole</th>`;
+  for(let h=1; h<=9; h++) head += `<th>${h}</th>`;
+  head += `<th class="sum-col">OUT</th>`;
+  for(let h=10; h<=18; h++) head += `<th>${h}</th>`;
+  head += `<th class="sum-col">IN</th><th class="sum-col total">TOT</th>`;
+  const parRow = bbRow('Par', h=>`<td>${holes[h-1].par}</td>`, h=>holes[h-1].par, 'info-row');
+  const playerRows = state.cardPlayers.map((p, i) => bbRow(`${escapeHtml(p.name)} <span style="color:#8a8a7a;font-size:0.72rem;">(${fmtHcp(p.hcp)})</span>`, h => {
+    const v = bestBallNet(i, h), pick = round.perHole[h];
+    return `<td class="sc-cell ${pick && pick.used.includes(i) ? 'bb-used' : ''}">${v===null ? '—' : v}</td>`;
+  }, h => bestBallNet(i, h))).join('');
+  const teamCell = h => round.perHole[h] ? round.perHole[h].total : null;
+  const teamRow = bbRow('Team', h => {
+    const v = teamCell(h), tp = holes[h-1].par * count;
+    return `<td class="sc-cell ${v===null ? '' : (v < tp ? 'sc-under' : (v > tp ? 'sc-over' : ''))}"><b>${v===null ? '—' : v}</b></td>`;
+  }, teamCell, 'bb-team-row');
+  return `
+  <div style="margin-bottom:24px;">
+    <h3 style="margin:0 0 8px;font-family:'Fraunces',serif;">🏌️ Best Ball — ${bestBallLabel(count)}</h3>
+    <div class="sub" style="margin-bottom:8px;">Net scores on full handicap. The ${count===1?'low net':`${count} lowest nets`} on each hole (highlighted) make the team score.
+      ${round.thru ? `Team: <b>${fmtToPar(round.toPar)}</b> (${round.total}) through ${round.thru} hole${round.thru===1?'':'s'}.` : ''}</div>
+    <div class="scorecard-scroll"><table class="scorecard"><thead><tr>${head}</tr></thead><tbody>${parRow}${playerRows}${teamRow}</tbody></table></div>
+  </div>`;
+}
+
 function renderPlaceholderGameSection(label, note){
   return `
   <div style="margin-bottom:22px;">    <h3 style="margin:0 0 6px;font-family:'Fraunces',serif;">🚧 ${escapeHtml(label)}</h3>
@@ -5900,6 +6282,7 @@ function renderCardGamesTab(){
     if(key==='stableford') return renderStablefordSection();
     if(key==='quota') return renderQuotaSection();
     if(key==='ninePoint') return renderNinePointSection();
+    if(key==='bestBall') return renderBestBallSection();
     if(key==='nv') return renderNaperVegasSection();
     if(key==='nassau') return renderNassauSection();
     return '';
@@ -5999,6 +6382,19 @@ function renderCardComplete(){
       </table>
     </div>
     ${netCard}
+    ${(state.cardGames||[]).includes('bestBall') ? (() => {
+      const count = state.bestBallCount || 1;
+      const round = bestBallRound(state.cardPlayers.length, currentCourse().holes, count, bestBallNet);
+      return `
+    <div class="card">
+      <h2>🏌️ Best Ball — Team Score</h2>
+      <div class="sub">${bestBallLabel(count)}, net on full handicap.</div>
+      <table class="standings"><tbody>
+        <tr><td>Team score</td><td class="amt">${round.thru ? round.total : '—'}</td></tr>
+        <tr><td>To par${round.thru<18 ? ` (${round.thru} of 18 holes complete)` : ''}</td><td class="amt">${round.thru ? fmtToPar(round.toPar) : '—'}</td></tr>
+      </tbody></table>
+    </div>`;
+    })() : ''}
   </div>
   ${screenshotCapability ? `<div class="btn-row"><button class="btn btn-outline-light btn-full" onclick="saveScreenshot('results-capture')">${screenshotBusy?'⏳ Saving…':'📸 Save results as a photo'}</button></div>` : ''}
   ${hasCardGames() ? renderCardTabBar() : ''}

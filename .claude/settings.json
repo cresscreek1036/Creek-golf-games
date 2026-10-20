@@ -1,6 +1,7 @@
 {
   "permissions": {
     "allow": [
+      "Bash",
       "mcp__xcode-tools__XcodeGrep",
       "mcp__xcode-tools__XcodeRead",
       "Bash(sips -g *)",
