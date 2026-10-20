@@ -43,7 +43,7 @@
   .masthead h1{
     font-family:'Fraunces', serif;
     font-weight:900;
-    font-size:1.7rem;
+    font-size:clamp(1.3rem, 6vw, 1.7rem);
     line-height:1.05;
     letter-spacing:0.5px;
     margin:0;
@@ -57,7 +57,22 @@
     display:flex;align-items:center;justify-content:center;overflow:hidden;
   }
   .masthead .crest img{width:50px !important;margin:0 !important;filter:none !important;}
-  .masthead-actions{display:flex;flex-direction:column;align-items:stretch;gap:6px;}
+  /* Rules and New Round side by side, a little bigger than before. */
+  .masthead-actions{display:flex;flex-direction:row;align-items:center;gap:8px;}
+  .masthead-actions > .newround-btn{min-height:40px;padding:8px 12px;font-size:0.78rem;white-space:nowrap;}
+  /* The Clear current game? confirm still stacks, under the two buttons. */
+  .masthead-actions{flex-wrap:wrap;justify-content:flex-end;}
+  #newRoundConfirm{flex-basis:100%;}
+  /* Narrow phones (iPhone SE, mini): a smaller crest, title and buttons so the
+     two buttons still fit beside the name. */
+  @media (max-width:400px){
+    .masthead{gap:8px;}
+    .masthead .crest{flex-basis:48px;width:48px;height:48px;}
+    .masthead .crest img{width:40px !important;}
+    .masthead h1{font-size:1.25rem;}
+    .masthead-actions{gap:6px;}
+    .masthead-actions > .newround-btn{padding:8px 8px;font-size:0.68rem;letter-spacing:0.5px;}
+  }
   .newround-btn{
     background:none;border:1px solid var(--green-line);color:var(--cream-dim);
     font-family:'IBM Plex Mono',monospace;font-size:0.7rem;letter-spacing:1px;text-transform:uppercase;
@@ -510,7 +525,7 @@
 <div class="wrap">
   <div class="masthead">
     <div class="crest" id="masthead-crest"></div>
-    <h1>Creek Golf Games</h1>
+    <h1>Creek Golf</h1>
     <div class="masthead-actions">
       <button class="newround-btn" style="border-color:var(--gold-soft);color:var(--gold-soft);" onclick="openRules()">📖 Rules</button>
       <button class="newround-btn" onclick="requestNewRound()">⟲ New Round</button>
@@ -1801,7 +1816,7 @@ function beginPlay(){
     initCardPlayersFromRoster(state.players);
     state.cardHole = 1;
     state.cardGames = Object.keys(scorecardGamesDraft).filter(k=>scorecardGamesDraft[k]);
-    state.quotaAnte = quotaAnteDraft; state.skinsAnte = skinsAnteDraft; state.skinsCarry = skinsCarryDraft; state.skinsValidate = skinsValidateDraft;
+    state.quotaAnte = quotaAnteDraft; state.skinsAnte = skinsAnteDraft; state.skinsMode = skinsModeDraft; state.skinsCarry = skinsCarryDraft; state.skinsValidate = skinsValidateDraft;
     state.phase = 'cardPlaying';
     showFullCard = false;
     saveState(); render();
@@ -1811,7 +1826,7 @@ function beginPlay(){
     initCardPlayersFromRoster(state.players);
     state.holeSubPhase = 'scores';
     state.cardGames = Object.keys(scorecardGamesDraft).filter(k=>scorecardGamesDraft[k]);
-    state.quotaAnte = quotaAnteDraft; state.skinsAnte = skinsAnteDraft; state.skinsCarry = skinsCarryDraft; state.skinsValidate = skinsValidateDraft;
+    state.quotaAnte = quotaAnteDraft; state.skinsAnte = skinsAnteDraft; state.skinsMode = skinsModeDraft; state.skinsCarry = skinsCarryDraft; state.skinsValidate = skinsValidateDraft;
   }
   state.phase = 'playing';
   showFullCard = false;
@@ -2719,7 +2734,7 @@ function doNewRound(){
   pointValueDraft = null;
   diceModeDraft = false; diceMinDraft = 1; diceMaxDraft = 5;
   quotaAnteDraft = null;
-  skinsAnteDraft = null;
+  skinsAnteDraft = null; skinsModeDraft = 'pool';
   skinsCarryDraft = false;
   skinsValidateDraft = false;
   trackModeChoice = 'both';
@@ -3127,8 +3142,10 @@ function getRulesGames(){
         'Tap <b>Validation</b> and winning the hole isn\'t enough on its own — the winner also has to make net par or better on the <b>next</b> hole to keep the skin. Hole 18\'s skin is validated by hole 1, since there\'s no 19th hole.',
         'Fail to validate and the skin is void — treated exactly like a tie (no one wins it, and it carries forward to the next hole if Carryovers is also on).',
         'Validation and Carryovers can be used together or on their own.']],
-      ['Skins points pool', [
-        'Enter a number of points per player (for example 20). The pool is that many points × the number of players.',
+      ['Skins points', [
+        'Pick <b>Per skin</b> or <b>Per player (pool)</b>, then enter the number.',
+        '<b>Per skin</b>: each skin is worth that many points from every other player. With 4 players at 2 a skin, winning a skin is +6 and the other three are −2 each; a carried skin worth 3 is +18.',
+        '<b>Per player (pool)</b>: enter a number of points per player (for example 20). The pool is that many points × the number of players.',
         'The pool is shared out across the skins won: each skin is worth the pool ÷ the total skins awarded. Each player\'s net is the points they won minus what they put in.',
         'If no skins are won, no points change hands.']],
       ['No pool', [
@@ -4561,6 +4578,10 @@ let quotaAnteDraft = null;
 // Skins pool: what each player puts in (e.g. 20 points each); the pool is shared out
 // across the skins actually won.
 let skinsAnteDraft = null;
+// 'pool' = points per player, shared across the skins won (the original way);
+// 'perSkin' = each skin is worth this many points from every other player.
+let skinsModeDraft = 'pool';
+function setSkinsMode(m){ captureQuotaAnteInput(); captureSkinsAnteInput(); skinsModeDraft = m; render(); }
 // Skins carryovers: when on, a tied hole's skin rolls into the next hole.
 let skinsCarryDraft = false;
 let skinsValidateDraft = false;
@@ -4590,7 +4611,7 @@ function continueFromTrackChoice(){
   // reloaded on the course or players screen.
   state.gamePick = {
     primary: trackChoicePrimary, trackMode: trackModeChoice, bonus,
-    skinsAnte: skinsAnteDraft, skinsCarry: skinsCarryDraft, skinsValidate: skinsValidateDraft, quotaAnte: quotaAnteDraft,
+    skinsAnte: skinsAnteDraft, skinsMode: skinsModeDraft, skinsCarry: skinsCarryDraft, skinsValidate: skinsValidateDraft, quotaAnte: quotaAnteDraft,
     captain5Lightning: captain5LightningDraft.slice(), wolf3Variant: wolf3VariantDraft,
     bestBallCount: bestBallCountDraft
   };
@@ -4607,7 +4628,7 @@ function restoreGamePickDrafts(){
   if(!pick) return false;
   trackChoicePrimary = pick.primary; trackModeChoice = pick.trackMode || 'both';
   scorecardGamesDraft = { ...pick.bonus };
-  skinsAnteDraft = pick.skinsAnte; skinsCarryDraft = !!pick.skinsCarry; skinsValidateDraft = !!pick.skinsValidate; quotaAnteDraft = pick.quotaAnte;
+  skinsAnteDraft = pick.skinsAnte; skinsModeDraft = pick.skinsMode || 'pool'; skinsCarryDraft = !!pick.skinsCarry; skinsValidateDraft = !!pick.skinsValidate; quotaAnteDraft = pick.quotaAnte;
   if(pick.captain5Lightning) captain5LightningDraft = pick.captain5Lightning.slice();
   if(pick.wolf3Variant) wolf3VariantDraft = pick.wolf3Variant;
   if(pick.bestBallCount) bestBallCountDraft = pick.bestBallCount;
@@ -4750,10 +4771,16 @@ function renderTrackChoice(){
     <div style="margin:0 0 12px;white-space:nowrap;"><label style="display:inline;margin:0;">Bonus games</label> <span class="sub" style="margin:0;font-size:min(0.85rem,3vw);">— combine with a game, or play alone.</span></div>
     <div class="game-grid three" style="margin-bottom:10px;">${gameToggles}</div>
     ${scorecardGamesDraft.skins ? `
-    <label style="margin:0 0 6px;">Skins points (per player)</label>
-    <input id="skins-ante-input" type="number" inputmode="decimal" min="0" step="1" placeholder="e.g. 20"
+    <label style="margin:0 0 6px;">Skins points</label>
+    <div class="btn-row" style="margin:0 0 6px;">
+      <button class="btn btn-compact ${skinsModeDraft==='perSkin'?'btn-gold':'btn-outline'}" style="flex:1;" onclick="setSkinsMode('perSkin')">Per skin</button>
+      <button class="btn btn-compact ${skinsModeDraft!=='perSkin'?'btn-gold':'btn-outline'}" style="flex:1;" onclick="setSkinsMode('pool')">Per player (pool)</button>
+    </div>
+    <input id="skins-ante-input" type="number" inputmode="decimal" min="0" step="1" placeholder="${skinsModeDraft==='perSkin' ? 'e.g. 2' : 'e.g. 20'}"
            value="${skinsAnteDraft===null?'':skinsAnteDraft}" oninput="captureSkinsAnteInput()">
-    <div class="sub" style="margin:4px 0 10px;">Points pool = this × players, split across skins won.</div>
+    <div class="sub" style="margin:4px 0 10px;">${skinsModeDraft==='perSkin'
+      ? 'Each skin is worth this many points from every other player.'
+      : 'Each player puts in this many; the pool is split across the skins won.'}</div>
     <button class="btn ${skinsCarryDraft?'btn-gold':'btn-outline'} btn-full" style="margin-bottom:4px;" onclick="toggleSkinsCarry()">Carryovers${skinsCarryDraft?' ✓':''}</button>
     <div class="sub" style="margin:4px 0 10px;">${skinsCarryDraft?'Ties carry to the next hole.':'Off: a tied hole is no skin.'}</div>
     <button class="btn ${skinsValidateDraft?'btn-gold':'btn-outline'} btn-full" style="margin-bottom:4px;" onclick="toggleSkinsValidate()">Validation${skinsValidateDraft?' ✓':''}</button>
@@ -5204,7 +5231,7 @@ function chooseScorecardOnly(){
   scorecardGamesDraft = { skins:false, stableford:false, quota:false, ninePoint:false, bestBall:false };
   trackChoicePrimary = null;
   quotaAnteDraft = null;
-  skinsAnteDraft = null;
+  skinsAnteDraft = null; skinsModeDraft = 'pool';
   skinsCarryDraft = false;
   skinsValidateDraft = false;
   startScorecardOnly();
@@ -5216,7 +5243,7 @@ function startScorecardOnly(){
   captureQuotaAnteInput();
   captureSkinsAnteInput();
   state.pointValue = pointValueDraft;
-  state.quotaAnte = quotaAnteDraft; state.skinsAnte = skinsAnteDraft; state.skinsCarry = skinsCarryDraft; state.skinsValidate = skinsValidateDraft;
+  state.quotaAnte = quotaAnteDraft; state.skinsAnte = skinsAnteDraft; state.skinsMode = skinsModeDraft; state.skinsCarry = skinsCarryDraft; state.skinsValidate = skinsValidateDraft;
   state.bestBallCount = bestBallCountDraft;
   state.cardPlayers = state.roster.map(p=>({name:p.name, hcp:p.hcp, teammate:!!p.teammate}));
   state.cardScores = state.cardPlayers.map(()=>({}));
@@ -5674,6 +5701,11 @@ function computeSkinsNet(){
   const n = state.cardPlayers.length;
   const totalSkins = won.reduce((s,v)=>s+v, 0);
   const r2 = v => Math.round(v*100)/100;
+  // Per skin: every other player gives the winner the value, so a player's
+  // net is value × (players × their skins − all skins won).
+  if(state.skinsMode === 'perSkin') return state.cardPlayers.map((p,i) => ({
+    name:p.name, skins: won[i], pts: r2(won[i]*ante*(n-1)), net: r2(ante*(n*won[i] - totalSkins))
+  }));
   const perSkin = totalSkins>0 ? (ante*n)/totalSkins : 0;
   return state.cardPlayers.map((p,i) => {
     const pts = r2(won[i]*perSkin);
@@ -5736,7 +5768,9 @@ function renderSkinsSection(){
       const cls = r.net>0 ? 'sc-under' : (r.net<0 ? 'sc-over' : '');
       return `<tr><td>${escapeHtml(r.name)}</td><td>${r.skins}</td><td>${r.pts}</td><td class="amt ${cls}">${signed(r.net)}</td></tr>`;
     }).join('');
-    potNote = totalSkins>0
+    potNote = state.skinsMode === 'perSkin'
+      ? `<div class="stroke-preview" style="margin-top:10px;"><b>${ante}</b> per skin from each of the other ${n-1} player${n===2?'':'s'} — a skin wins <b>${r2(ante*(n-1))}</b>. ${totalSkins} skin${totalSkins===1?'':'s'} won so far.</div>`
+      : totalSkins>0
       ? `<div class="stroke-preview" style="margin-top:10px;">Points pool: <b>${ante*n}</b> (${ante} × ${n} players) — ${totalSkins} skin${totalSkins===1?'':'s'} won, <b>${r2(perSkin)}</b> per skin.</div>`
       : `<div class="stroke-preview" style="margin-top:10px;">Points pool: <b>${ante*n}</b> (${ante} × ${n} players) — no skins won yet.</div>`;
   } else {
@@ -6332,7 +6366,9 @@ function renderCardComplete(){
   const netCard = skinsNet ? `
   <div class="card">
     <h2>💰 Skins — Net Results</h2>
-    <div class="sub">Points pool of <b>${state.skinsAnte * state.cardPlayers.length}</b> (${state.skinsAnte} × ${state.cardPlayers.length} players), split across the skins won.</div>
+    <div class="sub">${state.skinsMode === 'perSkin'
+      ? `<b>${state.skinsAnte}</b> per skin from each other player.`
+      : `Points pool of <b>${state.skinsAnte * state.cardPlayers.length}</b> (${state.skinsAnte} × ${state.cardPlayers.length} players), split across the skins won.`}</div>
     <table class="standings">
       <thead><tr><th>Player</th><th>Skins</th><th style="text-align:right;">Net</th></tr></thead>
       <tbody>${skinsNet.slice().sort((a,b)=>b.net-a.net).map(r=>{
