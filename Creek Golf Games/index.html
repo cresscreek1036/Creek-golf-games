@@ -391,6 +391,23 @@
   }
   .plus-toggle:hover{border-color:var(--gold);}
   .plus-toggle.on{background:var(--red);border-color:var(--red);color:#fff;}
+  /* Players screen: Slope | Course Rating | Par across the top, then one row
+     per player — name (tap = playing today) | − + Index | course handicap | ★. */
+  .rating-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin-top:10px;}
+  .rating-row label{margin:0 0 4px;font-size:0.7rem;}
+  .rating-row input{margin:0;padding:10px 6px;text-align:center;}
+  .pick-grid{display:grid;grid-template-columns:minmax(0,1fr) 110px 48px 40px;gap:0 8px;align-items:end;}
+  .pick-grid.pick-head{margin-bottom:4px;}
+  .pick-grid .course-side-btn{height:44px;margin-bottom:8px;align-self:end;}
+  .pick-name{
+    height:44px;margin-bottom:8px;padding:0 10px;border:1.5px solid #cfc7a9;border-radius:8px;background:#fff;cursor:pointer;
+    font-family:'IBM Plex Sans',sans-serif;font-size:1rem;font-weight:600;color:var(--ink);text-align:left;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  }
+  .pick-name.on{background:var(--green-mid);border-color:var(--green-mid);color:#fff;}
+  .pick-add{display:grid;grid-template-columns:minmax(0,1fr) 110px 96px;gap:0 8px;align-items:end;}
+  .pick-add input#pick-new-name{margin:0 0 8px;padding:10px 8px;}
+  .pick-add .btn{height:44px;margin-bottom:8px;}
   .stroke-preview{
     background:#fff;border:1.5px dashed var(--gold);border-radius:10px;padding:12px 14px;
     font-size:0.82rem;color:#5a5648;line-height:1.75;margin-bottom:16px;
@@ -1156,6 +1173,7 @@ async function loadCourses(){
   // after someone fixes a wrong hole handicap on their own device.
   courses = courses.map(c => courseOverrides[c.id] ? { ...c, holes: courseOverrides[c.id] } : c);
   await loadFavorites();
+  await loadPlayerFavorites();
 }
 
 // Favorite courses (by id) are listed at the top of the course screen. Kept under their own
@@ -2675,6 +2693,7 @@ function render(){
   if(state.phase==='courseSelect') app.innerHTML = renderCourseSelect();
   else if(state.phase==='courseList') app.innerHTML = renderCourseList();
   else if(state.phase==='courseAdd') app.innerHTML = renderCourseAdd();
+  else if(state.phase==='playerPick') app.innerHTML = renderPlayerPick();
   else if(state.phase==='roster') app.innerHTML = renderRoster();
   else if(state.phase==='trackChoice') app.innerHTML = renderTrackChoice();
   else if(state.phase==='nassauSetup') app.innerHTML = renderNassauSetup();
@@ -3362,7 +3381,7 @@ function renderStateCourseList(){
 function chooseCourse(id){
   courseSearchQuery = '';
   state.courseId = id;
-  state.phase = 'roster';
+  state.phase = 'playerPick';
   saveState(); render();
 }
 
@@ -3599,7 +3618,7 @@ function saveNewCourse(){
   courses.push({ id, name:v.name, region:v.region, holes:v.holes });
   courseDraft = null;
   state.courseId = id;
-  state.phase = 'roster';
+  state.phase = 'playerPick';
   saveCourses(); saveState(); render();
 }
 
@@ -3752,6 +3771,298 @@ function renderCourseReview(){
 }
 
 /* ==========================================================================
+   Players — favorites and the handicap calculator, between the course and
+   Who's playing?. Favorites keep a Handicap Index; with the course's Slope,
+   Course Rating and Par (saved per course), each player's course handicap is
+   worked out and carried onto Who's playing?.
+   ========================================================================== */
+const PLAYER_FAVORITES_KEY = 'creek-golf-player-favorites-v1';
+const COURSE_RATINGS_KEY = 'creek-golf-course-ratings-v1';
+const PLAYER_FAVORITES_LIMIT = 30;
+let playerFavorites = [];   // [{ name, index: number|null (negative = plus), lastPlayed: ms }]
+let courseRatings = {};     // { courseId: { slope, rating, par } } — kept as typed (strings)
+
+async function loadPlayerFavorites(){
+  try{
+    const res = await storageGet(PLAYER_FAVORITES_KEY);
+    const list = (res && res.value) ? JSON.parse(res.value) : [];
+    playerFavorites = Array.isArray(list) ? list.filter(p => p && typeof p.name === 'string' && p.name.trim())
+      .map(p => ({ ...p, index: Number.isFinite(p.index) ? p.index : null, neg: !!p.neg || p.index < 0 })) : [];
+  }catch(e){ playerFavorites = []; }
+  try{
+    const res = await storageGet(COURSE_RATINGS_KEY);
+    const r = (res && res.value) ? JSON.parse(res.value) : {};
+    courseRatings = (r && typeof r === 'object') ? r : {};
+  }catch(e){ courseRatings = {}; }
+}
+async function savePlayerFavorites(){
+  try{ await storageSet(PLAYER_FAVORITES_KEY, JSON.stringify(playerFavorites)); }
+  catch(e){ console.warn('Could not save player favorites:', e.message || e); }
+}
+async function saveCourseRatings(){
+  try{ await storageSet(COURSE_RATINGS_KEY, JSON.stringify(courseRatings)); }
+  catch(e){ console.warn('Could not save course ratings:', e.message || e); }
+}
+const sameName = (a, b) => a.trim().toLowerCase() === b.trim().toLowerCase();
+function findFavorite(name){ return playerFavorites.find(p => sameName(p.name, name)); }
+
+// Today's picks live in the round state so they survive closing the app:
+// playing = names in the order they were tapped, guests = players added just
+// for today (not favorites).
+function playerPickState(){
+  if(!state.playerPick) state.playerPick = { playing: [], guests: [] };
+  return state.playerPick;
+}
+// The most players the picked game takes (Who's playing? has five rows).
+function playerPickLimit(){
+  const counts = GAME_PLAYER_COUNTS[state.gamePick && state.gamePick.primary];
+  return counts ? Math.max(...counts) : 5;
+}
+
+// The calculator inputs for the current course. Par starts as the course's
+// par, but can be changed for tees that play to a different par.
+function currentRatingInputs(){
+  const saved = courseRatings[state.courseId] || {};
+  return { slope: saved.slope ?? '', rating: saved.rating ?? '', par: saved.par ?? String(parTotal(1,18)) };
+}
+function ratingNumbers(){
+  const r = currentRatingInputs();
+  const slope = Number(r.slope), rating = Number(r.rating), par = Number(r.par);
+  const ok = r.slope !== '' && r.rating !== '' && r.par !== '' &&
+    slope >= 55 && slope <= 155 && rating >= 40 && rating <= 90 && par >= 27 && par <= 90;
+  return ok ? { slope, rating, par } : null;
+}
+// World Handicap System: Index × Slope ÷ 113 + (Course Rating − Par), rounded.
+// A negative result is a plus course handicap; halves round away from zero
+// either way, so a +5.5 is a +6 just as a 5.5 is a 6.
+function courseHandicapFor(index){
+  const r = ratingNumbers();
+  if(!r || index === null || index === undefined || !Number.isFinite(index)) return null;
+  const ch = index * r.slope / 113 + (r.rating - r.par);
+  return (ch < 0 ? -1 : 1) * Math.round(Math.abs(ch)) || 0;
+}
+function onRatingInput(){
+  const v = id => (document.getElementById(id) || {}).value ?? '';
+  courseRatings[state.courseId] = { slope: v('cr-slope').trim(), rating: v('cr-rating').trim(), par: v('cr-par').trim() };
+  saveCourseRatings();
+  refreshPickHandicaps();
+}
+
+// The rows on screen, in order: favorites (most recently played first), then
+// today's guests. Rebuilt on every render; buttons refer to rows by position.
+let pickRows = [];
+// The order is fixed when the screen first opens for a round, so starring
+// someone doesn't make the rows jump; anyone new goes at the bottom.
+function buildPickRows(){
+  const pick = playerPickState();
+  const favs = playerFavorites.slice().sort((a, b) => (b.lastPlayed||0) - (a.lastPlayed||0) || a.name.localeCompare(b.name));
+  const rows = favs.map(p => ({ kind:'fav', ref:p })).concat(pick.guests.map(g => ({ kind:'guest', ref:g })));
+  if(!Array.isArray(pick.order)) pick.order = [];
+  rows.forEach(r => { if(!pick.order.some(n => sameName(n, r.ref.name))) pick.order.push(r.ref.name); });
+  const pos = r => pick.order.findIndex(n => sameName(n, r.ref.name));
+  pickRows = rows.sort((a, b) => pos(a) - pos(b));
+  return pickRows;
+}
+function isPlayingToday(name){ return playerPickState().playing.some(n => sameName(n, name)); }
+function fmtIndex(i){ return (i === null || i === undefined) ? '' : String(Math.abs(i)); }
+function fmtCourseHcp(ch){ return ch === null ? '—' : fmtHcp(ch); }
+
+function togglePlayingToday(i){
+  capturePickInputs();
+  const row = pickRows[i]; if(!row) return;
+  const pick = playerPickState();
+  if(isPlayingToday(row.ref.name)){
+    pick.playing = pick.playing.filter(n => !sameName(n, row.ref.name));
+  } else {
+    const limit = playerPickLimit();
+    if(pick.playing.length >= limit){
+      alert(`${pickedGameLine() || 'This game'} takes ${limit} player${limit===1?'':'s'}. Tap someone who's in to take them out first.`);
+      return;
+    }
+    pick.playing.push(row.ref.name);
+  }
+  saveState(); render();
+}
+// Plus index: the number pad has no minus key, so a toggle flips the sign.
+function togglePickIndexSign(i){
+  capturePickInputs();
+  const row = pickRows[i]; if(!row) return;
+  row.ref.neg = !row.ref.neg;
+  if(row.ref.index !== null && row.ref.index !== undefined) row.ref.index = -row.ref.index;
+  if(row.kind === 'fav') savePlayerFavorites(); else saveState();
+  render();
+}
+function toggleFavoritePlayer(i){
+  capturePickInputs();
+  const row = pickRows[i]; if(!row) return;
+  const pick = playerPickState();
+  if(row.kind === 'fav'){
+    if(!confirm(`Remove ${row.ref.name} from your favorites?`)) return;
+    playerFavorites = playerFavorites.filter(p => p !== row.ref);
+    // Still playing today? Keep them as a guest for this round.
+    if(isPlayingToday(row.ref.name)) pick.guests.push({ name: row.ref.name, index: row.ref.index ?? null, neg: !!row.ref.neg });
+  } else {
+    if(playerFavorites.length >= PLAYER_FAVORITES_LIMIT){
+      alert(`You can keep up to ${PLAYER_FAVORITES_LIMIT} favorites. Remove one (tap its ★) to make room.`);
+      return;
+    }
+    pick.guests = pick.guests.filter(g => g !== row.ref);
+    playerFavorites.push({ name: row.ref.name, index: row.ref.index ?? null, neg: !!row.ref.neg, lastPlayed: 0 });
+  }
+  savePlayerFavorites(); saveState(); render();
+}
+function addPickPlayer(){
+  capturePickInputs();
+  const nameEl = document.getElementById('pick-new-name');
+  const name = (nameEl && nameEl.value || '').trim();
+  if(!name){ alert('Type the player\'s name first.'); return; }
+  const pick = playerPickState();
+  if(findFavorite(name) || pick.guests.some(g => sameName(g.name, name))){
+    alert(`${name} is already on the list.`); return;
+  }
+  const index = parseIndex(pickNewDraft.index, pickNewDraft.neg);
+  if(index === undefined){ alert('Enter a Handicap Index from 0 to 54, like 12.4.'); return; }
+  pick.guests.push({ name, index, neg: pickNewDraft.neg });
+  // A new player is usually playing today; add them if there's room.
+  if(pick.playing.length < playerPickLimit()) pick.playing.push(name);
+  pickNewDraft = { name:'', index:'', neg:false };
+  saveState(); render();
+}
+let pickNewDraft = { name:'', index:'', neg:false };
+function togglePickNewSign(){ capturePickInputs(); pickNewDraft.neg = !pickNewDraft.neg; render(); }
+
+// '' → null (no index yet); a bad number → undefined.
+function parseIndex(raw, neg){
+  const s = String(raw ?? '').trim();
+  if(s === '') return null;
+  const n = Number(s);
+  if(!Number.isFinite(n) || n < 0 || n > 54) return undefined;
+  const v = Math.round(n * 10) / 10;
+  return neg ? -v : v;
+}
+// Read every index box back into its player, so a re-render (or leaving the
+// screen) never drops something typed.
+function capturePickInputs(){
+  document.querySelectorAll('[data-pick-index]').forEach(el => {
+    const row = pickRows[Number(el.dataset.pickIndex)]; if(!row) return;
+    const v = parseIndex(el.value, !!row.ref.neg);
+    if(v !== undefined) row.ref.index = v;
+  });
+  const n = document.getElementById('pick-new-name'), x = document.getElementById('pick-new-index');
+  if(n) pickNewDraft.name = n.value;
+  if(x) pickNewDraft.index = x.value;
+}
+function onPickIndexInput(){
+  capturePickInputs();
+  savePlayerFavorites(); saveState();
+  refreshPickHandicaps();
+}
+// Update the course handicap boxes in place, so the keyboard stays up.
+function refreshPickHandicaps(){
+  pickRows.forEach((row, i) => {
+    const el = document.getElementById('pick-ch-' + i);
+    if(el) el.textContent = fmtCourseHcp(courseHandicapFor(row.ref.index));
+  });
+}
+
+function renderPlayerPick(){
+  const r = currentRatingInputs();
+  const pick = playerPickState();
+  const rows = buildPickRows();
+  const limit = playerPickLimit();
+  const rowHtml = rows.map((row, i) => {
+    const p = row.ref, on = isPlayingToday(p.name);
+    return `
+    <div class="pick-grid">
+      <button type="button" class="pick-name ${on?'on':''}" onclick="togglePlayingToday(${i})">${on?'✓ ':''}${escapeHtml(p.name)}</button>
+      <div class="hcp-input">
+        <button type="button" class="plus-toggle ${p.neg?'on':''}" onclick="togglePickIndexSign(${i})" title="Flip for a plus index">−</button>
+        <input class="card-hcp" type="number" inputmode="decimal" min="0" max="54" step="0.1" placeholder="Index"
+               data-pick-index="${i}" value="${escapeAttr(fmtIndex(p.index))}" oninput="onPickIndexInput()">
+      </div>
+      <div class="strokes-box" id="pick-ch-${i}">${fmtCourseHcp(courseHandicapFor(p.index))}</div>
+      <button type="button" class="course-side-btn ${row.kind==='fav'?'on':''}" onclick="toggleFavoritePlayer(${i})"
+              aria-label="${row.kind==='fav'?'Remove from':'Add to'} favorites" title="${row.kind==='fav'?'Remove from favorites':'Save as a favorite'}">${row.kind==='fav'?'★':'☆'}</button>
+    </div>`;
+  }).join('');
+
+  return `
+  <div class="card">
+    ${topBackLink("backToCourseSelect()")}
+    <h2 style="text-align:center;${pickedGameLine() ? 'margin-bottom:2px;' : ''}">Players</h2>
+    ${pickedGameLine() ? `<div style="text-align:center;font-size:1.15rem;font-weight:700;color:var(--green-mid);margin:0 0 10px;">${escapeHtml(pickedGameLine())}</div>` : ''}
+    <div class="sub" style="text-align:center;">${escapeHtml(currentCourse().name)}</div>
+
+    <div class="rating-row">
+      <div><label for="cr-slope">Slope</label>
+        <input id="cr-slope" type="number" inputmode="numeric" min="55" max="155" step="1" placeholder="e.g. 131" value="${escapeAttr(r.slope)}" oninput="onRatingInput()"></div>
+      <div><label for="cr-rating">Course Rating</label>
+        <input id="cr-rating" type="number" inputmode="decimal" min="40" max="90" step="0.1" placeholder="e.g. 71.4" value="${escapeAttr(r.rating)}" oninput="onRatingInput()"></div>
+      <div><label for="cr-par">Par</label>
+        <input id="cr-par" type="number" inputmode="numeric" min="27" max="90" step="1" value="${escapeAttr(r.par)}" oninput="onRatingInput()"></div>
+    </div>
+    <div class="sub" style="margin:4px 0 14px;">From the scorecard, for the tees you're playing. Saved for this course.</div>
+
+    <div class="pick-grid pick-head">
+      <label class="col-head" style="text-align:left;">Tap who's playing</label>
+      <label class="col-head">Handicap Index</label>
+      <label class="col-head">Course</label>
+      <span></span>
+    </div>
+    ${rowHtml || `<div class="sub" style="margin:0 0 12px;">No favorites yet. Add a player below, then tap ☆ to keep them for next time.</div>`}
+    <div class="sub" style="margin:-4px 0 14px;">${pick.playing.length} of ${limit} playing · ★ = favorite (${playerFavorites.length} of ${PLAYER_FAVORITES_LIMIT}) · Tap − for a plus index.</div>
+
+    <label style="margin:0 0 6px;">Add a player</label>
+    <div class="pick-add">
+      <input id="pick-new-name" type="text" placeholder="Name" autocomplete="off" value="${escapeAttr(pickNewDraft.name)}" oninput="capturePickInputs()">
+      <div class="hcp-input">
+        <button type="button" class="plus-toggle ${pickNewDraft.neg?'on':''}" onclick="togglePickNewSign()" title="Flip for a plus index">−</button>
+        <input id="pick-new-index" class="card-hcp" type="number" inputmode="decimal" min="0" max="54" step="0.1" placeholder="Index" value="${escapeAttr(pickNewDraft.index)}" oninput="capturePickInputs()">
+      </div>
+      <button type="button" class="btn btn-outline btn-compact" onclick="addPickPlayer()">Add</button>
+    </div>
+
+    <button class="btn btn-gold btn-full" style="margin-top:14px;" onclick="continueFromPlayerPick(false)">Continue ▶</button>
+    <button class="btn btn-outline btn-full" style="margin-top:10px;" onclick="continueFromPlayerPick(true)">Skip the calculator — enter course handicaps next</button>
+  </div>`;
+}
+
+// Fill Who's playing? with today's players. With the calculator, each gets
+// their course handicap (still editable there); skipped, or without an index
+// or the course's Slope/Rating, the handicap is left for that screen.
+function continueFromPlayerPick(skipCalc){
+  capturePickInputs();
+  const pick = playerPickState();
+  const byName = name => findFavorite(name) || pick.guests.find(g => sameName(g.name, name));
+  const blank = () => ({ names:['','','','',''], hcps:['','','','',''], neg:[false,false,false,false,false], teammate:[false,false,false,false,false] });
+  cardDraft = blank();
+  pick.playing.slice(0, 5).forEach((name, i) => {
+    const p = byName(name);
+    cardDraft.names[i] = p ? p.name : name;
+    const ch = (skipCalc || !p) ? null : courseHandicapFor(p.index);
+    if(ch !== null && Math.abs(ch) <= 54){
+      cardDraft.hcps[i] = String(Math.abs(ch));
+      cardDraft.neg[i] = ch < 0;
+    }
+  });
+  savePlayerFavorites();
+  state.phase = 'roster';
+  saveState(); render();
+}
+function backToPlayerPick(){
+  captureCardDraft();
+  state.phase = 'playerPick';
+  saveState(); render();
+}
+// When a round starts, favorites who are in it move to the top of the list.
+function markFavoritesPlayed(roster){
+  const now = Date.now();
+  let changed = false;
+  roster.forEach(r => { const f = findFavorite(r.name); if(f){ f.lastPlayed = now; changed = true; } });
+  if(changed) savePlayerFavorites();
+}
+
+/* ==========================================================================
    Roster — names and course handicaps, shared by every game
    ========================================================================== */
 let cardDraft = { names:['','','','',''], hcps:['','','','',''], neg:[false,false,false,false,false], teammate:[false,false,false,false,false] };
@@ -3877,7 +4188,7 @@ function renderRoster(){
 
   return `
   <div class="card">
-    ${topBackLink("backToCourseSelect()")}
+    ${topBackLink("backToPlayerPick()")}
     <h2 style="text-align:center;${pickedGameLine() ? 'margin-bottom:2px;' : ''}">Who's playing?</h2>
     ${pickedGameLine() ? `<div style="text-align:center;font-size:1.15rem;font-weight:700;color:var(--green-mid);margin:0 0 10px;">${escapeHtml(pickedGameLine())}</div>` : ''}
     <div class="sub">${escapeHtml(currentCourse().name)} · Par ${parTotal(1,18)}<br><button type="button" style="background:none;border:none;padding:0;font:inherit;font-weight:600;color:var(--green-mid);text-decoration:underline;cursor:pointer;" onclick="openCourseReview()">📋 Review/edit scorecard</button></div>
@@ -3908,7 +4219,7 @@ function renderRoster(){
     `}
 
     ${rosterStartButtons()}
-    <div class="btn-row" style="margin-top:10px;"><button class="btn btn-outline btn-full" onclick="backToCourseSelect()">◀ Back</button></div>
+    <div class="btn-row" style="margin-top:10px;"><button class="btn btn-outline btn-full" onclick="backToPlayerPick()">◀ Back</button></div>
   </div>`;
 }
 
@@ -3938,6 +4249,7 @@ function confirmRoster(shuffle){
   }
 
   state.roster = roster;
+  markFavoritesPlayed(roster);
   launchPickedGame();
 }
 
@@ -6385,7 +6697,10 @@ addEventListener('touchend', e => {
   if(!start || !field || !field.matches('input, textarea, select')) return;
   const t = e.changedTouches[0];
   if(Math.abs(t.clientX - start.x) > 10 || Math.abs(t.clientY - start.y) > 10) return; // a scroll, not a tap
-  if(e.target.closest('input, textarea, select, button, a, label, [onclick]')) return;
+  // A label tied to a box (for=…, or wrapping it) focuses that box; a plain heading label is just text.
+  if(e.target.closest('input, textarea, select, button, a, label[for], [onclick]')) return;
+  const label = e.target.closest('label');
+  if(label && label.querySelector('input, textarea, select')) return;
   e.preventDefault(); // no click, so the tap can't land on a nearby button
   field.blur();
 });

@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__xcode-tools__XcodeGrep",
+      "mcp__xcode-tools__XcodeRead",
+      "Bash(sips -g *)",
+      "mcp__xcode-tools__XcodeListRunDestinations",
+      "Bash(xcrun simctl list)",
+      "Bash(xcrun simctl list *)",
+      "mcp__xcode-tools__GetTargetBuildSettings",
+      "mcp__xcode-tools__XcodeListNavigatorIssues",
+      "mcp__xcode-tools__XcodeLS",
+      "mcp__xcode-tools__DocumentationSearch",
+      "mcp__xcode-tools__GetBuildLog",
+      "mcp__xcode-tools__XcodeListTargets",
+      "mcp__xcode-tools__XcodeRefreshCodeIssuesInFile"
+    ]
+  }
+}
