@@ -142,6 +142,13 @@
   .btn-gold{background:var(--gold);color:var(--ink);}
   /* A picked option: gold carried by the border and a wash of fill, so the
      screen's one solid-gold button is still the obvious next step. */
+  /* Apple's 44px minimum tap target, set once for every compact control
+     (with the label kept centred once the floor takes over from the padding). */
+  .btn-compact, .just-scores-btn, .solo-row .btn, .tee-btn,
+  .game-grid .game-btn, .game-grid.three .game-btn,
+  .tied-picker button, .view-toggle button, .hole-jump button{
+    min-height:44px;display:inline-flex;align-items:center;justify-content:center;
+  }
   .btn-selected{background:var(--gold-wash);border:1.5px solid var(--gold);color:var(--ink);font-weight:700;}
   @media (hover:hover){ .btn-gold:hover{filter:brightness(1.08);} }
   .btn-outline{background:none;border:1.5px solid #cfc7a9;color:var(--ink);}
@@ -300,6 +307,13 @@
   .name-row button.active-pick{background:var(--gold-wash);font-weight:700;border-color:var(--gold);}
 
   .points-row{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0 8px;}
+  .lineup-peek{padding:12px 16px;}
+  .lineup-peek summary{cursor:pointer;font-weight:700;color:var(--ink);min-height:28px;display:flex;align-items:center;}
+  .lineup-peek summary::-webkit-details-marker{display:none;}
+  .lineup-peek summary::after{content:'▼\FE0E';margin-left:auto;font-size:0.8rem;color:#8a8a7a;}
+  .lineup-peek[open] summary::after{content:'▲\FE0E';}
+  .lineup-peek h2{font-size:1.1rem;}
+  .points-row + .umbrella-btn{margin-top:8px;}
   .points-row button{
     flex:1 1 auto;min-width:46px;padding:18px 0;border-radius:12px;border:1.5px solid var(--gold);background:#fff;
     font-family:'IBM Plex Mono',monospace;font-size:1.25rem;font-weight:700;cursor:pointer;color:var(--ink);
@@ -402,9 +416,9 @@
   .point-or{font-family:'Fraunces',serif;font-style:italic;font-weight:700;color:#8a8a7a;}
   .screen-head{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:8px;margin:-8px 0 4px;}
   .screen-head .top-back{margin:0;}
-  .screen-head h2{margin:0;text-align:center;line-height:1.2;}
+  .screen-head h2{margin:0;text-align:center;line-height:1.2;font-size:clamp(1.05rem, 5vw, 1.35rem);}
   /* A long game name drops onto its own line rather than getting cut off. */
-  .screen-head .title-game{display:inline-block;font-family:'IBM Plex Sans',sans-serif;font-size:1rem;font-weight:700;color:var(--green-mid);margin-left:8px;white-space:nowrap;}
+  .screen-head .title-game{display:inline-block;font-family:'IBM Plex Sans',sans-serif;font-size:0.9rem;font-weight:700;color:var(--green-mid);margin-left:6px;white-space:nowrap;}
   .screen-head-spacer{visibility:hidden;font-size:0.85rem;font-weight:600;}
   /* Small Back link in the card's top-left corner, above the title. */
   .top-back{
@@ -531,6 +545,7 @@
   .skin-win{display:inline-flex;align-items:center;justify-content:center;min-width:20px;height:20px;padding:0 2px;box-sizing:border-box;
     border-radius:50%;border:2px solid #3f7a3f;background:#e3f0dc;color:#3f7a3f;font-weight:700;}
   .skin-void{color:#8a8a7a;text-decoration:line-through;}
+  .skin-tie{color:#8a8a7a;font-size:0.65rem;}
   /* Best Ball grid: the nets that counted toward the team score, and the team row. */
   table.scorecard td.bb-used{background:#F3E3B0;font-weight:700;}
   table.scorecard tr.bb-team-row td{border-top:2px solid var(--green-deep);}
@@ -542,7 +557,7 @@
     <div class="crest" id="masthead-crest"></div>
     <h1>Creek Golf</h1>
     <div class="masthead-actions">
-      <button class="newround-btn" style="border-color:var(--gold-soft);color:var(--gold-soft);" onclick="openRules()">📖 Rules</button>
+      <button class="newround-btn" style="border-color:var(--gold-soft);color:var(--gold-soft);" onclick="openRules()">Rules</button>
       <button class="newround-btn" onclick="requestNewRound()">⟲ New Round</button>
       <div id="newRoundConfirm" style="display:none;flex-direction:column;align-items:stretch;gap:6px;">
         <span style="font-size:0.68rem;color:var(--red-soft);font-family:'IBM Plex Mono',monospace;">Clear current game?</span>
@@ -1556,15 +1571,15 @@ function renderDiceBlock(){
   if(state.diceRolled){
     return `
     <div class="card" style="text-align:center;">
-      <h2 style="margin-bottom:4px;">🎲 Rolled a ${state.diceResult}</h2>
+      <h2 style="margin-bottom:4px;">Rolled a ${state.diceResult}</h2>
       <div class="sub">Applied to the whole round — the numbers below are final.</div>
     </div>`;
   }
   return `
     <div class="card" style="text-align:center;">
-      <h2 style="margin-bottom:4px;">${DICE_ICON}Roll the Dice</h2>
+      <h2 style="margin-bottom:4px;">Roll the Dice</h2>
       <div class="sub" style="margin-bottom:16px;">Range: <b>${state.diceMin}</b> to <b>${state.diceMax}</b>. This sets the real point value for the whole round — the numbers below are placeholders until you roll.</div>
-      <button class="btn btn-gold btn-full" onclick="rollTheDice()">${DICE_ICON}Roll the Dice</button>
+      <button class="btn btn-gold btn-full" onclick="rollTheDice()">Roll the Dice</button>
     </div>`;
 }
 
@@ -1711,7 +1726,7 @@ function shuffleAndStart(names){
     for(let i=names.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [names[i],names[j]]=[names[j],names[i]]; }
   const rate = state.pointValue>0 ? state.pointValue : 1;
   Object.assign(state, { phase:'lineup', mode:'captain', players:names, betRate: rate, currentHole:1, holes:[], lightningPick:null, teams:null, currentValue:null, slotsShuffled: !keepSlotOrderDraft });
-  saveState(); render();
+  beginPlay(); // straight to hole 1 — the lineup shows at the top of it
 }
 
 function startCaptain5(names){
@@ -1723,7 +1738,7 @@ function startCaptain5(names){
     lightningPick:null, teams:null, currentValue:null, lightningHoles: captain5LightningDraft.slice(),
     slotsShuffled: !keepSlotOrderDraft
   });
-  saveState(); render();
+  beginPlay(); // straight to hole 1 — the lineup shows at the top of it
 }
 
 function startMrPar(names){
@@ -1731,7 +1746,7 @@ function startMrPar(names){
     for(let i=names.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [names[i],names[j]]=[names[j],names[i]]; }
   const rate = state.pointValue>0 ? state.pointValue : 1;
   Object.assign(state, { phase:'lineup', mode:'mrPar', wolf3Variant: wolf3VariantDraft, players:names, betRate: rate, currentHole:1, holes:[], lightningPick:null, teams:null, currentValue:null, slotsShuffled: !keepSlotOrderDraft });
-  saveState(); render();
+  beginPlay(); // straight to hole 1 — the lineup shows at the top of it
 }
 
 // When exactly two players aren't marked Teammate, pair the highest handicap
@@ -1751,7 +1766,7 @@ function startRollReroll(team1, team2){
     teams:{a:team1, b:team2}, currentValue:value, betRate:value,
     currentHole:1, holes:[], lightningPick:null
   });
-  saveState(); render();
+  beginPlay(); // straight to hole 1 — the lineup shows at the top of it
 }
 
 function startHammer(names){
@@ -1761,7 +1776,7 @@ function startHammer(names){
     currentValue:value, betRate:value,
     currentHole:1, holes:[], lightningPick:null
   });
-  saveState(); render();
+  beginPlay(); // straight to hole 1 — the lineup shows at the top of it
 }
 
 function startBBB(names){
@@ -1771,7 +1786,7 @@ function startBBB(names){
     currentValue:value, betRate:value,
     currentHole:1, holes:[], lightningPick:null
   });
-  saveState(); render();
+  beginPlay(); // straight to hole 1 — the lineup shows at the top of it
 }
 
 // ---------- 666 mode: fixed partners, changing every 6 holes ----------
@@ -1804,12 +1819,22 @@ function startSixSixSix(names){
     six66Segments: buildSixSixSixSegments(names, teammatePair),
     betRate:value, currentHole:1, holes:[], lightningPick:null, currentValue:null
   });
-  saveState(); render();
+  beginPlay(); // straight to hole 1 — the lineup shows at the top of it
 }
 
 // Back navigation: from the lineup screen, back to Who's playing? (names and
 // teams are edited there); from hole 1, before anything is recorded, back to the
 // lineup screen. Undo (once a hole exists) covers going back from hole 2 onward.
+// Hole 1 shows the lineup (slots, who's Wolf or Captain when, the teams) in a
+// panel you can open, instead of a screen of its own before the round.
+function lineupPeekHtml(){
+  const html = renderLineup()
+    .replace(/<button type="button" class="top-back"[^>]*>[\s\S]*?<\/button>/, '')
+    .replace(/<button class="btn btn-gold btn-full" onclick="beginPlay\(\)">[\s\S]*?<\/button>/, '')
+    .replace(/<div class="btn-row"[^>]*><button class="btn btn-outline btn-full" onclick="backToSetupFromLineup\(\)">[\s\S]*?<\/button><\/div>/, '')
+    .replace('<div class="card">', '<div>');
+  return `<details class="card lineup-peek"><summary>Lineup — who goes when</summary>${html}</details>`;
+}
 function backToSetupFromLineup(){
   state.phase = 'roster';
   saveState(); render();
@@ -1868,6 +1893,14 @@ function renderHoleReview(){
   <div class="btn-row"><button class="btn btn-outline-light" onclick="undoLastHole()">↩︎ Undo hole ${justHole}</button></div>
   `;
 }
+// The points game's running totals, on the scores screen (the summary screen
+// that used to come after every hole is gone).
+let showGameSoFar = false;
+function toggleGameSoFar(){
+  showGameSoFar = !showGameSoFar; render();
+  const el = showGameSoFar && document.getElementById('game-so-far');
+  if(el && el.scrollIntoView) el.scrollIntoView({ block:'start', behavior:'smooth' });
+}
 function advanceToScores(){
   state.holeSubPhase = 'scores';
   saveState(); render();
@@ -1908,9 +1941,11 @@ function renderBothScores(){
     <div class="sub" id="hole-note" style="margin:4px 0 12px;">${missingNote(missing)}</div>
     <button class="btn btn-gold btn-full score-go" onclick="continueToGameResult()">Record the game ▶︎</button>
     <div class="btn-row">
-      <button class="btn btn-outline btn-full" onclick="toggleFullCard()">${showFullCard ? '▲ Hide the full scorecard' : '📋 Show the full scorecard'}</button>
+      <button class="btn btn-outline btn-full" onclick="toggleFullCard()">${showFullCard ? '▲ Hide the full scorecard' : 'Show the full scorecard'}</button>
+      <button class="btn btn-outline btn-full" style="margin-top:8px;" onclick="toggleGameSoFar()">${showGameSoFar ? '▲︎ Hide the game so far' : 'Show the game so far'}</button>
     </div>
   </div>
+  ${showGameSoFar ? `<div id="game-so-far">${state.mode==='rollReroll' ? renderScorecardRoll() : renderScorecard()}</div>` : ''}
   ${showFullCard ? (hasCardGames() ? renderCardTabBar() + (cardTab==='games' ? renderCardGamesTab() : renderCardScorecard(h)) : renderCardScorecard(h)) : ''}
   ${state.holes.length ? `<div class="btn-row"><button class="btn btn-outline-light" onclick="undoLastHole()">↩︎ Undo last hole</button></div>` : `<div class="btn-row"><button class="btn btn-outline-light" onclick="backToLineup()">◀︎ Back to lineup</button></div>`}
   `;
@@ -1940,7 +1975,7 @@ function renderLineup(){
   <div class="card">
     ${topBackLink("backToSetupFromLineup()")}
     ${gameTitleBadge(state.mode)}
-    <h2>${state.slotsShuffled===false ? '⛳' : '🎲'} Lineup Set</h2>
+    <h2>Lineup Set</h2>
     <div class="sub">${state.slotsShuffled===false ? 'Slots follow the order you entered' : 'Slots assigned randomly'} — this drives the ${state.mode==='mrPar' ? 'Wolf' : 'captain'} rotation for the round.${state.mode==='mrPar' ? (wolf3Alone() ? ' Playing <b>Alone</b>: the Wolf always plays alone against the other two, counted as if he had a partner with the same score and points.' : ' Playing with <b>Mr Par</b>: the Wolf always partners with Mr Par, who makes a net par on every hole.') : ''}</div>
     <table class="standings">
       <thead><tr><th>Slot</th><th>Player</th><th>${(state.mode==='captain'||state.mode==='mrPar') ? 'Wolf' : 'Captain'} on holes</th></tr></thead>
@@ -1957,7 +1992,7 @@ function renderLineupRoll(){
   <div class="card">
     ${topBackLink("backToSetupFromLineup()")}
     ${gameTitleBadge('rollReroll')}
-    <h2>🎲 Teams Set</h2>
+    <h2>Teams Set</h2>
     <div class="sub">Partners are locked in for the whole round — 2 on 2, no captain rotation.</div>
     <table class="standings">
       <thead><tr><th>Team</th><th>Players</th></tr></thead>
@@ -1987,7 +2022,7 @@ function renderLineupHammer(){
   <div class="card">
     ${topBackLink("backToSetupFromLineup()")}
     ${gameTitleBadge('hammer')}
-    <h2>🔨 Hammer Set</h2>
+    <h2>Hammer Set</h2>
     <div class="sub">${n} players — ${pairs.length} individual match${pairs.length===1?'':'es'} every hole.</div>
     <table class="standings">
       <thead><tr><th>Matchups each hole</th></tr></thead>
@@ -2006,7 +2041,7 @@ function renderLineupBBB(){
   <div class="card">
     ${topBackLink("backToSetupFromLineup()")}
     ${gameTitleBadge('bbb')}
-    <h2>🟢 Bingo Bango Bongo Set</h2>
+    <h2>Bingo Bango Bongo Set</h2>
     <div class="sub">${n} players · ${state.currentValue} per point · 3 points up for grabs every hole.</div>
     <table class="standings">
       <thead><tr><th>Point</th><th>Awarded for</th></tr></thead>
@@ -2031,7 +2066,7 @@ function renderLineupSixSixSix(){
     ${topBackLink("backToSetupFromLineup()")}
     ${SIXSIXSIX_IMG}
     ${gameTitleBadge('six66')}
-    <h2>🎯 666 Parlor Set</h2>
+    <h2>666 Parlor Set</h2>
     <div class="sub">Scored just like Captain — win/push/loss and points, per hole.</div>
     <table class="standings">
       <thead><tr><th>Segment</th><th>Teams</th></tr></thead>
@@ -2068,6 +2103,9 @@ function setResult(r){
   pendingResult=r;
   if(r==='push'){ if(state.mode==='six66') submitHoleSixSixSix(); else submitHole(); return; }
   render();
+  // The points buttons come up next: bring them into view on smaller phones.
+  const row = document.querySelector('.points-row');
+  if(row && row.scrollIntoView) row.scrollIntoView({ block:'center', behavior:'smooth' });
 }
 function toggleUmbrella(){ pendingUmbrella = !pendingUmbrella; render(); }
 function pickPoints(n){
@@ -2127,12 +2165,14 @@ function submitHole(){
   pendingResult = null; pendingPartner = null; pendingAlone = false; pendingDivorce = false; pendingPoints = null; pendingUmbrella = false;
   pendingPressCount = 0;
   if(state.currentHole>=18){ state.phase='complete'; } else { state.currentHole+=1; }
-  if(state.trackMode==='both' && state.phase!=='complete') state.holeSubPhase='review';
+  if(state.trackMode==='both' && state.phase!=='complete') state.holeSubPhase='scores'; // straight on to the next hole's scores
   saveState(); render();
 }
 
 function undoLastHole(){
   if(!state.holes.length) return;
+  // It sits right under the big Next button, so ask before taking a hole back.
+  if(!confirm(`Undo hole ${state.holes[state.holes.length-1].hole}? Its game result comes off so you can enter it again.`)) return;
   const removed = state.holes.pop();
   state.currentHole = removed.hole;
   state.phase='playing';
@@ -2216,7 +2256,7 @@ function submitHoleRoll(){
   pendingResult = null; pendingRoll = false; pendingReroll = false; pendingPressCount = 0;
   pendingPoints = null; pendingUmbrella = false;
   if(n>=18){ state.phase='complete'; } else { state.currentHole += 1; }
-  if(state.trackMode==='both' && state.phase!=='complete') state.holeSubPhase='review';
+  if(state.trackMode==='both' && state.phase!=='complete') state.holeSubPhase='scores'; // straight on to the next hole's scores
   saveState(); render();
 }
 
@@ -2264,7 +2304,7 @@ function submitHoleHammer(){
   state.currentValue = baseValue; // presses persist going forward
   pendingPressCount = 0; pendingHammerMatches = {};
   if(n>=18){ state.phase='complete'; } else { state.currentHole += 1; }
-  if(state.trackMode==='both' && state.phase!=='complete') state.holeSubPhase='review';
+  if(state.trackMode==='both' && state.phase!=='complete') state.holeSubPhase='scores'; // straight on to the next hole's scores
   saveState(); render();
 }
 
@@ -2310,7 +2350,7 @@ function submitHoleBBB(){
   pendingPressCount = 0;
   pendingBBB = {bingo:null, bango:null, bongo:null};
   if(n>=18){ state.phase='complete'; } else { state.currentHole += 1; }
-  if(state.trackMode==='both' && state.phase!=='complete') state.holeSubPhase='review';
+  if(state.trackMode==='both' && state.phase!=='complete') state.holeSubPhase='scores'; // straight on to the next hole's scores
   saveState(); render();
 }
 function renderBBBAwardRows(){
@@ -2370,11 +2410,11 @@ function renderEditHoleFormBBB(){
   <div class="card">
     <div class="hole-head">
       <div class="hole-badge">${n}</div>
-      <div class="meta">✏️ Editing Hole ${n} · ${rec.betRate} per point</div>
+      <div class="meta">Editing Hole ${n} · ${rec.betRate} per point</div>
     </div>
     ${renderBBBAwardRows()}
     <div class="btn-row" style="margin-top:12px;">
-      <button class="btn btn-primary" style="flex:1;" onclick="saveEditedHoleBBB()">💾 Save Hole ${n}</button>
+      <button class="btn btn-primary" style="flex:1;" onclick="saveEditedHoleBBB()">Save Hole ${n}</button>
       <button class="btn btn-outline" onclick="cancelEditHoleBBB()">Cancel</button>
     </div>
   </div>`;
@@ -2511,7 +2551,7 @@ function renderEditHoleFormRoll(){
   const body = `
     <div class="sub" style="margin:0 0 16px;">Base value for this hole: <b>${rec.baseValue}</b> (locked — press can't be edited after the fact) · This hole: <b>${effectiveValue}</b>${rollBonus>0?` (+${rollBonus})`:''} per point</div>
     <div class="btn-row" style="margin-bottom:16px;">
-      <button class="btn ${pendingRoll?'btn-selected':'btn-outline'}" style="flex:1;" onclick="toggleRoll()">🎲 Roll (+2)</button>
+      <button class="btn ${pendingRoll?'btn-selected':'btn-outline'}" style="flex:1;" onclick="toggleRoll()">Roll (+2)</button>
       <button class="btn ${pendingReroll?'btn-selected':'btn-outline'}" style="flex:1;" onclick="toggleReroll()">🎲🎲 Re-roll (+2 more)</button>
     </div>
     <label>Result</label>
@@ -2529,7 +2569,7 @@ function renderEditHoleFormRoll(){
     ${pendingPoints ? `<div class="sub" style="margin:-2px 0 12px;">Selected: <b>${pendingPoints}</b> points — ${effectiveValue*pendingPoints} for this hole</div>` : ''}
     ` : ''}
     <div class="btn-row">
-      <button class="btn btn-primary" style="flex:1;" onclick="saveEditedHoleRoll()">💾 Save Hole ${n}</button>
+      <button class="btn btn-primary" style="flex:1;" onclick="saveEditedHoleRoll()">Save Hole ${n}</button>
       <button class="btn btn-outline" onclick="cancelEditHoleRoll()">Cancel</button>
     </div>
   `;
@@ -2538,7 +2578,7 @@ function renderEditHoleFormRoll(){
   <div class="card">
     <div class="hole-head">
       <div class="hole-badge">${n}</div>
-      <div class="meta">✏️ Editing Hole ${n}</div>
+      <div class="meta">Editing Hole ${n}</div>
     </div>
     ${body}
   </div>`;
@@ -2608,12 +2648,12 @@ function renderEditHoleFormHammer(){
   <div class="card">
     <div class="hole-head">
       <div class="hole-badge">${n}</div>
-      <div class="meta">✏️ Editing Hole ${n} · Base value locked at ${rec.baseValue}</div>
+      <div class="meta">Editing Hole ${n} · Base value locked at ${rec.baseValue}</div>
     </div>
   </div>
   ${matchCards}
   <div class="btn-row">
-    <button class="btn btn-primary" style="flex:1;" onclick="saveEditedHoleHammer()">💾 Save Hole ${n}</button>
+    <button class="btn btn-primary" style="flex:1;" onclick="saveEditedHoleHammer()">Save Hole ${n}</button>
     <button class="btn btn-outline" onclick="cancelEditHoleHammer()">Cancel</button>
   </div>`;
 }
@@ -2661,7 +2701,7 @@ function renderEditHoleForm(){
     ${pendingPoints ? `<div class="sub" style="margin:-2px 0 12px;">Selected: <b>${pendingPoints}</b> points</div>` : ''}
     ` : ''}
     <div class="btn-row">
-      <button class="btn btn-primary" style="flex:1;" onclick="saveEditedHole()">💾 Save Hole ${n}</button>
+      <button class="btn btn-primary" style="flex:1;" onclick="saveEditedHole()">Save Hole ${n}</button>
       <button class="btn btn-outline" onclick="cancelEditHole()">Cancel</button>
     </div>
     ` : `
@@ -2676,7 +2716,7 @@ function renderEditHoleForm(){
       <div class="hole-badge">${n}</div>
       <div>
         <div class="captain-badge">${state.mode==='captain'?'Wolf':'Captain'}: ${captain}</div>
-        <div class="meta">✏️ Editing Hole ${n}${lightning?' <span class="lightning-tag">(Lightning round)</span>':''}</div>
+        <div class="meta">Editing Hole ${n}${lightning?' <span class="lightning-tag">(Lightning round)</span>':''}</div>
       </div>
     </div>
     ${body}
@@ -2694,7 +2734,7 @@ function renderEditHolePanel(){
         <div class="btn-row"><button class="btn btn-outline" onclick="closeEditPicker()">Cancel</button></div>
       </div>`;
   }
-  return `<div class="btn-row" style="margin-top:12px;"><button class="btn btn-outline btn-full" onclick="openEditPicker()">✏️ Edit a previous hole</button></div>`;
+  return `<div class="btn-row" style="margin-top:12px;"><button class="btn btn-outline btn-full" onclick="openEditPicker()">Edit a previous hole</button></div>`;
 }
 
 function requestNewRound(){
@@ -2790,6 +2830,8 @@ function render(){
     }
   }
   else app.innerHTML = renderComplete();
+  if(state.phase==='playing' && !state.holes.length && state.currentHole===1 && ['captain','captain5','mrPar','rollReroll','hammer','bbb','six66'].includes(state.mode))
+    app.innerHTML = lineupPeekHtml() + app.innerHTML;
   scrollToTopOnNewScreen();
   syncScorecardScroll();
   tryPlayTrophyVideo();
@@ -2911,6 +2953,26 @@ function getRulesGames(){
         'Works for the points games (Wolf, Roll &amp; Re-roll, Hammer, Bingo Bango Bongo, 666 Parlor) and for Naper Vegas. It can only be rolled once per round.']],
       ['Settling up', [
         'After hole 18 the Final Tally shows who gives points to whom. Every player\'s total adds up to zero. When a split doesn\'t come out even, the odd point goes to the player who is further down.']]
+    ]},
+  { key:'players', icon:'👥', title:'Players & handicaps',
+    glance:'Favorites, Handicap Index, tees, and how course handicaps are worked out.',
+    sections:[
+      ['Favorites', [
+        'After you pick a course, the Players screen lists your favorites — most recently played first. Tap a name to put them in today\'s group.',
+        'Tap ☆ to keep a player as a favorite (up to 250). <b>Import players to your favorites</b> takes a pasted list, one player per line: Name, Handicap Index. Copy straight from a spreadsheet; a header row works too. Anyone already a favorite gets their index updated.',
+        'With a long list, the search box finds a player by name, and <b>Show only who\'s playing</b> hides the rest.']],
+      ['Handicap Index and course handicap', [
+        'Each favorite keeps their <b>Handicap Index</b> (like 12.4). Tap − for a plus index.',
+        'The <b>course handicap</b> is worked out the World Handicap System way: Index × Slope ÷ 113 + (Course Rating − Par), rounded to the nearest whole number. Halves round up, and a +5.5 is a +6.',
+        'Changing a favorite\'s index on this screen saves it for next time.']],
+      ['Tees', [
+        'Tap the tees the group plays — there\'s no tee picked at the start of a round, so nobody starts on last round\'s tees by mistake.',
+        'Tap a player\'s course handicap to give them their own tees. For a favorite, those become their usual tees at that course; a tee label in green means it\'s different from the group\'s.',
+        'Cress Creek\'s Black, Blue, White and Green tees are built in. ＋ adds tees (name, Course Rating, Slope, Par) to any course, saved for next time.',
+        'If tees have different pars, whoever plays the higher-par tees gets the difference added, as the rules say.']],
+      ['Who\'s playing?', [
+        'Continue fills in each player\'s course handicap; you can still change it there. Skip the calculator fills in just the names.',
+        'The points games give strokes off the low handicap in the group. Best Ball uses full handicaps.']]
     ]},
   { key:'captain', icon:'🐺', title:'Wolf',
     glance:'Four players. Every hole a rotating captain (Wolf) picks a partner and plays 2 on 2, except Lightning holes 17 and 18.',
@@ -3248,7 +3310,7 @@ function renderRules(){
   const games = getRulesGames();
   if(rulesOpenKey===null){
     card.innerHTML = `
-      <h2 style="text-align:center;">📖 Game Rules</h2>
+      <h2 style="text-align:center;">Game Rules</h2>
       <div class="sub" style="text-align:center;">Tap a game to read how it works.</div>
       <div class="rules-agree">${RULES_AGREE_NOTE}</div>
       <div class="btn-row" style="flex-direction:column;margin-bottom:16px;">
@@ -3349,9 +3411,9 @@ function renderCourseSelect(){
   return `
   <div class="card">
     ${topBackLink("backToPickGame()")}
-    <h2 style="text-align:center;">⛳ Which course?</h2>
+    <h2 style="text-align:center;">Which course?</h2>
     <div class="sub" style="text-align:center;">Pick where you're playing. Par and hole handicaps drive the strokes.</div>
-    <label for="course-search" style="margin:16px 0 8px;">🔍 Search by name</label>
+    <label for="course-search" style="margin:16px 0 8px;">Search by name</label>
     <input id="course-search" type="text" enterkeyhint="search" placeholder="Start typing a course name" autocomplete="off" autocorrect="off" spellcheck="false"
            value="${escapeAttr(courseSearchQuery)}" oninput="onCourseSearchInput(this.value)">
     <div id="course-search-results">${renderCourseSearchResults()}</div>
@@ -3628,7 +3690,7 @@ function importPastedCard(){
     courseDraft.holes[i].si = String(hcp.nums[i]);
     if(yds) courseDraft.holes[i].yards = String(yds.nums[i]);
   }
-  pasteReport = `✅ Read 18 holes — par and hole handicaps${yds ? ' and yards' : ', but no yards row was found'}. Check the grid, then save.`;
+  pasteReport = `Read 18 holes — par and hole handicaps${yds ? ' and yards' : ', but no yards row was found'}. Check the grid, then save.`;
   pasteOpen = false;
   pasteText = '';
   render();
@@ -3705,7 +3767,7 @@ function courseCheckHtml(){
   if(!v.ok) return `⚠ ${v.message}`;
   const par = v.holes.reduce((s,h)=>s+h.par, 0);
   const yards = v.holes.reduce((s,h)=>s+h.yards, 0);
-  return `✅ <b>${escapeHtml(v.name)}</b> (${escapeHtml(v.region)}) — Par ${par}${yards ? ` · ${yards} yards` : ''}. Out ${v.holes.slice(0,9).reduce((s,h)=>s+h.par,0)} · In ${v.holes.slice(9).reduce((s,h)=>s+h.par,0)}.`;
+  return `<b>${escapeHtml(v.name)}</b> (${escapeHtml(v.region)}) — Par ${par}${yards ? ` · ${yards} yards` : ''}. Out ${v.holes.slice(0,9).reduce((s,h)=>s+h.par,0)} · In ${v.holes.slice(9).reduce((s,h)=>s+h.par,0)}.`;
 }
 
 function saveNewCourse(){
@@ -3748,7 +3810,7 @@ function renderCourseAdd(){
       <button class="btn btn-outline" onclick="togglePaste()">Cancel</button>
     </div>` : `
     <div class="btn-row" style="margin:-4px 0 16px;">
-      <button class="btn btn-outline btn-full" onclick="togglePaste()">📋 Paste a scorecard instead of typing</button>
+      <button class="btn btn-outline btn-full" onclick="togglePaste()">Paste a scorecard instead of typing</button>
     </div>`}
     ${pasteReport ? `<div class="stroke-preview">${pasteReport}</div>` : ''}
 
@@ -3760,7 +3822,7 @@ function renderCourseAdd(){
       </table>
     </div>
     <div class="stroke-preview" id="course-check">${courseCheckHtml()}</div>
-    <button class="btn btn-gold btn-full" onclick="saveNewCourse()">💾 Save course</button>
+    <button class="btn btn-gold btn-full" onclick="saveNewCourse()">Save course</button>
     <div class="btn-row"><button class="btn btn-outline btn-full" onclick="cancelAddCourse()">◀︎ Back without saving</button></div>
   </div>`;
 }
@@ -3825,7 +3887,7 @@ function courseReviewCheckHtml(){
   if(!v.ok) return `⚠ ${v.message}`;
   const par = v.holes.reduce((s,h)=>s+h.par, 0);
   const yards = v.holes.reduce((s,h)=>s+h.yards, 0);
-  return `✅ Par ${par}${yards ? ` · ${yards} yards` : ''}. Out ${v.holes.slice(0,9).reduce((s,h)=>s+h.par,0)} · In ${v.holes.slice(9).reduce((s,h)=>s+h.par,0)}.`;
+  return `Par ${par}${yards ? ` · ${yards} yards` : ''}. Out ${v.holes.slice(0,9).reduce((s,h)=>s+h.par,0)} · In ${v.holes.slice(9).reduce((s,h)=>s+h.par,0)}.`;
 }
 function saveCourseReview(){
   captureCourseReviewDraft();
@@ -3853,7 +3915,7 @@ function renderCourseReview(){
   return `
   <div class="card">
     ${topBackLink("backFromCourseReview()")}
-    <h2>📋 Review the scorecard</h2>
+    <h2>Review the scorecard</h2>
     <div class="sub">${escapeHtml(c ? c.name : '')} — check this against the printed card, especially the hole handicap (the SI column), since that's what strokes are figured off. Fix anything that's off before you start.</div>
     <div class="grid-hint">↕ Scroll the table to see all 18 holes</div>
     <div class="course-grid">
@@ -3863,7 +3925,7 @@ function renderCourseReview(){
       </table>
     </div>
     <div class="stroke-preview" id="course-review-check">${courseReviewCheckHtml()}</div>
-    <button class="btn btn-gold btn-full" onclick="saveCourseReview()">💾 Save and continue</button>
+    <button class="btn btn-gold btn-full" onclick="saveCourseReview()">Save and continue</button>
     <div class="btn-row" style="margin-top:12px;"><button class="btn btn-outline btn-full" onclick="backFromCourseReview()">◀︎ Back without saving</button></div>
   </div>`;
 }
@@ -4033,13 +4095,14 @@ function buildPickRows(){
 function isPlayingToday(name){ return playerPickState().playing.some(n => sameName(n, name)); }
 
 // ---- Tees on the Players screen ----
-// The group's tees (tapped at the top) are used for anyone without their own.
+// The group's tees (tapped at the top, fresh each round so nobody starts on
+// last round's tees by mistake) are used for anyone without their own.
 // A favorite's own tees here are their usual tees at this course (kept with the
 // favorite); a guest's are just for today.
 function pickCourseId(){ return state.courseId; }
 function groupTee(){
   const pick = playerPickState(), cid = pickCourseId();
-  return findTee(cid, pick.groupTee) || findTee(cid, (courseRatings[cid] || {}).lastTee) || null;
+  return findTee(cid, pick.groupTee) || null;
 }
 function ownTeeName(p){ return (p.tees && p.tees[pickCourseId()]) || p.tee || null; }
 function teeForPlayer(p){ return (p && findTee(pickCourseId(), ownTeeName(p))) || groupTee(); }
@@ -4408,7 +4471,7 @@ function renderPlayerPick(){
         <input class="card-hcp" type="number" inputmode="decimal" min="0" max="54" step="0.1" placeholder="Index"
                data-pick-index="${i}" value="${escapeAttr(fmtIndex(p.index))}" oninput="onPickIndexInput()">
       </div>
-      <button type="button" class="pick-ch ${ownTeeName(p)?'own':''} ${pickTeeOpen===i?'open':''}" id="pick-ch-${i}" onclick="togglePickTeePanel(${i})"
+      <button type="button" class="pick-ch ${ownTeeName(p) && !(groupTee() && sameName(ownTeeName(p), groupTee().name))?'own':''} ${pickTeeOpen===i?'open':''}" id="pick-ch-${i}" onclick="togglePickTeePanel(${i})"
               aria-label="Course handicap; tap to change ${escapeAttr(p.name)}'s tees"><b>${fmtCourseHcp(playerCourseHandicap(p))}</b><span>${teeForPlayer(p) ? escapeHtml(teeForPlayer(p).name) : 'Tees?'}</span></button>
       <button type="button" class="course-side-btn ${row.kind==='fav'?'on':''}" onclick="toggleFavoritePlayer(${i})"
               aria-label="${row.kind==='fav'?'Remove from':'Add to'} favorites" title="${row.kind==='fav'?'Remove from favorites':'Save as a favorite'}">${row.kind==='fav'?'★':'☆'}</button>
@@ -4637,7 +4700,7 @@ function renderRoster(){
   return `
   <div class="card">
     ${screenHead("backToPlayerPick()", "Who's playing?", pickedGameLine())}
-    <div class="sub">${escapeHtml(currentCourse().name)} · Par ${parTotal(1,18)}<br><button type="button" style="background:none;border:none;padding:0;font:inherit;font-weight:600;color:var(--green-mid);text-decoration:underline;cursor:pointer;" onclick="openCourseReview()">📋 Review/edit scorecard</button></div>
+    <div class="sub">${escapeHtml(currentCourse().name)} · Par ${parTotal(1,18)}<br><button type="button" style="background:none;border:none;padding:0;font:inherit;font-weight:600;color:var(--green-mid);text-decoration:underline;cursor:pointer;" onclick="openCourseReview()">Review/edit scorecard</button></div>
 
     ${showMate ? `<div class="sub" style="margin:0 0 16px;">Check <b>Teammate</b> for the two who are partnered up.</div>` : ''}
     ${header}
@@ -4650,7 +4713,7 @@ function renderRoster(){
       <input id="point-value-input" type="number" inputmode="decimal" min="0" step="0.5"
              value="${pointValueDraft===null?'':pointValueDraft}" oninput="capturePointValueInput()">
       <span class="point-or">or</span>
-      <button class="btn btn-compact ${diceModeDraft?'btn-selected':'btn-outline'}" onclick="toggleDiceMode()">${DICE_ICON}Roll the Dice${diceModeDraft?' ✓':''}</button>
+      <button class="btn btn-compact ${diceModeDraft?'btn-selected':'btn-outline'}" onclick="toggleDiceMode()">Roll the Dice${diceModeDraft?' ✓':''}</button>
     </div>
     ${diceModeDraft ? `
     <div class="btn-row" style="margin:12px 0 0;">
@@ -4675,10 +4738,10 @@ function rosterStartButtons(){
   const primary = state.gamePick && state.gamePick.primary;
   if(SLOT_GAMES.includes(primary)) return `
     <div class="btn-row" style="margin:0;">
-      <button class="btn btn-gold tee-btn" onclick="confirmRoster(true)">🎲 Shuffle &amp; Tee Off</button>
-      <button class="btn btn-gold tee-btn" onclick="confirmRoster(false)">⛳ Just Tee Off</button>
+      <button class="btn btn-gold tee-btn" onclick="confirmRoster(true)">Shuffle &amp; Tee Off</button>
+      <button class="btn btn-gold tee-btn" onclick="confirmRoster(false)">Just Tee Off</button>
     </div>`;
-  return `<button class="btn btn-gold btn-full" onclick="confirmRoster(false)">${primary==='nassau' ? 'Continue ▶︎' : '⛳ Tee Off'}</button>`;
+  return `<button class="btn btn-gold btn-full" onclick="confirmRoster(false)">${primary==='nassau' ? 'Continue ▶︎' : 'Tee Off'}</button>`;
 }
 
 function confirmRoster(shuffle){
@@ -4802,8 +4865,8 @@ function setBestBallCount(n){ captureQuotaAnteInput(); captureSkinsAnteInput(); 
 // The Bonus games toggles — 5-3-1 is picked from the main game list instead.
 const BONUS_GAME_KEYS = ['skins','stableford','quota'];
 // Pick a game choices that aren't points games: they start the scorecard directly.
-const OTHER_GAME_LABELS = { nv: NAPERVEGAS_ICON + 'Naper Vegas', nassau: NASSAU_ICON + 'Nassau', scores: '⛳ Just keep the scores' };
-const BETTING_GAME_LABELS = { captain:'🐺 Wolf', mrPar:'🐺 3 Man Wolf', captain5: ROOSTER5_ICON + '5Man Captain', rollReroll:'🎲 Roll & Re-roll', hammer:'🔨 Hammer', bbb:'🟢 Bingo Bango Bongo', six66:'666 Parlor' };
+const OTHER_GAME_LABELS = { nv: 'Naper Vegas', nassau: 'Nassau', scores: 'Just keep the scores' };
+const BETTING_GAME_LABELS = { captain:'Wolf', mrPar:'3 Man Wolf', captain5: '5Man Captain', rollReroll:'Roll & Re-roll', hammer:'Hammer', bbb:'Bingo Bango Bongo', six66:'666 Parlor' };
 // Plain game names — no emoji or pictures — for the Pick a game screen and
 // the game line under "Who's playing?".
 const GAME_PLAIN_NAMES = {
@@ -5256,7 +5319,7 @@ function renderNassauSetup(){
         const t2raw = team2.slice().sort((a,b)=>state.roster[a].hcp-state.roster[b].hcp);
         const t2 = nassauSinglesSwapDraft ? [t2raw[1], t2raw[0]] : t2raw;
         pairingNote += `<div class="stroke-preview" style="margin:0 0 8px;"><b>Singles matches:</b> ${escapeHtml(nameOf(t1[0]))} vs ${escapeHtml(nameOf(t2[0]))} and ${escapeHtml(nameOf(t1[1]))} vs ${escapeHtml(nameOf(t2[1]))}</div>`;
-        pairingNote += `<button class="btn btn-compact btn-outline btn-full" style="margin:0 0 8px;" onclick="toggleNassauSinglesSwap()">🔀 Swap singles opponents</button>`;
+        pairingNote += `<button class="btn btn-compact btn-outline btn-full" style="margin:0 0 8px;" onclick="toggleNassauSinglesSwap()">Swap singles opponents</button>`;
       }
     }
   } else {
@@ -5280,7 +5343,7 @@ function renderNassauSetup(){
   return `
   <div class="card">
     ${topBackLink("backFromNassauSetup()")}
-    <h2 style="text-align:center;">${NASSAU_ICON}Nassau</h2>
+    <h2 style="text-align:center;">Nassau</h2>
     <div class="sub" style="text-align:center;margin-bottom:16px;">Front, back, and total — three matches, scored on their own.</div>
     <label style="margin:0 0 8px;">Variant</label>
     <div class="btn-row" style="margin-bottom:8px;">
@@ -5557,12 +5620,12 @@ function renderScoreEditBoth(){
       <div class="hole-badge">${h}</div>
       <div>
         <div class="meta"><b>Par ${info.par}</b> · handicap <b>${info.si}</b></div>
-        <div class="meta" style="margin-top:4px;">✏️ Fixing scores for Hole ${h}</div>
+        <div class="meta" style="margin-top:4px;">Fixing scores for Hole ${h}</div>
       </div>
     </div>
     ${blocks}
     <div class="sub" id="hole-note" style="margin:4px 0 12px;">${missingNote(missing)}</div>
-    <button class="btn btn-gold btn-full score-go" onclick="closeScoreEdit()">💾 Save — back to the game</button>
+    <button class="btn btn-gold btn-full score-go" onclick="closeScoreEdit()">Save — back to the game</button>
   </div>`;
 }
 function toggleFullCard(){ showFullCard = !showFullCard; render(); }
@@ -5579,8 +5642,8 @@ function hasCardGames(){ return !!(state.cardGames && state.cardGames.length); }
 function renderCardTabBar(){
   return `
   <div class="btn-row" style="margin-bottom:16px;">
-    <button class="btn ${cardTab==='scorecard'?'btn-gold':'btn-outline-light'}" style="flex:1;" onclick="setCardTab('scorecard')">📋 Scorecard</button>
-    <button class="btn ${cardTab==='games'?'btn-gold':'btn-outline-light'}" style="flex:1;" onclick="setCardTab('games')">🏆 Games</button>
+    <button class="btn ${cardTab==='scorecard'?'btn-gold':'btn-outline-light'}" style="flex:1;" onclick="setCardTab('scorecard')">Scorecard</button>
+    <button class="btn ${cardTab==='games'?'btn-gold':'btn-outline-light'}" style="flex:1;" onclick="setCardTab('games')">Games</button>
   </div>`;
 }
 
@@ -5598,9 +5661,9 @@ function setComboTab(t){ comboTab = t; render(); }
 function renderComboTabBar(){
   return `
   <div class="btn-row" style="margin-bottom:16px;">
-    <button class="btn ${comboTab==='scorecard'?'btn-gold':'btn-outline-light'}" style="flex:1;" onclick="setComboTab('scorecard')">📋 Scorecard</button>
-    <button class="btn ${comboTab==='games'?'btn-gold':'btn-outline-light'}" style="flex:1;" onclick="setComboTab('games')">🏆 Games</button>
-    ${hasCardGames() ? `<button class="btn ${comboTab==='bonus'?'btn-gold':'btn-outline-light'}" style="flex:1;" onclick="setComboTab('bonus')">⭐ Bonus</button>` : ''}
+    <button class="btn ${comboTab==='scorecard'?'btn-gold':'btn-outline-light'}" style="flex:1;" onclick="setComboTab('scorecard')">Scorecard</button>
+    <button class="btn ${comboTab==='games'?'btn-gold':'btn-outline-light'}" style="flex:1;" onclick="setComboTab('games')">Games</button>
+    ${hasCardGames() ? `<button class="btn ${comboTab==='bonus'?'btn-gold':'btn-outline-light'}" style="flex:1;" onclick="setComboTab('bonus')">Bonus</button>` : ''}
   </div>`;
 }
 // highlightHole: the current hole to highlight on the raw scorecard (or null/
@@ -5657,10 +5720,10 @@ function renderCardPlaying(){
     <div class="sub" id="hole-note" style="margin:4px 0 12px;">${missingNote(missing)}</div>
     <div class="btn-row">
       ${h>1 ? `<button class="btn btn-outline" onclick="cardPrevHole()">◀︎ Hole ${h-1}</button>` : `<button class="btn btn-outline" onclick="backToTrackChoiceFromCard()">◀︎ Back</button>`}
-      <button class="btn btn-gold score-go" style="flex:1;" onclick="cardNextHole()">${h>=18 ? '🏁 Finish round' : `Hole ${h+1} ▶︎`}</button>
+      <button class="btn btn-gold score-go" style="flex:1;" onclick="cardNextHole()">${h>=18 ? 'Finish round' : `Hole ${h+1} ▶︎`}</button>
     </div>
     <div class="btn-row">
-      <button class="btn btn-outline btn-full" onclick="toggleFullCard()">${showFullCard ? '▲ Hide the full scorecard' : '📋 Show the full scorecard'}</button>
+      <button class="btn btn-outline btn-full" onclick="toggleFullCard()">${showFullCard ? '▲ Hide the full scorecard' : 'Show the full scorecard'}</button>
     </div>
   </div>
   ${showFullCard ? (hasCardGames() ? renderCardTabBar() + (cardTab==='games' ? renderCardGamesTab() : renderCardScorecard(h)) : renderCardScorecard(h)) : ''}
@@ -5887,6 +5950,7 @@ function renderSkinsSection(){
   const cell = (i,h) => {
     const l = byHole[h];
     if(!l) return `<td class="sc-cell">—</td>`;
+    if(l.winner===null || l.winner===undefined) return `<td class="sc-cell"><span class="skin-tie">tie</span></td>`;
     if(l.winner!==i) return `<td class="sc-cell"></td>`;
     return l.voided
       ? `<td class="sc-cell"><span class="skin-void">${l.skins}</span></td>`
@@ -5931,7 +5995,7 @@ function renderSkinsSection(){
   const validateDesc = state.skinsValidate ? '; a skin must be validated with net par or better on the next hole (hole 1 validates the 18th) or it\'s void' : '';
   return `
   <div style="margin-bottom:24px;">
-    <h3 style="margin:0 0 8px;font-family:'Fraunces',serif;">⛳ Skins</h3>
+    <h3 style="margin:0 0 8px;font-family:'Fraunces',serif;">Skins</h3>
     <div class="sub" style="margin-bottom:8px;">Net score wins the hole outright; ${carryDesc}${validateDesc}. Circled numbers are skins won on that hole.</div>
     <div class="scorecard-scroll">
       <table class="scorecard"><thead><tr>${gridHead}</tr></thead><tbody>${gridRows}</tbody></table>
@@ -5968,7 +6032,7 @@ function renderStablefordSection(){
 
   return `
   <div style="margin-bottom:24px;">
-    <h3 style="margin:0 0 8px;font-family:'Fraunces',serif;">🎯 Stableford</h3>
+    <h3 style="margin:0 0 8px;font-family:'Fraunces',serif;">Stableford</h3>
     <div class="sub" style="margin-bottom:8px;">Net points per hole — par 2, birdie 3, eagle 4, albatross 5, bogey 1, worse 0. Birdies or better in green, worse than bogey in red.</div>
     <div class="scorecard-scroll">
       <table class="scorecard"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table>
@@ -6061,7 +6125,7 @@ function renderQuotaSection(){
 
   return `
   <div style="margin-bottom:24px;">
-    <h3 style="margin:0 0 8px;font-family:'Fraunces',serif;">📊 Quota</h3>
+    <h3 style="margin:0 0 8px;font-family:'Fraunces',serif;">Quota</h3>
     <div class="sub" style="margin-bottom:8px;">Gross points per hole (par 2, birdie 3, eagle 4, bogey 1, worse 0) against a quota of 36 minus handicap. Birdies or better in green, worse than bogey in red.</div>
     <div class="scorecard-scroll">
       <table class="scorecard"><thead><tr>${head}</tr></thead><tbody>${gridRows}</tbody></table>
@@ -6239,7 +6303,7 @@ function renderBestBallSection(){
   }, teamCell, 'bb-team-row');
   return `
   <div style="margin-bottom:24px;">
-    <h3 style="margin:0 0 8px;font-family:'Fraunces',serif;">🏌️ Best Ball — ${bestBallLabel(count)}</h3>
+    <h3 style="margin:0 0 8px;font-family:'Fraunces',serif;">Best Ball — ${bestBallLabel(count)}</h3>
     <div class="sub" style="margin-bottom:8px;">Net scores on full handicap. The ${count===1?'low net':`${count} lowest nets`} on each hole (highlighted) make the team score.
       ${round.thru ? `Team: <b>${fmtToPar(round.toPar)}</b> (${round.total}) through ${round.thru} hole${round.thru===1?'':'s'}.` : ''}</div>
     <div class="scorecard-scroll"><table class="scorecard"><thead><tr>${head}</tr></thead><tbody>${parRow}${playerRows}${teamRow}</tbody></table></div>
@@ -6248,7 +6312,7 @@ function renderBestBallSection(){
 
 function renderPlaceholderGameSection(label, note){
   return `
-  <div style="margin-bottom:24px;">    <h3 style="margin:0 0 8px;font-family:'Fraunces',serif;">🚧 ${escapeHtml(label)}</h3>
+  <div style="margin-bottom:24px;">    <h3 style="margin:0 0 8px;font-family:'Fraunces',serif;">${escapeHtml(label)}</h3>
     <div class="sub">${escapeHtml(note)}</div>
   </div>`;
 }
@@ -6361,7 +6425,7 @@ function renderNaperVegasSection(){
 
   return `
   <div style="margin-bottom:24px;">
-    <h3 style="margin:0 0 8px;font-family:'Fraunces',serif;">${NAPERVEGAS_ICON}Naper Vegas</h3>
+    <h3 style="margin:0 0 8px;font-family:'Fraunces',serif;">Naper Vegas</h3>
     <div class="sub" style="margin-bottom:8px;">Net team scores combine each hole — low score leads (4 & 7 → 47), but a double-digit score (10+) always leads instead (9 & 10 → 109). Lower number wins the difference in points.</div>
     <div class="stroke-preview ${netCls}" style="margin-bottom:16px;">${netLine}</div>
     <div class="scorecard-scroll">
@@ -6449,7 +6513,7 @@ function renderNassauSection(){
   }
   return `
   <div style="margin-bottom:24px;">
-    <h3 style="margin:0 0 8px;font-family:'Fraunces',serif;">${NASSAU_ICON}Nassau</h3>
+    <h3 style="margin:0 0 8px;font-family:'Fraunces',serif;">Nassau</h3>
     <div class="sub" style="margin-bottom:12px;">${nassauVariantNote()}</div>
     ${blocks}
   </div>`;
@@ -6502,7 +6566,7 @@ function renderCardComplete(){
       ? (vsPar === 0 ? 'even par' : `${vsPar > 0 ? '+' : ''}${vsPar} vs par`)
       : `${r.posted} of 18 holes posted`;
     return `<tr>
-      <td>${!useMoneyTrophy && best && best.i === r.i ? '🏆 ' : ''}${escapeHtml(r.p.name)} <span style="color:#8a8a7a;font-size:0.8rem;">(${totalStrokesFor(r.i)})</span></td>
+      <td>${!useMoneyTrophy && best && best.i === r.i ? '' : ''}${escapeHtml(r.p.name)} <span style="color:#8a8a7a;font-size:0.8rem;">(${totalStrokesFor(r.i)})</span></td>
       <td style="color:#6b6656;font-size:0.8rem;">${note}</td>
       <td class="amt">${fmtSum(r.total)}</td>
     </tr>`;
@@ -6510,7 +6574,7 @@ function renderCardComplete(){
 
   const netCard = skinsNet ? `
   <div class="card">
-    <h2>💰 Skins — Net Results</h2>
+    <h2>Skins — Net Results</h2>
     <div class="sub">${state.skinsMode === 'perSkin'
       ? `<b>${state.skinsAnte}</b> per skin from each other player.`
       : `Points pool of <b>${state.skinsAnte * state.cardPlayers.length}</b> (${state.skinsAnte} × ${state.cardPlayers.length} players), split across the skins won.`}</div>
@@ -6524,7 +6588,7 @@ function renderCardComplete(){
     </table>
   </div>` : (nassauNet ? `
   <div class="card">
-    <h2>${NASSAU_ICON}Nassau — Net Points</h2>
+    <h2>Nassau — Net Points</h2>
     <div class="sub">Across every match this player is in — front, back, and total combined.</div>
     <table class="standings">
       <thead><tr><th>Player</th><th style="text-align:right;">Net</th></tr></thead>
@@ -6555,7 +6619,7 @@ function renderCardComplete(){
   ${state.diceMode ? renderDiceBlock() : ''}
   <div id="results-capture">
     <div class="card">
-      <h2>🏁 Round Complete</h2>
+      <h2>Round Complete</h2>
       <div class="sub">${escapeHtml(currentCourse().name)} · Par ${par}. Gross scores as posted.</div>
       <table class="standings">
         <thead><tr><th>Player</th><th></th><th style="text-align:right;">Gross</th></tr></thead>
@@ -6568,7 +6632,7 @@ function renderCardComplete(){
       const round = bestBallRound(state.cardPlayers.length, currentCourse().holes, count, bestBallNet);
       return `
     <div class="card">
-      <h2>🏌️ Best Ball — Team Score</h2>
+      <h2>Best Ball — Team Score</h2>
       <div class="sub">${bestBallLabel(count)}, net on full handicap.</div>
       <table class="standings"><tbody>
         <tr><td>Team score</td><td class="amt">${round.thru ? round.total : '—'}</td></tr>
@@ -6577,7 +6641,7 @@ function renderCardComplete(){
     </div>`;
     })() : ''}
   </div>
-  ${screenshotCapability ? `<div class="btn-row"><button class="btn btn-outline-light btn-full" onclick="saveScreenshot('results-capture')">${screenshotBusy?'⏳ Saving…':'📸 Save results as a photo'}</button></div>` : ''}
+  ${screenshotCapability ? `<div class="btn-row"><button class="btn btn-outline-light btn-full" onclick="saveScreenshot('results-capture')">${screenshotBusy?'Saving…':'Save results as a photo'}</button></div>` : ''}
   ${hasCardGames() ? renderCardTabBar() : ''}
   ${hasCardGames() && cardTab==='games' ? renderCardGamesTab() : renderCardScorecard(null)}
   ${renderBottomNewRoundRow('↩︎ Reopen hole 18', 'cardPrevHole()')}`;
@@ -6623,7 +6687,7 @@ function submitHoleSixSixSix(){
   pendingResult = null; pendingPartner = null; pendingAlone = false; pendingDivorce = false; pendingPoints = null; pendingUmbrella = false;
   pendingPressCount = 0;
   if(state.currentHole>=18){ state.phase='complete'; } else { state.currentHole+=1; }
-  if(state.trackMode==='both' && state.phase!=='complete') state.holeSubPhase='review';
+  if(state.trackMode==='both' && state.phase!=='complete') state.holeSubPhase='scores'; // straight on to the next hole's scores
   saveState(); render();
 }
 
@@ -6634,7 +6698,7 @@ function renderPlayingSixSixSix(){
   const segLabel = hole<=6 ? 'Holes 1-6' : (hole<=12 ? 'Holes 7-12' : 'Holes 13-18');
 
   const rateRow = state.diceMode && !state.diceRolled ? `
-    <div class="sub" style="margin:12px 0 0;">🎲 Playing at a placeholder value — <b>${state.betRate + pendingPressCount}</b>/pt${pendingPressCount?` (pressed ${pendingPressCount>0?'+':''}${pendingPressCount})`:''}. Roll the Dice at the end sets the real value.</div>
+    <div class="sub" style="margin:12px 0 0;">Playing at a placeholder value — <b>${state.betRate + pendingPressCount}</b>/pt${pendingPressCount?` (pressed ${pendingPressCount>0?'+':''}${pendingPressCount})`:''}. Roll the Dice at the end sets the real value.</div>
     ${pressButtonsRow()}` : `
     <div style="margin-top:12px;font-size:1.35rem;font-weight:800;color:var(--ink);">This hole: ${state.betRate + pendingPressCount}/pt</div>${pendingPressCount?`<div class="sub" style="margin:4px 0 0;">(pressed ${pendingPressCount>0?'+':''}${pendingPressCount})</div>`:''}
     ${pressButtonsRow()}`;
@@ -6648,10 +6712,10 @@ function renderPlayingSixSixSix(){
     </div>
     ${pendingResult && pendingResult!=='push' ? `
     <label>Points</label>
-    <button class="btn umbrella-btn btn-full ${pendingUmbrella?'armed':'btn-outline'}" onclick="toggleUmbrella()">☂️ ${pendingUmbrella ? 'Umbrella armed — next tap doubles it' : 'Umbrella (double the points)'}</button>
     <div class="points-row">
       ${[0,1,2,3,4,5,6,7,8].map(n=>`<button onclick="pickPoints(${n})">${n}</button>`).join('')}
     </div>
+    <button class="btn umbrella-btn btn-full ${pendingUmbrella?'armed':'btn-outline'}" onclick="toggleUmbrella()">☂️ ${pendingUmbrella ? 'Umbrella armed — next tap doubles it' : 'Umbrella (double the points)'}</button>
     ` : ''}
   `;
 
@@ -6713,7 +6777,7 @@ function renderEditHoleFormSixSixSix(){
       <div class="hole-badge">${n}</div>
       <div>
         <div class="captain-badge">${escapeHtml(teamA.join(' & '))} vs ${escapeHtml(teamB.join(' & '))}</div>
-        <div class="meta">✏️ Editing Hole ${n}</div>
+        <div class="meta">Editing Hole ${n}</div>
       </div>
     </div>
     <label>Result</label>
@@ -6730,7 +6794,7 @@ function renderEditHoleFormSixSixSix(){
     </div>
     ${pendingPoints ? `<div class="sub" style="margin:-2px 0 12px;">Selected: <b>${pendingPoints}</b> points</div>` : ''}
     <div class="btn-row">
-      <button class="btn btn-primary" style="flex:1;" onclick="saveEditedHoleSixSixSix()">💾 Save Hole ${n}</button>
+      <button class="btn btn-primary" style="flex:1;" onclick="saveEditedHoleSixSixSix()">Save Hole ${n}</button>
       <button class="btn btn-outline" onclick="cancelEditHole()">Cancel</button>
     </div>
     ` : `<div class="btn-row"><button class="btn btn-outline" onclick="cancelEditHole()">Cancel</button></div>`}
@@ -6755,7 +6819,7 @@ function renderPlayingRoll(){
       <button class="btn btn-compact btn-outline" style="flex:1;" onclick="pressValue()">➕ Press</button>
     </div>
     <div class="btn-row" style="margin-bottom:16px;">
-      <button class="btn ${pendingRoll?'btn-selected':'btn-outline'}" style="flex:1;" onclick="toggleRoll()">🎲 Roll (+2)</button>
+      <button class="btn ${pendingRoll?'btn-selected':'btn-outline'}" style="flex:1;" onclick="toggleRoll()">Roll (+2)</button>
       <button class="btn ${pendingReroll?'btn-selected':'btn-outline'}" style="flex:1;" onclick="toggleReroll()">🎲🎲 Re-roll (+2 more)</button>
     </div>
     <label>Result</label>
@@ -6883,17 +6947,17 @@ function renderPlaying(){
     </div>
     ${pendingResult && pendingResult!=='push' ? `
     <label>Points</label>
-    <button class="btn umbrella-btn btn-full ${pendingUmbrella?'armed':'btn-outline'}" onclick="toggleUmbrella()">☂️ ${pendingUmbrella ? 'Umbrella armed — next tap doubles it' : 'Umbrella (double the points)'}</button>
     <div class="points-row">
       ${[0,1,2,3,4,5,6,7,8].map(n=>`<button onclick="pickPoints(${n})">${n}</button>`).join('')}
     </div>
+    <button class="btn umbrella-btn btn-full ${pendingUmbrella?'armed':'btn-outline'}" onclick="toggleUmbrella()">☂️ ${pendingUmbrella ? 'Umbrella armed — next tap doubles it' : 'Umbrella (double the points)'}</button>
     ` : ''}
     ` : `<div class="sub" style="margin-top:-6px;">Pick a partner — or go Sweet Lou — to continue. After picking, the partner can Divorce. A${strokeDotInline()} marks a stroke this hole.</div>`}
     `;
   }
 
   const rateRow = state.diceMode && !state.diceRolled ? `
-    <div class="sub" style="margin:12px 0 0;">🎲 Playing at a placeholder value — <b>${state.betRate + pendingPressCount}</b>/pt${pendingPressCount?` (pressed ${pendingPressCount>0?'+':''}${pendingPressCount})`:''}. Roll the Dice at the end sets the real value.</div>
+    <div class="sub" style="margin:12px 0 0;">Playing at a placeholder value — <b>${state.betRate + pendingPressCount}</b>/pt${pendingPressCount?` (pressed ${pendingPressCount>0?'+':''}${pendingPressCount})`:''}. Roll the Dice at the end sets the real value.</div>
     ${pressButtonsRow()}` : `
     <div style="margin-top:12px;font-size:1.35rem;font-weight:800;color:var(--ink);">This hole: ${state.betRate + pendingPressCount}/pt</div>${pendingPressCount?`<div class="sub" style="margin:4px 0 0;">(pressed ${pendingPressCount>0?'+':''}${pendingPressCount})</div>`:''}
     ${pressButtonsRow()}`;
@@ -6916,7 +6980,7 @@ function renderPlaying(){
     </div>
     ` : ''}
     <div class="btn-row">
-      <button class="btn btn-outline btn-full" onclick="toggleFullCard()">${showFullCard ? '▲ Hide the full scorecard' : '📋 Show the full scorecard'}</button>
+      <button class="btn btn-outline btn-full" onclick="toggleFullCard()">${showFullCard ? '▲ Hide the full scorecard' : 'Show the full scorecard'}</button>
     </div>
   </div>
   ${showFullCard ? (state.trackMode==='both' ? renderComboTabBar() + renderComboContent(hole, renderScorecard()) : renderScorecard()) : ''}
@@ -6942,7 +7006,7 @@ function mrParResultButtons(onPick){
 function mrParSweetLouButton(){
   return `
     <div class="btn-row" style="margin:0 0 16px;">
-      <button class="btn ${pendingAlone?'btn-selected':'btn-outline'} btn-full" onclick="toggleSweetLou()">🐺 ${wolf3Alone()
+      <button class="btn ${pendingAlone?'btn-selected':'btn-outline'} btn-full" onclick="toggleSweetLou()">${wolf3Alone()
         ? (pendingAlone ? 'Sweet Lou selected — points doubled' : 'Sweet Lou (optional) — double the points')
         : (pendingAlone ? 'Sweet Lou selected — Wolf drops Mr Par and goes alone' : 'Sweet Lou — Wolf drops Mr Par, goes alone vs. both')}</button>
     </div>`;
@@ -6954,7 +7018,7 @@ function renderPlayingMrPar(){
   const info = holeInfo(hole);
   const rate = state.betRate + pendingPressCount;
   const rateRow = state.diceMode && !state.diceRolled
-    ? `<div class="sub" style="margin:12px 0 0;">🎲 Playing at a placeholder value — <b>${rate}</b>/pt${pendingPressCount?` (pressed ${pendingPressCount>0?'+':''}${pendingPressCount})`:''}. Roll the Dice at the end sets the real value.</div>`
+    ? `<div class="sub" style="margin:12px 0 0;">Playing at a placeholder value — <b>${rate}</b>/pt${pendingPressCount?` (pressed ${pendingPressCount>0?'+':''}${pendingPressCount})`:''}. Roll the Dice at the end sets the real value.</div>`
     : `<div style="margin-top:12px;font-size:1.35rem;font-weight:800;color:var(--ink);">This hole: ${rate}/pt</div>${pendingPressCount?`<div class="sub" style="margin:4px 0 0;">(pressed ${pendingPressCount>0?'+':''}${pendingPressCount})</div>`:''}`;
 
   return `
@@ -6979,7 +7043,7 @@ function renderPlayingMrPar(){
     </div>
     ` : `<div class="sub" style="margin-top:-6px;">A${strokeDotInline()} marks a stroke this hole.</div>`}
     <div class="btn-row">
-      <button class="btn btn-outline btn-full" onclick="toggleFullCard()">${showFullCard ? '▲ Hide the full scorecard' : '📋 Show the full scorecard'}</button>
+      <button class="btn btn-outline btn-full" onclick="toggleFullCard()">${showFullCard ? '▲ Hide the full scorecard' : 'Show the full scorecard'}</button>
     </div>
   </div>
   ${showFullCard ? (state.trackMode==='both' ? renderComboTabBar() + renderComboContent(hole, renderScorecard()) : renderScorecard()) : ''}
@@ -6998,7 +7062,7 @@ function renderEditHoleFormMrPar(){
       <div class="hole-badge">${n}</div>
       <div>
         <div class="captain-badge">Wolf: ${captain}${(pendingAlone || wolf3Alone()) ? '' : ' + Mr Par'}</div>
-        <div class="meta">✏️ Editing Hole ${n}</div>
+        <div class="meta">Editing Hole ${n}</div>
       </div>
     </div>
     ${mrParSweetLouButton()}
@@ -7011,7 +7075,7 @@ function renderEditHoleFormMrPar(){
     ${pendingPoints ? `<div class="sub" style="margin:-2px 0 12px;">Selected: <b>${pendingPoints}</b> point${pendingPoints===1?'':'s'}</div>` : ''}
     ` : ''}
     <div class="btn-row">
-      <button class="btn btn-primary" style="flex:1;" onclick="saveEditedHole()">💾 Save Hole ${n}</button>
+      <button class="btn btn-primary" style="flex:1;" onclick="saveEditedHole()">Save Hole ${n}</button>
       <button class="btn btn-outline" onclick="cancelEditHole()">Cancel</button>
     </div>
   </div>`;
@@ -7067,7 +7131,7 @@ function renderScorecardRoll(){
   return `
   <div class="card">
     ${gameTitleBadge('rollReroll')}
-    <h2>Scorecard</h2>
+    <h2>${escapeHtml(GAME_PLAIN_NAMES[state.mode] || 'Game')} points</h2>
     <div class="sub">Swipe the table sideways for the back nine. ⬆ press · 🎲 roll · 🎲🎲 re-roll. Amounts are per player.</div>
     <div class="view-toggle">
       <button class="${scorecardView==='hole'?'active-view':''}" onclick="setScorecardView('hole')">Hole-by-hole</button>
@@ -7125,7 +7189,7 @@ function renderScorecard(){
   return `
   <div class="card">
     ${gameTitleBadge(state.mode)}
-    <h2>Scorecard</h2>
+    <h2>${escapeHtml(GAME_PLAIN_NAMES[state.mode] || 'Game')} points</h2>
     <div class="sub">Swipe the table sideways for the back nine.${state.mode==='mrPar' ? ' 🐓 Sweet Lou (points doubled)' : ((state.mode==='captain'||state.mode==='captain5') ? ' 🐓 Sweet Lou (captain went alone) · 💔 Divorce (partner went alone)' : '')}</div>
     <div class="view-toggle">
       <button class="${scorecardView==='hole'?'active-view':''}" onclick="setScorecardView('hole')">Hole-by-hole</button>
@@ -7209,7 +7273,7 @@ function renderFinalReveal(){
     <div class="reveal-confetti">🎉 🏆 ✨</div>
     ${showTrophyVideo ? TROPHY_VIDEO : ROOSTER_IMG}
     ${trophyName ? `
-      <h2 style="margin:12px 0 4px;">🏆 ${trophyHeadline}</h2>
+      <h2 style="margin:12px 0 4px;">${trophyHeadline}</h2>
       <div class="sub">${trophySub}</div>
     ` : ''}
     <button class="btn btn-gold btn-full" style="margin-top:20px;" onclick="continueToResults()">See the full results →</button>
@@ -7228,7 +7292,7 @@ function renderComplete(){
   <div id="results-capture">
     <div class="card">
       ${gameTitleBadge(state.mode)}
-      <h2>🏁 Round Complete</h2>
+      <h2>Round Complete</h2>
       <div class="sub">Zero-sum check: totals sum to <b>${sum===0?'0 ✅':sum+' ⚠️'}</b></div>
       <table class="standings">
         <thead><tr><th>Player</th><th style="text-align:right;">Final</th></tr></thead>
@@ -7245,7 +7309,7 @@ function renderComplete(){
       </ul>
     </div>
   </div>
-  ${screenshotCapability ? `<div class="btn-row"><button class="btn btn-outline-light btn-full" onclick="saveScreenshot('results-capture')">${screenshotBusy?'⏳ Saving…':'📸 Save results as a photo'}</button></div>` : ''}
+  ${screenshotCapability ? `<div class="btn-row"><button class="btn btn-outline-light btn-full" onclick="saveScreenshot('results-capture')">${screenshotBusy?'Saving…':'Save results as a photo'}</button></div>` : ''}
   ${state.trackMode==='both' ? renderComboTabBar() : ''}
   ${state.trackMode==='both' ? renderComboContent(null, state.mode==='rollReroll' ? renderScorecardRoll() : renderScorecard()) : (state.mode==='rollReroll' ? renderScorecardRoll() : renderScorecard())}
   ${renderBottomNewRoundRow('↩︎ Reopen hole 18', 'undoLastHole()')}

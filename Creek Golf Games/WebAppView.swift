@@ -157,6 +157,13 @@ struct WebAppView: UIViewRepresentable {
             return .allow
         }
 
+        /// iOS can shut the page's process down to save memory while the app is
+        /// in the background (phone in a pocket between holes). Reload it, so the
+        /// app comes back to the saved round instead of a blank screen.
+        func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+            webView.reload()
+        }
+
         // MARK: JavaScript dialogs
         // WKWebView ignores alert(), confirm() and prompt() unless the app presents them.
 
