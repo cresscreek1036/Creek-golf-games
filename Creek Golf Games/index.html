@@ -24,7 +24,7 @@
     --ink:#1B241C;
     --gold:#C9A227;
     --gold-soft:#E7C766;
-    --gold-wash:#F6EDD2;   /* a picked toggle's fill — gold, without the shout */
+    --gold-wash:#C9A227;   /* a picked option: solid gold, so it's easy to see in the sun */
     --red:#B5442E;
     --red-soft:#D97757;
     --shadow: 0 12px 30px rgba(0,0,0,0.35);
@@ -453,6 +453,7 @@
   .tee-row.one-line .tee-chip{flex:1 1 0;min-width:0;padding:6px 2px;font-size:0.85rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .tee-row.one-line .tee-chip small{font-size:0.62rem;overflow:hidden;text-overflow:ellipsis;}
   .tee-row.one-line .tee-chip.add{flex:0 0 44px;font-size:1.2rem;}
+  .tee-row.one-line .tee-chip:not(.add){max-width:120px;}
   .tee-panel .tee-chip{flex:1 1 auto;}
   .tee-add .btn{min-height:44px;}
   .tee-panel{grid-column:1 / -1;border:1.5px dashed var(--gold);border-radius:10px;background:#FFFDF6;padding:10px;margin:0 0 12px;}
@@ -470,6 +471,8 @@
   .pick-add{display:grid;grid-template-columns:minmax(0,1fr) 110px 104px;gap:0 8px;align-items:end;}
   .pick-add input#pick-new-name{margin:0 0 8px;padding:10px 8px;}
   .pick-add .btn{height:44px;margin-bottom:8px;}
+  .tourney-import{border:1.5px solid #e3dbc3;border-radius:10px;padding:12px;margin-top:8px;background:#FFFDF6;}
+  .pick-search{width:100%;box-sizing:border-box;margin:12px 0 0;font-size:16px;min-height:44px;}
   /* Calculator mistakes: a red line under the boxes, and the box at fault outlined. */
   .calc-error{color:var(--red);font-size:0.85rem;font-weight:600;line-height:1.35;margin:4px 0 0;}
   .calc-error:empty{display:none;}
@@ -3873,7 +3876,7 @@ function renderCourseReview(){
    ========================================================================== */
 const PLAYER_FAVORITES_KEY = 'creek-golf-player-favorites-v1';
 const COURSE_RATINGS_KEY = 'creek-golf-course-ratings-v1';
-const PLAYER_FAVORITES_LIMIT = 30;
+const PLAYER_FAVORITES_LIMIT = 250;
 let playerFavorites = [];   // [{ name, index: number|null (negative = plus), lastPlayed: ms }]
 let courseRatings = {};     // { courseId: { slope, rating, par } } — kept as typed (strings)
 
@@ -4263,15 +4266,142 @@ function refreshPickHandicaps(){
   });
 }
 
+// Search the favorites (rows are shown or hidden in place, so the keyboard stays up).
+let pickSearch = '';
+let pickPickedOnly = false;
+function onPickSearch(v){
+  pickSearch = v;
+  const words = searchWords(v);
+  document.querySelectorAll('.pick-grid[data-name]').forEach(el => {
+    const name = searchWords(el.dataset.name).join(' ');
+    el.style.display = words.every(w => name.includes(w)) ? '' : 'none';
+  });
+}
+function togglePickedOnly(){ capturePickInputs(); pickPickedOnly = !pickPickedOnly; render(); }
+
+// Import a list straight into the favorites: Name, Handicap Index per line.
+// (The same list reader as the tournament app: tabs, commas or spaces, an
+// optional header row, + or - in front for a plus index.)
+function splitImportLine(line, sep){
+  if(sep!==',') return line.split(sep);
+  // CSV: a quoted field can hold commas ("Smith, Al").
+  const out = [];
+  let cur = '', quoted = false;
+  for(let i=0; i<line.length; i++){
+    const ch = line[i];
+    if(quoted){
+      if(ch==='"' && line[i+1]==='"'){ cur += '"'; i++; }
+      else if(ch==='"') quoted = false;
+      else cur += ch;
+    }
+    else if(ch==='"') quoted = true;
+    else if(ch===','){ out.push(cur); cur = ''; }
+    else cur += ch;
+  }
+  out.push(cur);
+  return out;
+}
+function parseTourneyImport(text){
+  const lines = String(text).replace(/^﻿/, '').split(/\r?\n/).map(l => l.trim()).filter(Boolean);
+  if(!lines.length) return [];
+  const sep = lines.some(l => l.includes('\t')) ? '\t' : (lines.some(l => l.includes(',')) ? ',' : (lines.some(l => l.includes(';')) ? ';' : null));
+  const isNum = s => /^[+-]?\d+(\.\d+)?$/.test(s);
+  const cellsOf = line => {
+    if(sep) return splitImportLine(line, sep).map(s => s.trim());
+    const m = line.match(/^(.*\S)\s+([+-]?\d+(?:\.\d+)?)(?:\s+(.+))?$/); // "Al Smith 12" or "Al Smith 12 Eagles"
+    return m ? [m[1], m[2], m[3] || ''] : [line];
+  };
+  // A header row names the columns.
+  const roleOf = h => {
+    const s = h.toLowerCase().replace(/[^a-z]/g, '');
+    if(/^(first|firstname|given)/.test(s)) return 'first';
+    if(/^(last|lastname|surname|family)/.test(s)) return 'last';
+    if(/^(name|player|players|golfer|fullname)$/.test(s)) return 'name';
+    // A column that says "course" (or CH / playing handicap) is the course
+    // handicap; any other handicap column is a Handicap Index.
+    if(/^(course|ch$|playing)/.test(s) && /(hcp|hdcp|hcap|handicap|ch)$/.test(s)) return 'course';
+    if(/(hcp|hdcp|hcap|handicap|index|hc)$/.test(s) || /^(hcp|hdcp|handicap|index|hi)/.test(s)) return 'hcp';
+    if(/^(team|teams|side|squad)$/.test(s)) return 'team';
+    return null;
+  };
+  let cols = null;
+  const first = cellsOf(lines[0]);
+  if(!first.some(isNum)){
+    const roles = first.map(roleOf);
+    if(roles.some(r => r==='name' || r==='first' || r==='last')) { cols = roles; lines.shift(); }
+  }
+  const rows = [];
+  lines.forEach(line => {
+    const cells = cellsOf(line);
+    let name = '', hcpText = '', courseText = '', team = '';
+    if(cols){
+      const get = role => cells.filter((c, i) => cols[i]===role && c).join(' ');
+      name = get('name') || [get('first'), get('last')].filter(Boolean).join(' ');
+      hcpText = get('hcp'); courseText = get('course'); team = get('team');
+    } else {
+      const hi = cells.findIndex(isNum);
+      if(hi<0){ name = cells[0]; team = cells.slice(1).find(Boolean) || ''; }
+      else {
+        name = cells.slice(0, hi).filter(Boolean).join(' '); // "Al, Smith, 12" → Al Smith
+        hcpText = cells[hi];
+        team = cells.slice(hi + 1).find(c => c && !isNum(c)) || '';
+      }
+    }
+    name = name.replace(/\s+/g, ' ').trim();
+    if(!name) return;
+    // The handicap number is a Handicap Index (decimals kept, + or - in front
+    // for a plus index). A Course Handicap column, if there is one, is the
+    // whole-number course handicap.
+    const index = isNum(hcpText) ? String(Math.round(Math.abs(parseFloat(hcpText)) * 10) / 10) : '';
+    const course = isNum(courseText) ? Math.round(Math.abs(parseFloat(courseText))) : null;
+    rows.push({ name:name.slice(0, 40), index, indexNeg: isNum(hcpText) && /^[+-]/.test(hcpText) && parseFloat(index) > 0,
+                course, courseNeg: course !== null && /^[+-]/.test(courseText) && course > 0, team:team.slice(0, 30) });
+  });
+  return rows;
+}
+
+let favImportOpen = false;
+function toggleFavImport(){ capturePickInputs(); favImportOpen = !favImportOpen; render(); }
+function importToFavorites(){
+  capturePickInputs();
+  const text = (document.getElementById('fav-import') || {}).value || '';
+  const rows = parseTourneyImport(text);
+  if(!rows.length){ alert('Paste the list first — one player per line: Name, Handicap Index.'); return; }
+  let added = 0, updated = 0, full = 0;
+  rows.forEach(r => {
+    const idx = r.index === '' ? null : parseIndex(r.index, r.indexNeg);
+    const fav = findFavorite(r.name);
+    if(fav){ if(idx !== null && idx !== undefined){ fav.index = idx; fav.neg = idx < 0; } updated++; return; }
+    if(playerFavorites.length >= PLAYER_FAVORITES_LIMIT){ full++; return; }
+    playerFavorites.push({ name: r.name, index: idx === undefined ? null : idx, neg: !!(idx < 0), lastPlayed: 0, tees: {} });
+    added++;
+  });
+  savePlayerFavorites();
+  favImportOpen = false;
+  render();
+  alert(`Added ${added} favorite${added===1?'':'s'}${updated ? `, updated ${updated}` : ''}.${full ? ` ${full} didn't fit — up to ${PLAYER_FAVORITES_LIMIT} favorites.` : ''} Tap names to pick who's playing.`);
+}
+function favImportHtml(){
+  return `
+    <button class="btn btn-outline btn-full btn-compact" style="border-style:dashed;margin-top:8px;min-height:44px;" onclick="toggleFavImport()">${favImportOpen ? '▲︎ Hide the import' : 'Import players to your favorites'}</button>
+    ${favImportOpen ? `
+    <div class="tourney-import">
+      <textarea id="fav-import" rows="6" style="width:100%;box-sizing:border-box;font-family:'IBM Plex Mono',monospace;font-size:16px;" placeholder="Al Smith, 12.4&#10;Bo Jones, 4.1&#10;Cy Brown, +1.2"></textarea>
+      <button class="btn btn-gold btn-full" style="margin-top:8px;" onclick="importToFavorites()">Add to favorites</button>
+      <div class="sub" style="margin:8px 0 0;">One player per line: <b>Name, Handicap Index</b>. Copy cells from a spreadsheet, or a header row (Name, Index) works too. Anyone already a favorite gets their index updated.</div>
+    </div>` : ''}`;
+}
 function renderPlayerPick(){
   const r = currentRatingInputs();
   const pick = playerPickState();
   const rows = buildPickRows();
   const limit = playerPickLimit();
+  const words = searchWords(pickSearch);
   const rowHtml = rows.map((row, i) => {
     const p = row.ref, on = isPlayingToday(p.name);
+    const hidden = (pickPickedOnly && !on) || !words.every(w => searchWords(p.name).join(' ').includes(w));
     return `
-    <div class="pick-grid">
+    <div class="pick-grid" data-name="${escapeAttr(p.name)}" style="${hidden ? 'display:none;' : ''}">
       <button type="button" class="pick-name ${on?'on':''}" onclick="togglePlayingToday(${i})">${on?'✓ ':''}${escapeHtml(p.name)}</button>
       <div class="hcp-input">
         <button type="button" class="plus-toggle ${p.neg?'on':''}" onclick="togglePickIndexSign(${i})" title="Flip for a plus index">−</button>
@@ -4298,6 +4428,8 @@ function renderPlayerPick(){
     <div class="sub" style="margin:0 0 8px;">No tees saved for this course yet. Add the ones you play — the rating and slope are on the scorecard.</div>`}
     ${(addTeeOpen || !teesFor(pickCourseId()).length) ? addTeeFormHtml() : ''}
 
+    ${rows.length > 8 ? `<input type="search" class="pick-search" placeholder="Search your favorites" value="${escapeAttr(pickSearch)}" oninput="onPickSearch(this.value)" autocomplete="off" autocorrect="off" spellcheck="false">
+    <div class="btn-row" style="margin:8px 0 12px;"><button class="btn btn-compact ${pickPickedOnly ? 'btn-selected' : 'btn-outline'}" style="flex:1;" onclick="togglePickedOnly()">${pickPickedOnly ? '✓ ' : ''}Show only who's playing</button></div>` : ''}
     <div class="pick-grid pick-head">
       <label class="col-head" style="text-align:left;">Tap who's playing</label>
       <label class="col-head">Handicap Index</label>
@@ -4317,6 +4449,7 @@ function renderPlayerPick(){
       </div>
       <button type="button" class="btn btn-outline btn-compact" onclick="addPickPlayer()">Add</button>
     </div>
+    ${favImportHtml()}
 
     <button class="btn btn-gold btn-full" style="margin-top:16px;" onclick="continueFromPlayerPick(false)">Continue ▶︎</button>
     <button class="btn btn-outline btn-full" style="margin-top:12px;" onclick="continueFromPlayerPick(true)">Skip the calculator — enter course handicaps next</button>
