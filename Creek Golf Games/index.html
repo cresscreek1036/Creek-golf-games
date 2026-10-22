@@ -486,6 +486,15 @@
   .pick-add input#pick-new-name{margin:0 0 8px;padding:10px 8px;}
   .pick-add .btn{height:44px;margin-bottom:8px;}
   .tourney-import{border:1.5px solid #e3dbc3;border-radius:10px;padding:12px;margin-top:8px;background:#FFFDF6;}
+  .mf-head{display:grid;grid-template-columns:minmax(0,1fr) 110px 44px;gap:0 8px;margin:12px 0 4px;}
+  .mf-row{display:grid;grid-template-columns:minmax(0,1fr) 110px 44px;gap:0 8px;align-items:center;margin-bottom:8px;}
+  .mf-row > input{margin:0;padding:10px 8px;}
+  .mf-row .hcp-input{margin:0;}
+  .mf-row .course-side-btn{height:44px;}
+  .mf-row .mf-clear{background:none;border:none;padding:0 0 0 6px;font:inherit;font-weight:700;color:var(--green-mid);text-decoration:underline;cursor:pointer;}
+  .mf-head .col-head{font-size:0.7rem;}
+  .mf-row .mf-tees{grid-column:1 / -1;font-size:0.75rem;color:#6b6656;margin:-2px 0 4px;}
+  .mf-row.mf-removed > input, .mf-row.mf-removed .hcp-input{opacity:0.4;text-decoration:line-through;}
   .pick-search{width:100%;box-sizing:border-box;margin:12px 0 0;font-size:16px;min-height:44px;}
   /* Calculator mistakes: a red line under the boxes, and the box at fault outlined. */
   .calc-error{color:var(--red);font-size:0.85rem;font-weight:600;line-height:1.35;margin:4px 0 0;}
@@ -4454,7 +4463,103 @@ function favImportHtml(){
       <div class="sub" style="margin:8px 0 0;">One player per line: <b>Name, Handicap Index</b>. Copy cells from a spreadsheet, or a header row (Name, Index) works too. Anyone already a favorite gets their index updated.</div>
     </div>` : ''}`;
 }
+/* ---------- Manage favorites ----------
+   A list of every favorite to fix a name, change an index (− for a plus
+   index) or remove someone. A rename carries through to today's picks and to
+   any tournament still being set up on this phone; tournaments already saved
+   keep the names they were saved with. */
+let manageFavsOpen = false;
+let manageFavsDraft = null;   // [{ ref, name, index, neg, remove }]
+function openManageFavorites(){
+  capturePickInputs();
+  manageFavsDraft = playerFavorites.slice().sort((a, b) => a.name.localeCompare(b.name))
+    .map(f => ({ ref:f, name:f.name, index:fmtIndex(f.index), neg: f.index < 0 || !!f.neg, remove:false }));
+  manageFavsOpen = true;
+  render(); window.scrollTo(0, 0);
+}
+function captureManageFavs(){
+  if(!manageFavsDraft) return;
+  document.querySelectorAll('[data-mf-name]').forEach(el => { const r = manageFavsDraft[+el.dataset.mfName]; if(r) r.name = el.value; });
+  document.querySelectorAll('[data-mf-index]').forEach(el => { const r = manageFavsDraft[+el.dataset.mfIndex]; if(r) r.index = el.value; });
+}
+function toggleManageFavSign(i){ captureManageFavs(); const r = manageFavsDraft[i]; if(r){ r.neg = !r.neg; render(); } }
+function toggleManageFavRemove(i){ captureManageFavs(); const r = manageFavsDraft[i]; if(r){ r.remove = !r.remove; render(); } }
+function clearManageFavTees(i){ captureManageFavs(); const r = manageFavsDraft[i]; if(r){ r.clearTees = true; render(); } }
+function cancelManageFavorites(){ manageFavsOpen = false; manageFavsDraft = null; render(); }
+// A favorite's new name, everywhere this phone still has the old one in play.
+function renameFavoriteEverywhere(oldName, newName){
+  const swap = list => Array.isArray(list) ? list.map(n => sameName(n, oldName) ? newName : n) : list;
+  const fixPick = pick => { if(!pick) return; pick.playing = swap(pick.playing); pick.order = swap(pick.order); };
+  if(state.playerPick) fixPick(state.playerPick);
+  const d = state.tourneyDraft;
+  if(d){
+    fixPick(d.pick);
+    (d.days || []).forEach(day => {
+      fixPick(day.pick);
+      if(day.manual){ const k = oldName.trim().toLowerCase(); if(day.manual[k]){ day.manual[newName.trim().toLowerCase()] = day.manual[k]; delete day.manual[k]; } }
+    });
+    (d.players || []).forEach(p => { if(p.name && sameName(p.name, oldName)) p.name = newName; });
+  }
+}
+function saveManageFavorites(){
+  captureManageFavs();
+  const keep = manageFavsDraft.filter(r => !r.remove);
+  for(const r of keep){
+    r.name = r.name.replace(/\s+/g, ' ').trim();
+    if(!r.name){ alert('Every favorite needs a name (or tap 🗑 to remove one).'); return; }
+    const v = parseIndex(r.index, r.neg);
+    if(v === undefined){ alert(indexLimitMessage(r.name)); return; }
+    r.parsed = v;
+  }
+  const seen = new Set();
+  for(const r of keep){
+    const k = r.name.toLowerCase();
+    if(seen.has(k)){ alert(`There are two favorites called ${r.name}. Give one a different name.`); return; }
+    seen.add(k);
+  }
+  const removed = manageFavsDraft.filter(r => r.remove);
+  if(removed.length && !confirm(`Remove ${removed.map(r => r.ref.name).join(', ')} from your favorites?`)) return;
+  keep.forEach(r => {
+    if(r.name !== r.ref.name) renameFavoriteEverywhere(r.ref.name, r.name);
+    r.ref.name = r.name; r.ref.index = r.parsed; r.ref.neg = r.parsed !== null && r.parsed < 0;
+    // Usual tees: cleared, or just the ones their course still has.
+    r.ref.tees = r.clearTees ? {} : Object.fromEntries(Object.entries(r.ref.tees || {}).filter(([cid, v]) => v && findTee(cid, v)));
+  });
+  playerFavorites = keep.map(r => r.ref);
+  savePlayerFavorites();
+  manageFavsOpen = false; manageFavsDraft = null;
+  saveState(); render(); window.scrollTo(0, 0);
+}
+function manageFavoritesHtml(){
+  const teesText = f => {
+    // Only tees the course still has (a removed tee is dropped on save).
+    const t = (f.tees && !f.clearTees) ? Object.entries(f.tees).filter(([cid, v]) => v && findTee(cid, v)) : [];
+    return t.map(([cid, tee]) => `${escapeHtml(tee)} at ${escapeHtml((courses.find(c => c.id === cid) || {}).name || 'a course')}`).join(' · ');
+  };
+  const rows = manageFavsDraft.map((r, i) => `
+    <div class="mf-row ${r.remove ? 'mf-removed' : ''}">
+      <input type="text" data-mf-name="${i}" value="${escapeAttr(r.name)}" maxlength="40" autocomplete="off" autocorrect="off" spellcheck="false" ${r.remove ? 'disabled' : ''} aria-label="Name">
+      <div class="hcp-input">
+        <button type="button" class="plus-toggle ${r.neg?'on':''}" onclick="toggleManageFavSign(${i})" title="Flip for a plus index" ${r.remove ? 'disabled' : ''}>−</button>
+        <input class="card-hcp" type="number" inputmode="decimal" min="0" max="54" step="0.1" placeholder="Index" data-mf-index="${i}" value="${escapeAttr(r.index)}" ${r.remove ? 'disabled' : ''} aria-label="Handicap Index">
+      </div>
+      <button type="button" class="course-side-btn" onclick="toggleManageFavRemove(${i})" aria-label="${r.remove ? 'Keep' : 'Remove'} ${escapeAttr(r.ref.name)}" title="${r.remove ? 'Keep' : 'Remove'}">${r.remove ? '↩︎' : '🗑'}</button>
+      ${teesText({ ...r.ref, clearTees: r.clearTees }) ? `<div class="mf-tees">Usual tees: ${teesText(r.ref)} <button type="button" class="mf-clear" onclick="clearManageFavTees(${i})">Clear</button></div>` : ''}
+    </div>`).join('');
+  return `
+  <div class="card">
+    ${screenHead("cancelManageFavorites()", 'Manage favorites', '')}
+    <div class="sub" style="text-align:center;">${manageFavsDraft.length} of ${PLAYER_FAVORITES_LIMIT} favorites. Fix a name, change an index (tap − for a plus index), or tap 🗑 to remove someone.</div>
+    <div class="mf-head"><label class="col-head" style="text-align:left;">Name</label><label class="col-head">Handicap Index</label><span></span></div>
+    ${rows || '<div class="sub">No favorites yet.</div>'}
+    <div class="sub" style="margin:8px 0 0;">Tournaments already saved keep the names they were saved with; a new name is used from the next round or tournament.</div>
+    <button class="btn btn-gold btn-full" style="margin-top:16px;" onclick="saveManageFavorites()">Save changes</button>
+    <div class="btn-row" style="margin-top:12px;"><button class="btn btn-outline btn-full" onclick="cancelManageFavorites()">Cancel</button></div>
+  </div>`;
+}
+
 function renderPlayerPick(){
+  if(manageFavsOpen && manageFavsDraft) return manageFavoritesHtml();
   const r = currentRatingInputs();
   const pick = playerPickState();
   const rows = buildPickRows();
@@ -4502,6 +4607,7 @@ function renderPlayerPick(){
     ${rowHtml || `<div class="sub" style="margin:0 0 12px;">No favorites yet. Add a player below, then tap ☆ to keep them for next time.</div>`}
     <div class="calc-error" id="pick-error" style="margin:-4px 0 8px;"></div>
     <div class="sub" style="margin:-4px 0 16px;">${pick.playing.length} of ${limit} playing · ★ = favorite (${playerFavorites.length} of ${PLAYER_FAVORITES_LIMIT}) · Tap − for a plus index.</div>
+    ${playerFavorites.length ? `<button class="btn btn-outline btn-full btn-compact" style="margin:0 0 12px;min-height:44px;" onclick="openManageFavorites()">Manage favorites — fix names, indexes</button>` : ''}
 
     <label style="margin:0 0 8px;">Add a player</label>
     <div class="pick-add">
