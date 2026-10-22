@@ -28,3 +28,9 @@
   };
   window.claude = { use: async (name) => (name === 'downloads' ? downloads : null) };
 })();
+
+// Offline support: keep a copy of the site on the phone so it opens with no
+// signal (see sw.js). Website only — the iPhone app doesn't load this file.
+if ('serviceWorker' in navigator && location.protocol === 'https:') {
+  window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => {}); });
+}
