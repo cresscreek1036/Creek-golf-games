@@ -4524,7 +4524,7 @@ function toggleFavImport(){ capturePickInputs(); favImportOpen = !favImportOpen;
 function importToFavorites(){
   capturePickInputs();
   const text = (document.getElementById('fav-import') || {}).value || '';
-  const rows = parseTourneyImport(text);
+  const rows = parseTourneyImport(text.split('\n').filter(l => !/^Creek Golf favorites/i.test(l.trim())).join('\n'));
   if(!rows.length){ alert('Paste the list first — one player per line: Name, Handicap Index.'); return; }
   let added = 0, updated = 0, full = 0;
   rows.forEach(r => {
@@ -4539,6 +4539,38 @@ function importToFavorites(){
   favImportOpen = false;
   render();
   alert(`Added ${added} favorite${added===1?'':'s'}${updated ? `, updated ${updated}` : ''}.${full ? ` ${full} didn't fit — up to ${PLAYER_FAVORITES_LIMIT} favorites.` : ''} Tap names to pick who's playing.`);
+}
+// Share my favorites: the list as plain text, "Name, Handicap Index" a line
+// (+ for a plus index), so the other phone pastes it into Import players.
+function favoritesShareText(){
+  const lines = playerFavorites.slice().sort((a, b) => a.name.localeCompare(b.name))
+    .map(f => `${f.name}, ${f.index === null || f.index === undefined ? '' : (f.index < 0 ? '+' : '') + fmtIndex(f.index)}`.replace(/, $/, ''));
+  return `Creek Golf favorites — paste into Import players to your favorites:\n${lines.join('\n')}`;
+}
+async function shareMyFavorites(){
+  capturePickInputs();
+  if(!playerFavorites.length){ alert('No favorites to share yet.'); return; }
+  const text = favoritesShareText();
+  if(navigator.share){
+    try{ await navigator.share({ text }); return; }
+    catch(e){ if(e && e.name === 'AbortError') return; }
+  }
+  try{
+    await navigator.clipboard.writeText(text);
+    alert(`Copied ${playerFavorites.length} favorite${playerFavorites.length===1?'':'s'}. Paste them into a text or email; the other player pastes them into Import players to your favorites.`);
+  }catch(e){
+    // No share sheet or clipboard: show the list to copy by hand.
+    favShareText = text; render();
+  }
+}
+let favShareText = '';
+function favShareBoxHtml(){
+  return favShareText ? `
+    <div class="tourney-group" style="margin-top:8px;">
+      <div class="sub" style="margin:0 0 4px;">Copy this list and send it; the other player pastes it into Import players to your favorites.</div>
+      <textarea rows="6" readonly style="width:100%;box-sizing:border-box;font-family:'IBM Plex Mono',monospace;font-size:16px;" onfocus="this.select()">${escapeHtml(favShareText)}</textarea>
+      <button class="btn btn-outline btn-full btn-compact" style="margin-top:8px;" onclick="favShareText=''; render();">Done</button>
+    </div>` : '';
 }
 function favImportHtml(){
   return `
@@ -4694,7 +4726,8 @@ function renderPlayerPick(){
     ${rowHtml || `<div class="sub" style="margin:0 0 12px;">No favorites yet. Add a player below, then tap ☆ to keep them for next time.</div>`}
     <div class="calc-error" id="pick-error" style="margin:-4px 0 8px;"></div>
     <div class="sub" style="margin:-4px 0 16px;">${pick.playing.length} of ${limit} playing · ★ = favorite (${playerFavorites.length} of ${PLAYER_FAVORITES_LIMIT}) · Tap − for a plus index.</div>
-    ${playerFavorites.length ? `<button class="btn btn-outline btn-full btn-compact" style="margin:0 0 12px;min-height:44px;" onclick="openManageFavorites()">Manage favorites — fix names, indexes</button>` : ''}
+    ${playerFavorites.length ? `<button class="btn btn-outline btn-full btn-compact" style="margin:0 0 12px;min-height:44px;" onclick="openManageFavorites()">Manage favorites — fix names, indexes</button>
+    <button class="btn btn-outline btn-full btn-compact" style="margin:0 0 12px;min-height:44px;" onclick="shareMyFavorites()">Share my favorites</button>${favShareBoxHtml()}` : ''}
 
     <label style="margin:0 0 8px;">Add a player</label>
     <div class="pick-add">
