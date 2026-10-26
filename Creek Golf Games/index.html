@@ -561,6 +561,24 @@
   /* Best Ball grid: the nets that counted toward the team score, and the team row. */
   table.scorecard td.bb-used{background:#F3E3B0;font-weight:700;}
   table.scorecard tr.bb-team-row td{border-top:2px solid var(--green-deep);}
+
+  /* Easier reading: bigger words on buttons, boxes and labels, for players
+     who don't see well. Set once here, after every other rule, so it wins. */
+  .btn{font-size:1.1rem;font-weight:700;}
+  .btn-compact, .btn-submit, .solo-row .btn, .tee-btn{font-size:1.02rem;}
+  .result-toggle button{font-size:1rem;font-weight:700;color:var(--ink);}
+  .mode-card .mode-title{font-size:1.3rem;}
+  .mode-card .mode-desc{font-size:0.95rem;}
+  .course-row .mode-card .mode-title, .course-action .mode-title{font-size:1.15rem;}
+  label{font-size:0.8rem;}
+  .card .sub{font-size:0.92rem;}
+  input[type=text], input[type=number], input[type=search], select{font-size:1.08rem;}
+  .pick-name{font-size:1.08rem;}
+  .masthead-actions > .newround-btn, #newRoundConfirm .newround-btn{font-size:0.88rem;}
+  @media (max-width:400px){ .masthead-actions > .newround-btn{font-size:0.76rem;} }
+  .fill-teams-grid{grid-auto-rows:1fr;}
+  .fill-teams-grid .btn{font-size:1.15rem;font-weight:800;padding:8px 6px;}
+  .game-grid.three .game-btn{font-size:1rem;}
 </style>
 </head>
 <body>
