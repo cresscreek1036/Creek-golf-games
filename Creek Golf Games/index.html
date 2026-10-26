@@ -527,6 +527,9 @@
     font-family:'IBM Plex Mono',monospace;font-size:1.5rem;font-weight:700;color:var(--ink);
     border:1.5px solid #cfc7a9;border-radius:10px;background:#fff;
   }
+  /* The Next / Record button after the last score: lit up, waiting for a tap. */
+  .btn.score-go-ready{box-shadow:0 0 0 4px var(--gold), 0 0 16px 4px rgba(201,162,39,0.6);animation:scoreGoPulse 1.2s ease-in-out 3;}
+  @keyframes scoreGoPulse{50%{box-shadow:0 0 0 6px var(--gold), 0 0 24px 8px rgba(201,162,39,0.8);}}
   .score-line input.score-input::-webkit-outer-spin-button,
   .score-line input.score-input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0;}
 
@@ -1914,6 +1917,19 @@ function advanceToScores(){
   state.holeSubPhase = 'scores';
   saveState(); render();
 }
+// From the game screen back to this hole's scores (picks on the game screen are kept).
+function backToHoleScores(){
+  state.holeSubPhase = 'scores';
+  saveState(); render();
+}
+// After a hole's game result: on to the next hole's scores. If the game was
+// scored before any scores went in, that hole's scores come up first.
+function afterGameRecorded(){
+  if(state.trackMode!=='both') return;
+  if(state.phase!=='complete') state.holeSubPhase = 'scores';
+  const last = state.holes[state.holes.length - 1];
+  if(last && state.cardPlayers.every((p, i) => cardScore(i, last.hole)===null)) state.scoreEditHole = last.hole;
+}
 
 function renderBothScores(){
   const h = state.currentHole;
@@ -1942,7 +1958,7 @@ function renderBothScores(){
       <div class="hole-badge">${h}</div>
       <div>
         <div class="meta"><b>Par ${info.par}</b> · handicap <b>${info.si}</b></div>
-        <div class="meta" style="margin-top:4px;">${escapeHtml(currentCourse().name)} · post scores, then the game result</div>
+        <div class="meta" style="margin-top:4px;">${escapeHtml(currentCourse().name)} · post scores and the game result, in either order</div>
       </div>
       ${state.mode==='six66' ? SIXSIXSIX_HOLE : ''}
     </div>
@@ -1960,10 +1976,9 @@ function renderBothScores(){
   `;
 }
 
+// The game can be scored before the players' scores — in a Lightning round
+// the scorekeeper wants to see who's down the most before a captain defers.
 function continueToGameResult(){
-  const h = state.currentHole;
-  const anyScore = state.cardPlayers.some((p,i)=>cardScore(i,h)!==null);
-  if(!anyScore){ alert(`Enter at least one score for hole ${h}.`); return; }
   state.holeSubPhase = 'game';
   saveState(); render();
 }
@@ -2174,7 +2189,7 @@ function submitHole(){
   pendingResult = null; pendingPartner = null; pendingAlone = false; pendingDivorce = false; pendingPoints = null; pendingUmbrella = false;
   pendingPressCount = 0;
   if(state.currentHole>=18){ state.phase='complete'; } else { state.currentHole+=1; }
-  if(state.trackMode==='both' && state.phase!=='complete') state.holeSubPhase='scores'; // straight on to the next hole's scores
+  afterGameRecorded(); // straight on to the next hole's scores
   saveState(); render();
 }
 
@@ -2265,7 +2280,7 @@ function submitHoleRoll(){
   pendingResult = null; pendingRoll = false; pendingReroll = false; pendingPressCount = 0;
   pendingPoints = null; pendingUmbrella = false;
   if(n>=18){ state.phase='complete'; } else { state.currentHole += 1; }
-  if(state.trackMode==='both' && state.phase!=='complete') state.holeSubPhase='scores'; // straight on to the next hole's scores
+  afterGameRecorded(); // straight on to the next hole's scores
   saveState(); render();
 }
 
@@ -2313,7 +2328,7 @@ function submitHoleHammer(){
   state.currentValue = baseValue; // presses persist going forward
   pendingPressCount = 0; pendingHammerMatches = {};
   if(n>=18){ state.phase='complete'; } else { state.currentHole += 1; }
-  if(state.trackMode==='both' && state.phase!=='complete') state.holeSubPhase='scores'; // straight on to the next hole's scores
+  afterGameRecorded(); // straight on to the next hole's scores
   saveState(); render();
 }
 
@@ -2359,7 +2374,7 @@ function submitHoleBBB(){
   pendingPressCount = 0;
   pendingBBB = {bingo:null, bango:null, bongo:null};
   if(n>=18){ state.phase='complete'; } else { state.currentHole += 1; }
-  if(state.trackMode==='both' && state.phase!=='complete') state.holeSubPhase='scores'; // straight on to the next hole's scores
+  afterGameRecorded(); // straight on to the next hole's scores
   saveState(); render();
 }
 function renderBBBAwardRows(){
@@ -2835,7 +2850,8 @@ function render(){
     } else if(state.trackMode==='both' && state.holeSubPhase==='scores'){
       app.innerHTML = renderBothScores();
     } else {
-      app.innerHTML = (state.mode==='rollReroll') ? renderPlayingRoll() : (state.mode==='hammer') ? renderPlayingHammer() : (state.mode==='bbb') ? renderPlayingBBB() : (state.mode==='six66') ? renderPlayingSixSixSix() : renderPlaying();
+      const sh = state.currentHole, entered = state.trackMode==='both' ? state.cardPlayers.filter((p, i) => cardScore(i, sh)!==null).length : 0;
+      app.innerHTML = (state.trackMode==='both' ? `<div class="btn-row" style="margin:0 0 12px;"><button class="btn btn-outline btn-full" onclick="backToHoleScores()">◀︎ Scores for Hole ${sh}${entered < state.cardPlayers.length ? ` (${entered} of ${state.cardPlayers.length} entered)` : ''}</button></div>` : '') + ((state.mode==='rollReroll') ? renderPlayingRoll() : (state.mode==='hammer') ? renderPlayingHammer() : (state.mode==='bbb') ? renderPlayingBBB() : (state.mode==='six66') ? renderPlayingSixSixSix() : renderPlaying());
     }
   }
   else app.innerHTML = renderComplete();
@@ -2954,7 +2970,7 @@ function getRulesGames(){
         'Check <b>Teammate</b> on the Who\'s playing? screen for two players (no more than two). 666 Parlor uses that pair for holes 1-6, and Naper Vegas uses it as Team 1.']],
       ['Picking a game', [
         'Pick the game first, then the course, then the players and The Point.',
-        'Points games keep both the scores and the game by default: enter scores each hole, then record the game\'s result. Tap <b>Game only (no scorecard)</b> to skip the scores. <b>⛳ Just keep the scores</b>, beside the Pick a game title, is a plain scorecard.',
+        'Points games keep both the scores and the game by default: enter scores each hole, then record the game\'s result. Typing a score moves straight to the next player\'s box (a 1 waits for a second digit, for 10 to 19); after the last one the gold button lights up, ready to tap. The game can also be recorded first (handy in a Lightning round, to see who\'s down before a captain defers): <b>◀︎ Scores for Hole N</b> on the game screen goes back to the scores, and a hole recorded with no scores asks for them next. Tap <b>Game only (no scorecard)</b> to skip the scores. <b>⛳ Just keep the scores</b>, beside the Pick a game title, is a plain scorecard.',
         'Skins, Stableford, Quota and 5-3-1 need scores, so checking one always keeps scores. Naper Vegas and Nassau are played on their own.']],
       ['Roll the Dice', [
         'An option next to The Point on the Who\'s playing? screen. Turn it on and set a Low and High instead of a fixed point value.',
@@ -3241,7 +3257,7 @@ function getRulesGames(){
     glance:'Points on every hole for your net score against par. Most points wins.',
     sections:[
       ['Points per hole (net score vs par)', [
-        'Albatross or better: 5. Eagle: 4. Birdie: 3. Par: 2. Bogey: 1. Double bogey or worse: 0.']],
+        'Eagle or better: 5. Birdie: 3. Par: 1. Bogey: 0. Double bogey or worse: −1.']],
       ['Winning', [
         'Add up the points. The highest total wins. If The Point is set, points are also shown × The Point. Stableford can be combined with other games.']]
     ]},
@@ -3358,6 +3374,27 @@ function keepScoreButtonAboveKeyboard(input){
   const room = input.getBoundingClientRect().top - vv.offsetTop - 10;
   const by = Math.min(overlap, room);
   if(by > 0) window.scrollBy({top: by, behavior: 'smooth'});
+}
+// Typing a score moves straight on to the next player's box. A "1" waits for
+// a second digit (10 to 19); for an ace, tap the next box. After the last box
+// the keyboard closes and the Next / Record button is brought into view and
+// lit up, but not pressed, so the scores can be checked first.
+document.addEventListener('input', e => {
+  const el = e.target;
+  if(!(el instanceof HTMLInputElement) || !el.classList.contains('score-input')) return;
+  const v = el.value.trim();
+  if(!/^[0-9]+$/.test(v) || Number(v) < 1 || v === '1') return;
+  advanceFromScore(el);
+});
+function advanceFromScore(el){
+  const boxes = [...document.querySelectorAll('input.score-input')];
+  const next = boxes[boxes.indexOf(el) + 1];
+  if(next){ next.focus(); if(next.select) next.select(); return; }
+  el.blur();
+  const btn = (el.closest('.card') || document).querySelector('.score-go');
+  if(!btn) return;
+  btn.classList.add('score-go-ready');
+  if(btn.scrollIntoView) btn.scrollIntoView({ block:'center', behavior:'smooth' });
 }
 document.addEventListener('focusin', e => {
   const input = e.target;
@@ -4455,7 +4492,7 @@ function importToFavorites(){
 }
 function favImportHtml(){
   return `
-    <button class="btn btn-outline btn-full btn-compact" style="border-style:dashed;margin-top:8px;min-height:44px;" onclick="toggleFavImport()">${favImportOpen ? '▲︎ Hide the import' : 'Import players to your favorites'}</button>
+    <button class="btn btn-outline btn-full btn-compact" style="border:3px dashed var(--green-deep);font-weight:800;margin-top:8px;min-height:48px;" onclick="toggleFavImport()">${favImportOpen ? '▲︎ Hide the import' : 'Import players to your favorites'}</button>
     ${favImportOpen ? `
     <div class="tourney-import">
       <textarea id="fav-import" rows="6" style="width:100%;box-sizing:border-box;font-family:'IBM Plex Mono',monospace;font-size:16px;" placeholder="Al Smith, 12.4&#10;Bo Jones, 4.1&#10;Cy Brown, +1.2"></textarea>
@@ -5731,7 +5768,7 @@ function renderScoreEditBoth(){
     </div>
     ${blocks}
     <div class="sub" id="hole-note" style="margin:4px 0 12px;">${missingNote(missing)}</div>
-    <button class="btn btn-gold btn-full score-go" onclick="closeScoreEdit()">Save — back to the game</button>
+    <button class="btn btn-gold btn-full score-go" onclick="closeScoreEdit()">${state.phase==='playing' && state.holeSubPhase==='scores' && state.currentHole!==h ? `Save — on to Hole ${state.currentHole}` : 'Save — back to the game'}</button>
   </div>`;
 }
 function toggleFullCard(){ showFullCard = !showFullCard; render(); }
@@ -5958,15 +5995,15 @@ function computeSkins(){
   return { won, log, carry: carry>1 ? carry-1 : 0 };
 }
 
-// Standard Stableford table, off the net score for the hole.
+// The club's Stableford table, off the net score for the hole: eagle or
+// better 5, birdie 3, par 1, bogey 0, double bogey or worse −1.
 function stablefordPoints(net, par){
   const diff = net - par;
-  if(diff<=-3) return 5;
-  if(diff===-2) return 4;
+  if(diff<=-2) return 5;
   if(diff===-1) return 3;
-  if(diff===0) return 2;
-  if(diff===1) return 1;
-  return 0;
+  if(diff===0) return 1;
+  if(diff===1) return 0;
+  return -1;
 }
 function computeStableford(){
   return state.cardPlayers.map((p,i)=>{
@@ -5997,11 +6034,11 @@ function stablefordSum(i, from, to){
   return any ? sum : null;
 }
 // 3 points is a net birdie or better — called out the same way the main
-// scorecard calls out an under-par hole (green/bold). 0 points (net double
-// bogey or worse) gets the same treatment as an over-par hole (red).
+// scorecard calls out an under-par hole (green/bold). −1 (net double bogey or
+// worse) gets the same treatment as an over-par hole (red).
 function stablefordCell(i, h){
   const pts = stablefordHolePoints(i, h);
-  const cls = pts===null ? '' : (pts>=3 ? 'sc-under' : (pts===0 ? 'sc-over' : ''));
+  const cls = pts===null ? '' : (pts>=3 ? 'sc-under' : (pts<0 ? 'sc-over' : ''));
   return `<td class="sc-cell ${cls}">${pts===null ? '—' : pts}</td>`;
 }
 
@@ -6139,14 +6176,14 @@ function renderStablefordSection(){
   return `
   <div style="margin-bottom:24px;">
     <h3 style="margin:0 0 8px;font-family:'Fraunces',serif;">Stableford</h3>
-    <div class="sub" style="margin-bottom:8px;">Net points per hole — par 2, birdie 3, eagle 4, albatross 5, bogey 1, worse 0. Birdies or better in green, worse than bogey in red.</div>
+    <div class="sub" style="margin-bottom:8px;">Net points per hole — eagle or better 5, birdie 3, par 1, bogey 0, double bogey or worse −1. Birdies or better in green, worse than bogey in red.</div>
     <div class="scorecard-scroll">
       <table class="scorecard"><thead><tr>${head}</tr></thead><tbody>${rows}</tbody></table>
     </div>
   </div>`;
 }
 
-// Quota's points table matches the low end of Stableford (no albatross tier is
+// Quota keeps its own points table (the old Stableford one) (no albatross tier is
 // specified), and it runs on GROSS score directly — the handicap is already
 // baked into the quota target, so no per-hole strokes are applied here.
 function quotaPoints(gross, par){
@@ -6793,7 +6830,7 @@ function submitHoleSixSixSix(){
   pendingResult = null; pendingPartner = null; pendingAlone = false; pendingDivorce = false; pendingPoints = null; pendingUmbrella = false;
   pendingPressCount = 0;
   if(state.currentHole>=18){ state.phase='complete'; } else { state.currentHole+=1; }
-  if(state.trackMode==='both' && state.phase!=='complete') state.holeSubPhase='scores'; // straight on to the next hole's scores
+  afterGameRecorded(); // straight on to the next hole's scores
   saveState(); render();
 }
 
