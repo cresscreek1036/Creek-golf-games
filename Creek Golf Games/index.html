@@ -5593,19 +5593,31 @@ function renderNassauSetup(){
 // A compact glance at every active match's running total, shown right on the
 // hole-by-hole play screen so nobody has to dig into the Games tab just to
 // see who's up.
+// A Nassau match in one short line, told by whoever is ahead overall (the
+// side on top of the card when it's level), last names only:
+//   "Ficks & Johnson: won front +2, back −1, overall +1"
+// Each segment is { played, lead (for side A), done }.
+function lastNameOf(name){ const w = String(name || '').trim().split(/\s+/); return w[w.length - 1] || ''; }
+function nassauShortHtml(front, back, total, namesA, namesB){
+  const aAhead = !(total.lead < 0), s = aAhead ? 1 : -1;
+  const who = (aAhead ? namesA : namesB).map(lastNameOf).join(' & ');
+  const part = (label, seg) => {
+    if(!seg.played) return `${label} —`;
+    const v = s * seg.lead, num = v === 0 ? 'AS' : (v > 0 ? `+${v}` : `−${-v}`);
+    if(!seg.done) return `${label} ${num}`;
+    return v > 0 ? `won ${label} ${num}` : (v < 0 ? `lost ${label} ${num}` : `halved ${label}`);
+  };
+  return `<b>${escapeHtml(who)}</b>: ${part('front', front)}, ${part('back', back)}, ${part('overall', total)}`;
+}
 function renderNassauLiveBlock(){
   const players = state.cardPlayers;
   const nameOf = i => players[i].name;
   const value = state.pointValue || 0;
+  // One short line a match: who's ahead overall, and by how much on each nine.
   const oneMatch = (sideA, sideB, nameA, nameB, val) => {
     const m = nassauMatch(sideA, sideB, val);
-    let extra = '';
-    // A clinched Front or Back is the one genuinely actionable mid-round event
-    // (a bet's already settled) — worth flagging even though the live line
-    // otherwise only tracks the overall Total.
-    if(m.front.clinched) extra += ` Front clinched, ${escapeHtml(m.front.margin>0?nameA:nameB)} ${Math.abs(m.front.margin)}&${m.front.remaining}.`;
-    if(m.back.clinched) extra += ` Back clinched, ${escapeHtml(m.back.margin>0?nameA:nameB)} ${Math.abs(m.back.margin)}&${m.back.remaining}.`;
-    return `<div><b>${escapeHtml(nameA)}</b> vs <b>${escapeHtml(nameB)}</b> — ${nassauSegLine(m.total, nameA, nameB)}${extra}</div>`;
+    const seg = x => ({ played:x.played, lead:x.margin, done:!!x.winner });
+    return `<div>${nassauShortHtml(seg(m.front), seg(m.back), seg(m.total), sideA.map(nameOf), sideB.map(nameOf))}</div>`;
   };
   let lines = '';
   if(state.nassauTeams){
