@@ -1909,7 +1909,7 @@ function lineupPeekHtml(){
     .replace(/<button class="btn btn-gold btn-full" onclick="beginPlay\(\)">[\s\S]*?<\/button>/, '')
     .replace(/<div class="btn-row"[^>]*><button class="btn btn-outline btn-full" onclick="backToSetupFromLineup\(\)">[\s\S]*?<\/button><\/div>/, '')
     .replace('<div class="card">', '<div>');
-  return `<details class="card lineup-peek"><summary>Line-Up — who goes when${state.mode==='captain5' ? ` · ⚡ Lightning starts on hole ${Math.min(...getLightningHoles())}` : ''}</summary>${html}</details>`;
+  return `<details class="card lineup-peek"><summary>Line-Up — who goes when</summary>${html}</details>`;
 }
 function backToSetupFromLineup(){
   state.phase = 'roster';
@@ -2093,7 +2093,7 @@ function renderLineup(){
   <div class="card">
     ${topBackLink("backToSetupFromLineup()")}
     ${gameTitleBadge(state.mode)}
-    <h2>Line-Up${state.mode==='captain5' ? ` <span style="font-size:1rem;font-weight:700;color:var(--ink);white-space:nowrap;">· ⚡ Lightning starts on hole ${Math.min(...getLightningHoles())}</span>` : ''}</h2>
+    <h2>Line-Up</h2>
     <div class="sub">${state.slotsShuffled===false ? 'Slots follow the order you entered' : 'Slots assigned randomly'} — this drives the ${state.mode==='mrPar' ? 'Wolf' : 'captain'} rotation for the round.${state.mode==='mrPar' ? (wolf3Alone() ? ' Playing <b>Alone</b>: the Wolf always plays alone against the other two, counted as if he had a partner with the same score and points.' : ' Playing with <b>Mr Par</b>: the Wolf always partners with Mr Par, who makes a net par on every hole.') : ''}</div>
     <table class="standings">
       <thead><tr><th>Slot</th><th>Player</th><th>${(state.mode==='captain'||state.mode==='mrPar') ? 'Wolf' : 'Captain'} on holes</th></tr></thead>
@@ -3199,7 +3199,7 @@ function getRulesGames(){
     glance:'Five players. Every hole a rotating captain picks a partner and plays 2 on 3, except three Lightning holes.',
     sections:[
       ['Setup', [
-        'Five players. Tap <b>Shuffle &amp; Tee Off</b> to put them in random slots 1-5, or <b>Just Tee Off</b> to use the order you typed them in. On Pick a game, choose which three holes are Lightning — 16, 17, 18 or 14, 17, 18 (you have to pick one; there\'s no default). The Line-Up on hole 1 says which hole Lightning starts on.']],
+        'Five players. Tap <b>Shuffle &amp; Tee Off</b> to put them in random slots 1-5, or <b>Just Tee Off</b> to use the order you typed them in. On Pick a game, choose which three holes are Lightning — 16, 17, 18 or 14, 17, 18 (you have to pick one; there\'s no default).']],
       ['The captain', [
         'Wrong order? Until everyone has had a first turn as captain, tap <b>Change captain</b> under the captain\'s name and pick who should be captain now. Only players who haven\'t captained yet can swap, so on hole 2 there are three to choose from and on hole 4 just one. The two swap places in the order for the rest of the round; holes already played don\'t change.',
         'Each slot captains three holes, in order, skipping whichever holes are Lightning. With Lightning on 16, 17, 18: Slot 1 on 1, 6, 11; Slot 2 on 2, 7, 12; Slot 3 on 3, 8, 13; Slot 4 on 4, 9, 14; Slot 5 on 5, 10, 15.',
