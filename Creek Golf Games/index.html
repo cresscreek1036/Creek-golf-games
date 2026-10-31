@@ -168,7 +168,13 @@
   .btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;}
   .btn-full{width:100%;}
   /* Sweet Lou and Divorce share one row on Wolf / 5Man Captain holes. */
-  .solo-row{display:flex;gap:8px;margin:-6px 0 16px;}
+  .solo-row{display:flex;flex-direction:column;gap:8px;margin:-6px 0 16px;}
+  /* The hole's point with the Press buttons beside it. */
+  .rate-press-row{display:flex;align-items:center;gap:8px;}
+  .rate-press-row .rate-value{flex:1;min-width:0;font-size:1.35rem;font-weight:800;color:var(--ink);line-height:1.1;}
+  .rate-press-row .rate-value span{display:block;font-size:0.8rem;font-weight:600;color:#5a5648;}
+  .rate-press-row .btn{margin:0;flex:0 1 auto;min-width:0;white-space:nowrap;padding-left:8px;padding-right:8px;}
+  .hole-head .rate-press-row .btn{font-size:0.95rem;padding-left:6px;padding-right:6px;}
   .solo-row .btn{flex:1;font-size:0.9rem;padding:9px 6px;}
   .solo-row .btn:disabled{opacity:0.4;cursor:default;}
   /* Tighter padding/type for long game-picker lists (Captain, Hammer, Nassau,
@@ -2019,7 +2025,8 @@ function renderBothScores(){
       <div class="hole-badge">${h}</div>
       <div>
         <div class="meta"><b>Par ${info.par}</b> · handicap <b>${info.si}</b></div>
-        <div class="meta" style="margin-top:4px;">${escapeHtml(currentCourse().name)} · post scores and the game result, in either order</div>
+        <div class="meta" style="margin-top:4px;">${escapeHtml(currentCourse().name)}</div>
+        ${missingPriorScoresHtml(h)}
       </div>
       ${state.mode==='six66' ? SIXSIXSIX_HOLE : ''}
     </div>
@@ -2042,11 +2049,27 @@ function renderBothScores(){
 // the scorekeeper wants to see who's down the most before a captain defers.
 // The same Press as the game screen, so the point can be pressed from either.
 function scoresPressHtml(){
-  const value = currentHoleBaseValue() + pendingPressCount;
+  return `<div style="margin:0 0 12px;">${ratePressRowHtml(currentHoleBaseValue() + pendingPressCount)}</div>`;
+}
+// An earlier hole missing someone's score, flagged by the hole's par and
+// handicap: "Hole 2 score not recorded". Tapping a hole opens it to fix.
+function missingPriorScoresHtml(h){
+  const holes = [];
+  for(let x = 1; x < h; x++) if(state.cardPlayers.some((p, i) => cardScore(i, x) === null)) holes.push(x);
+  if(!holes.length) return '';
+  const look = 'background:none;border:none;color:var(--red);font:inherit;font-weight:800;cursor:pointer;';
+  // One hole: the whole line is the button. Several: each hole number is, with room for a finger.
+  if(holes.length === 1) return `<button type="button" class="meta" onclick="goToCardHole(${holes[0]})" style="${look}display:block;text-align:left;margin-top:4px;padding:8px 0;min-height:44px;text-decoration:underline;">Hole ${holes[0]} score not recorded</button>`;
+  const links = holes.map(x => `<button type="button" onclick="goToCardHole(${x})" style="${look}display:inline-block;min-width:36px;min-height:40px;padding:0 6px;text-decoration:underline;">${x}</button>`).join(', ');
+  return `<div class="meta" style="margin-top:4px;color:var(--red);font-weight:700;">Holes ${links} scores not recorded</div>`;
+}
+// The point for the hole and the ➖ / ➕ Press buttons, all on one row.
+function ratePressRowHtml(value){
   return `
-    <div style="margin:0 0 12px;">
-      <div style="font-size:1.2rem;font-weight:800;color:var(--ink);">This hole: ${value}/pt${pendingPressCount ? ` <span style="font-size:0.9rem;font-weight:600;">(pressed ${pendingPressCount>0?'+':''}${pendingPressCount})</span>` : ''}</div>
-      ${pressButtonsRow()}
+    <div class="rate-press-row">
+      <div class="rate-value">${value}/pt${pendingPressCount ? `<span>pressed ${pendingPressCount>0?'+':''}${pendingPressCount}</span>` : ''}</div>
+      <button class="btn btn-compact btn-outline" onclick="unpressValue()">➖ Press</button>
+      <button class="btn btn-compact btn-outline" onclick="pressValue()">➕ Press</button>
     </div>`;
 }
 function continueToGameResult(){
@@ -2228,7 +2251,7 @@ function soloButtonsHtml(){
       : '');
   return `
     <div class="solo-row">
-      <button class="btn ${pendingAlone?'btn-selected':'btn-outline'}" onclick="toggleSweetLou()">${icon} Sweet Lou${pendingAlone?' ✓':''}</button>
+      <button class="btn ${pendingAlone?'btn-selected':'btn-outline'}" onclick="toggleSweetLou()">${icon} Go Alone (Sweet Lou)${pendingAlone?' ✓':''}</button>
       <button class="btn ${pendingDivorce?'btn-selected':'btn-outline'}" ${pendingPartner?'':'disabled'} onclick="toggleDivorce()">💔 Divorce${pendingDivorce?' ✓':''}</button>
     </div>
     ${note ? `<div class="sub" style="margin:-10px 0 16px;">${note}</div>` : ''}`;
@@ -2831,7 +2854,7 @@ function renderEditHoleForm(){
       <button class="btn btn-outline" onclick="cancelEditHole()">Cancel</button>
     </div>
     ` : `
-    <div class="sub" style="margin-top:-6px;">Pick a partner — or go Sweet Lou — to continue. After picking, the partner can Divorce.</div>
+
     <div class="btn-row"><button class="btn btn-outline" onclick="cancelEditHole()">Cancel</button></div>
     `}
   `;
@@ -2953,7 +2976,7 @@ function render(){
       app.innerHTML = renderBothScores();
     } else {
       const sh = state.currentHole, entered = state.trackMode==='both' ? state.cardPlayers.filter((p, i) => cardScore(i, sh)!==null).length : 0;
-      app.innerHTML = (state.trackMode==='both' ? `<div class="btn-row" style="margin:0 0 12px;"><button class="btn btn-outline btn-full" onclick="backToHoleScores()">◀︎ Scores for Hole ${sh}${entered < state.cardPlayers.length ? ` (${entered} of ${state.cardPlayers.length} entered)` : ''}</button></div>` : '') + ((state.mode==='rollReroll') ? renderPlayingRoll() : (state.mode==='hammer') ? renderPlayingHammer() : (state.mode==='bbb') ? renderPlayingBBB() : (state.mode==='six66') ? renderPlayingSixSixSix() : renderPlaying());
+      app.innerHTML = (state.trackMode==='both' ? `<div class="btn-row" style="margin:0 0 12px;"><button class="btn btn-outline-light btn-full" onclick="backToHoleScores()">◀︎ Scores for Hole ${sh}${entered < state.cardPlayers.length ? ` (${entered} of ${state.cardPlayers.length} entered)` : ''}</button></div>` : '') + ((state.mode==='rollReroll') ? renderPlayingRoll() : (state.mode==='hammer') ? renderPlayingHammer() : (state.mode==='bbb') ? renderPlayingBBB() : (state.mode==='six66') ? renderPlayingSixSixSix() : renderPlaying());
     }
   }
   else app.innerHTML = renderComplete();
@@ -5998,6 +6021,7 @@ function renderCardPlaying(){
       <div>
         <div class="meta"><b>Par ${info.par}</b> · handicap <b>${info.si}</b></div>
         <div class="meta" style="margin-top:4px;">${escapeHtml(currentCourse().name)}</div>
+        ${missingPriorScoresHtml(h)}
       </div>
       ${(state.cardGames||[]).includes('nv') ? NAPERVEGAS_IMG : ''}
     </div>
@@ -6993,8 +7017,7 @@ function renderPlayingSixSixSix(){
   const rateRow = state.diceMode && !state.diceRolled ? `
     <div class="sub" style="margin:12px 0 0;">Playing at a placeholder value — <b>${state.betRate + pendingPressCount}</b>/pt${pendingPressCount?` (pressed ${pendingPressCount>0?'+':''}${pendingPressCount})`:''}. Roll the Dice at the end sets the real value.</div>
     ${pressButtonsRow()}` : `
-    <div style="margin-top:12px;font-size:1.35rem;font-weight:800;color:var(--ink);">This hole: ${state.betRate + pendingPressCount}/pt</div>${pendingPressCount?`<div class="sub" style="margin:4px 0 0;">(pressed ${pendingPressCount>0?'+':''}${pendingPressCount})</div>`:''}
-    ${pressButtonsRow()}`;
+    <div style="margin-top:12px;">${ratePressRowHtml(state.betRate + pendingPressCount)}</div>`;
 
   const body = `
     <label>Result</label>
@@ -7245,15 +7268,14 @@ function renderPlaying(){
     </div>
     <button class="btn umbrella-btn btn-full ${pendingUmbrella?'armed':'btn-outline'}" onclick="toggleUmbrella()">☂️ ${pendingUmbrella ? 'Umbrella armed — next tap doubles it' : 'Umbrella (double the points)'}</button>
     ` : ''}
-    ` : `<div class="sub" style="margin-top:-6px;">Pick a partner — or go Sweet Lou — to continue. After picking, the partner can Divorce. A${strokeDotInline()} marks a stroke this hole.</div>`}
+    ` : ''}
     `;
   }
 
   const rateRow = state.diceMode && !state.diceRolled ? `
     <div class="sub" style="margin:12px 0 0;">Playing at a placeholder value — <b>${state.betRate + pendingPressCount}</b>/pt${pendingPressCount?` (pressed ${pendingPressCount>0?'+':''}${pendingPressCount})`:''}. Roll the Dice at the end sets the real value.</div>
     ${pressButtonsRow()}` : `
-    <div style="margin-top:12px;font-size:1.35rem;font-weight:800;color:var(--ink);">This hole: ${state.betRate + pendingPressCount}/pt</div>${pendingPressCount?`<div class="sub" style="margin:4px 0 0;">(pressed ${pendingPressCount>0?'+':''}${pendingPressCount})</div>`:''}
-    ${pressButtonsRow()}`;
+    <div style="margin-top:12px;">${ratePressRowHtml(state.betRate + pendingPressCount)}</div>`;
 
   return `
   <div class="card">
@@ -7311,8 +7333,8 @@ function renderPlayingMrPar(){
   const info = holeInfo(hole);
   const rate = state.betRate + pendingPressCount;
   const rateRow = state.diceMode && !state.diceRolled
-    ? `<div class="sub" style="margin:12px 0 0;">Playing at a placeholder value — <b>${rate}</b>/pt${pendingPressCount?` (pressed ${pendingPressCount>0?'+':''}${pendingPressCount})`:''}. Roll the Dice at the end sets the real value.</div>`
-    : `<div style="margin-top:12px;font-size:1.35rem;font-weight:800;color:var(--ink);">This hole: ${rate}/pt</div>${pendingPressCount?`<div class="sub" style="margin:4px 0 0;">(pressed ${pendingPressCount>0?'+':''}${pendingPressCount})</div>`:''}`;
+    ? `<div class="sub" style="margin:12px 0 0;">Playing at a placeholder value — <b>${rate}</b>/pt${pendingPressCount?` (pressed ${pendingPressCount>0?'+':''}${pendingPressCount})`:''}. Roll the Dice at the end sets the real value.</div>${pressButtonsRow()}`
+    : `<div style="margin-top:12px;">${ratePressRowHtml(rate)}</div>`;
 
   return `
   <div class="card">
@@ -7323,7 +7345,6 @@ function renderPlayingMrPar(){
         <div class="captain-badge">Wolf: ${captain}${bettingStrokesFor(captain,hole)?strokeDotInline():''}${(pendingAlone || wolf3Alone()) ? '' : ' + Mr Par'}</div>${captainSwapHtml()}
         <div class="meta">${wolf3Alone() ? `Alone, counted as two${pendingAlone ? ' · Sweet Lou 🐺' : ''}` : (pendingAlone ? 'Going alone (Sweet Lou 🐺)' : `Mr Par makes a net par (${info.par})`)} · vs ${state.players.filter(p=>p!==captain).map(p=>`${p}${bettingStrokesFor(p,hole)?strokeDotInline():''}`).join(' &amp; ')}</div>
         ${rateRow}
-        ${pressButtonsRow()}
         ${wolf3Alone() ? `<div class="sub" style="margin:4px 0 0;">Wolf picking the points at the tee? Set them with ➖ / ➕ Press.</div>` : ''}
       </div>
     </div>
@@ -7490,7 +7511,7 @@ function renderScorecard(){
   <div class="card">
     ${gameTitleBadge(state.mode)}
     <h2>${escapeHtml(GAME_PLAIN_NAMES[state.mode] || 'Game')} points</h2>
-    <div class="sub">Swipe the table sideways for the back nine.${state.mode==='mrPar' ? ' 🐓 Sweet Lou (points doubled)' : ((state.mode==='captain'||state.mode==='captain5') ? ' 🐓 Sweet Lou (captain went alone) · 💔 Divorce (partner went alone)' : '')}</div>
+    ${totalUpFront ? '' : `<div class="sub">Swipe the table sideways for the back nine.${state.mode==='mrPar' ? ' 🐓 Sweet Lou (points doubled)' : ((state.mode==='captain'||state.mode==='captain5') ? ' 🐓 Sweet Lou (captain went alone) · 💔 Divorce (partner went alone)' : '')}</div>`}
     <div class="view-toggle">
       <button class="${scorecardView==='hole'?'active-view':''}" onclick="setScorecardView('hole')">Hole-by-hole</button>
       <button class="${scorecardView==='cumulative'?'active-view':''}" onclick="setScorecardView('cumulative')">Cumulative</button>
