@@ -168,12 +168,18 @@
   .btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:8px;}
   .btn-full{width:100%;}
   /* Sweet Lou and Divorce share one row on Wolf / 5Man Captain holes. */
-  .solo-row{display:flex;flex-direction:column;gap:8px;margin:-6px 0 16px;}
+  .solo-row{display:flex;gap:8px;margin:-6px 0 8px;}
+  .solo-row .btn{white-space:normal;line-height:1.2;}
+  .solo-row .btn-outline, .umbrella-btn.btn-outline{background:#fff;}
+  .title-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px;}
+  .title-row .game-title-badge{margin-bottom:0;}
   /* The hole's point with the Press buttons beside it. */
   .rate-press-row{display:flex;align-items:center;gap:8px;}
   .rate-press-row .rate-value{flex:1;min-width:0;font-size:1.35rem;font-weight:800;color:var(--ink);line-height:1.1;}
   .rate-press-row .rate-value span{display:block;font-size:0.8rem;font-weight:600;color:#5a5648;}
   .rate-press-row .btn{margin:0;flex:0 1 auto;min-width:0;white-space:nowrap;padding-left:8px;padding-right:8px;}
+  /* The hole's details fill the space beside the hole number, so the Press row reaches the edge. */
+  .hole-head > .hole-badge + div{flex:1;min-width:0;}
   .hole-head .rate-press-row .btn{font-size:0.95rem;padding-left:6px;padding-right:6px;}
   .solo-row .btn{flex:1;font-size:0.9rem;padding:9px 6px;}
   .solo-row .btn:disabled{opacity:0.4;cursor:default;}
@@ -649,6 +655,20 @@ function swapCaptainWith(name){
   captainSwapOpen = false;
   if(pendingPartner === name){ pendingPartner = null; pendingResult = null; }
   saveState(); render();
+}
+// The Change captain button on its own (it sits beside the game's title) and
+// the list of players to swap with (under it, when open).
+function captainSwapButtonHtml(){
+  const who = state.mode==='captain5' ? 'captain' : 'Wolf';
+  if(!captainSwapChoices().length) return '';
+  return `<button type="button" class="btn btn-outline btn-compact" style="margin:0;" onclick="toggleCaptainSwap()">${captainSwapOpen === state.currentHole ? '▲︎ Keep the ' + who : 'Change ' + who}</button>`;
+}
+function captainSwapPanelHtml(){
+  const choices = captainSwapChoices(), who = state.mode==='captain5' ? 'captain' : 'Wolf';
+  if(!choices.length || captainSwapOpen !== state.currentHole) return '';
+  return `
+    <div class="sub" style="margin:0 0 4px;">Wrong order? Pick who should be ${who} now — they swap places in the order. Only players who haven't had a turn yet can swap.</div>
+    <div class="btn-row" style="margin:0 0 12px;">${choices.map(n => `<button type="button" class="btn btn-outline btn-compact" style="flex:1 1 40%;" onclick="swapCaptainWith('${escapeStr(n)}')">${escapeHtml(n)}</button>`).join('')}</div>`;
 }
 function captainSwapHtml(){
   const choices = captainSwapChoices(), who = state.mode==='captain5' ? 'captain' : 'Wolf';
@@ -2030,17 +2050,16 @@ function renderBothScores(){
       </div>
       ${state.mode==='six66' ? SIXSIXSIX_HOLE : ''}
     </div>
+    ${scoresPressHtml()}
     ${blocks}
     <div class="sub" id="hole-note" style="margin:4px 0 12px;">${missingNote(missing)}</div>
-    ${scoresPressHtml()}
     <button class="btn btn-gold btn-full score-go" onclick="continueToGameResult()">Record the game ▶︎</button>
+    ${editPriorHtml('scores', false)}
     <div class="btn-row">
-      <button class="btn btn-outline btn-full" onclick="toggleFullCard()">${showFullCard ? '▲ Hide the full scorecard' : 'Show the full scorecard'}</button>
-      <button class="btn btn-outline btn-full" style="margin-top:8px;" onclick="toggleGameSoFar()">${showGameSoFar ? '▲︎ Hide the game so far' : 'Show the game so far'}</button>
+      <button class="btn btn-outline btn-full" onclick="toggleFullCard()">${fullCardLabel()}</button>
     </div>
   </div>
-  ${showGameSoFar ? `<div id="game-so-far">${state.mode==='rollReroll' ? renderScorecardRoll() : renderScorecard()}</div>` : ''}
-  ${showFullCard ? (hasCardGames() ? renderCardTabBar() + (cardTab==='games' ? renderCardGamesTab() : renderCardScorecard(h)) : renderCardScorecard(h)) : ''}
+  ${showFullCard ? fullCardContentHtml(h) : ''}
   ${state.holes.length ? `<div class="btn-row"><button class="btn btn-outline-light" onclick="undoLastHole()">↩︎ Undo last hole</button></div>` : `<div class="btn-row"><button class="btn btn-outline-light" onclick="backToLineup()">◀︎ Back to lineup</button></div>`}
   `;
 }
@@ -2502,7 +2521,7 @@ function renderPlayingBBB(){
       <button class="btn btn-submit btn-full" onclick="submitHoleBBB()">Submit Hole ${hole}</button>
     </div>
   </div>
-  ${renderScorecard()}
+  ${gameAreaHtml(renderScorecard())}
   ${state.holes.length ? `<div class="btn-row"><button class="btn btn-outline-light" onclick="undoLastHole()">↩︎ Undo last hole</button></div>` : `<div class="btn-row"><button class="btn btn-outline-light" onclick="backToLineup()">◀︎ Back to lineup</button></div>`}
   `;
 }
@@ -5852,7 +5871,7 @@ function inputCardScore(i, h, el){
 function missingNote(missing){
   if(!missing) return 'All scores in for this hole.';
   // Moving on needs at least one score, so don't call an all-blank hole fine.
-  if(missing >= (state.cardPlayers||[]).length) return 'Enter at least one score to continue — anyone left blank shows as “—” on the card.';
+  if(missing >= (state.cardPlayers||[]).length) return '';
   return `${missing} player${missing===1?' has':'s have'} no score on this hole yet — blanks are fine, they show as “—” on the card.`;
 }
 function cardTotal(i, from, to){
@@ -5945,6 +5964,40 @@ function renderScoreEditBoth(){
   </div>`;
 }
 function toggleFullCard(){ showFullCard = !showFullCard; render(); }
+// One button for the scorecard and the game: with scores kept, it opens both
+// (Scorecard / Games tabs), the same from the scores screen and the game screen.
+function fullCardLabel(){
+  if(state.trackMode === 'both') return showFullCard ? '▲︎ Hide the scorecard and game' : 'Show the scorecard and game';
+  return showFullCard ? '▲ Hide the full scorecard' : 'Show the full scorecard';
+}
+function gameCardHtml(){ return state.mode==='rollReroll' ? renderScorecardRoll() : renderScorecard(); }
+function fullCardContentHtml(hole){ return renderComboTabBar() + renderComboContent(hole, gameCardHtml()); }
+// Edit a prior hole, the same on the scores screen and the game screen: the
+// button opens a list of the earlier holes; pick one, fix it, and you're back
+// here with the list still open until you close it.
+let priorEditOpen = false;
+function togglePriorEdit(){ priorEditOpen = !priorEditOpen; render(); }
+function editPriorHtml(kind, onDark){
+  const holes = kind === 'scores'
+    ? [...Array(Math.max(0, state.currentHole - 1))].map((_, i) => i + 1)
+    : state.holes.map(h => h.hole);
+  if(!holes.length) return '';
+  const cls = onDark ? 'btn-outline-light' : 'btn-outline';
+  if(!priorEditOpen) return `<div class="btn-row" style="margin:8px 0 0;width:100%;"><button class="btn ${cls} btn-full" onclick="togglePriorEdit()">Edit a prior hole</button></div>`;
+  return `
+    <div class="inline-box" style="margin:8px 0 0;width:100%;box-sizing:border-box;">
+      <div class="inline-label" style="margin-bottom:8px;">Which hole? ${kind === 'scores' ? 'Fix its scores' : 'Fix its game result'}, then you come back here.</div>
+      <div class="tied-picker">${holes.map(n => `<button onclick="${kind === 'scores' ? `goToCardHole(${n})` : `chooseEditHole(${n})`}">Hole ${n}</button>`).join('')}</div>
+      <div class="btn-row"><button class="btn btn-outline btn-full" onclick="togglePriorEdit()">✕ Close</button></div>
+    </div>`;
+}
+// Games whose points table always showed: with scores kept they get the one
+// scorecard-and-game button instead; game only, the table stays as it was.
+function gameAreaHtml(cardHtml){
+  const edit = editPriorHtml('game', true);
+  if(state.trackMode !== 'both') return cardHtml + edit;
+  return `${edit}<div class="btn-row"><button class="btn btn-outline-light btn-full" onclick="toggleFullCard()">${fullCardLabel()}</button></div>${showFullCard ? fullCardContentHtml(state.currentHole) : ''}`;
+}
 
 // Which view of the scorecard page is showing: the grid itself, or the
 // standings for whichever score-derived games were checked off.
@@ -7049,7 +7102,7 @@ function renderPlayingSixSixSix(){
     <div style="margin:0 0 16px;">${rateRow}</div>
     ${body}
   </div>
-  ${renderScorecard()}
+  ${gameAreaHtml(renderScorecard())}
   ${state.holes.length ? `<div class="btn-row"><button class="btn btn-outline-light" onclick="undoLastHole()">↩︎ Undo last hole</button></div>` : `<div class="btn-row"><button class="btn btn-outline-light" onclick="backToLineup()">◀︎ Back to lineup</button></div>`}
   `;
 }
@@ -7165,7 +7218,7 @@ function renderPlayingRoll(){
     </div>
     ${bodyHtml}
   </div>
-  ${renderScorecardRoll()}
+  ${gameAreaHtml(renderScorecardRoll())}
   ${state.holes.length ? `<div class="btn-row"><button class="btn btn-outline-light" onclick="undoLastHole()">↩︎ Undo last hole</button></div>` : `<div class="btn-row"><button class="btn btn-outline-light" onclick="backToLineup()">◀︎ Back to lineup</button></div>`}
   `;
 }
@@ -7217,7 +7270,7 @@ function renderPlayingHammer(){
   <div class="btn-row" style="margin-bottom:16px;">
     <button class="btn btn-submit btn-full" onclick="submitHoleHammer()">Submit Hole ${hole}</button>
   </div>
-  ${renderScorecard()}
+  ${gameAreaHtml(renderScorecard())}
   ${state.holes.length ? `<div class="btn-row"><button class="btn btn-outline-light" onclick="undoLastHole()">↩︎ Undo last hole</button></div>` : `<div class="btn-row"><button class="btn btn-outline-light" onclick="backToLineup()">◀︎ Back to lineup</button></div>`}
   `;
 }
@@ -7253,6 +7306,7 @@ function renderPlaying(){
       ${others.map(p=>`<button class="${pendingPartner===p?'active-pick':''}" ${pendingAlone?'disabled':''} onclick="selectPartner('${escapeStr(p)}')">${p}${bettingStrokesFor(p,hole)?strokeDotInline():''}</button>`).join('')}
     </div>
     ${soloButtonsHtml()}
+    <button class="btn umbrella-btn btn-full ${pendingUmbrella?'armed':'btn-outline'}" onclick="toggleUmbrella()">☂️ ${pendingUmbrella ? 'Umbrella armed — next tap doubles it' : 'Umbrella (double the points)'}</button>
 
     ${readyForResult ? `
     <label>Result</label>
@@ -7266,7 +7320,6 @@ function renderPlaying(){
     <div class="points-row">
       ${[0,1,2,3,4,5,6,7,8].map(n=>`<button onclick="pickPoints(${n})">${n}</button>`).join('')}
     </div>
-    <button class="btn umbrella-btn btn-full ${pendingUmbrella?'armed':'btn-outline'}" onclick="toggleUmbrella()">☂️ ${pendingUmbrella ? 'Umbrella armed — next tap doubles it' : 'Umbrella (double the points)'}</button>
     ` : ''}
     ` : ''}
     `;
@@ -7279,11 +7332,12 @@ function renderPlaying(){
 
   return `
   <div class="card">
-    ${gameTitleBadge(state.mode)}
+    <div class="title-row">${gameTitleBadge(state.mode)}${captain && !lightning ? captainSwapButtonHtml() : ''}</div>
+    ${captain && !lightning ? captainSwapPanelHtml() : ''}
     <div class="hole-head">
       <div class="hole-badge">${hole}</div>
       <div>
-        ${captain ? `<div class="captain-badge">${state.mode==='captain'?'Wolf':'Captain'}: ${captain}${bettingStrokesFor(captain,hole)?strokeDotInline():''}</div>${lightning ? '' : captainSwapHtml()}` : ''}
+        ${captain ? `<div class="captain-badge">${state.mode==='captain'?'Wolf':'Captain'}: ${captain}${bettingStrokesFor(captain,hole)?strokeDotInline():''}</div>` : ''}
         <div class="meta">${lightning ? '<span class="lightning-tag">⚡ Lightning round</span>' : (captain ? (pendingAlone ? `Going alone (Sweet Lou ${state.mode==='captain'?'🐺':'🐓'})` : (pendingDivorce && pendingPartner ? `💔 ${pendingPartner} divorced — going alone` : '')) : `${state.mode==='captain'?'Wolf':'Captain'} on the rotation`)}</div>
         ${rateRow}
       </div>
@@ -7295,10 +7349,11 @@ function renderPlaying(){
     </div>
     ` : ''}
     <div class="btn-row">
-      <button class="btn btn-outline btn-full" onclick="toggleFullCard()">${showFullCard ? '▲ Hide the full scorecard' : 'Show the full scorecard'}</button>
+      ${editPriorHtml('game', false)}
+      <button class="btn btn-outline btn-full" onclick="toggleFullCard()">${fullCardLabel()}</button>
     </div>
   </div>
-  ${showFullCard ? (state.trackMode==='both' ? renderComboTabBar() + renderComboContent(hole, renderScorecard()) : renderScorecard()) : ''}
+  ${showFullCard ? (state.trackMode==='both' ? fullCardContentHtml(hole) : renderScorecard()) : ''}
   ${state.holes.length ? `<div class="btn-row"><button class="btn btn-outline-light" onclick="undoLastHole()">↩︎ Undo last hole</button></div>` : `<div class="btn-row"><button class="btn btn-outline-light" onclick="backToLineup()">◀︎ Back to lineup</button></div>`}
   `;
 }
@@ -7357,10 +7412,11 @@ function renderPlayingMrPar(){
     </div>
     ` : `<div class="sub" style="margin-top:-6px;">A${strokeDotInline()} marks a stroke this hole.</div>`}
     <div class="btn-row">
-      <button class="btn btn-outline btn-full" onclick="toggleFullCard()">${showFullCard ? '▲ Hide the full scorecard' : 'Show the full scorecard'}</button>
+      ${editPriorHtml('game', false)}
+      <button class="btn btn-outline btn-full" onclick="toggleFullCard()">${fullCardLabel()}</button>
     </div>
   </div>
-  ${showFullCard ? (state.trackMode==='both' ? renderComboTabBar() + renderComboContent(hole, renderScorecard()) : renderScorecard()) : ''}
+  ${showFullCard ? (state.trackMode==='both' ? fullCardContentHtml(hole) : renderScorecard()) : ''}
   ${state.holes.length ? `<div class="btn-row"><button class="btn btn-outline-light" onclick="undoLastHole()">↩︎ Undo last hole</button></div>` : `<div class="btn-row"><button class="btn btn-outline-light" onclick="backToLineup()">◀︎ Back to lineup</button></div>`}
   `;
 }
@@ -7454,7 +7510,7 @@ function renderScorecardRoll(){
     <div class="scorecard-scroll">
       <table class="scorecard"><thead><tr>${head}</tr><tr class="stakes-row">${stakesRow}</tr></thead><tbody>${rows}</tbody></table>
     </div>
-    ${renderEditHolePanel()}
+    ${state.phase==='complete' ? renderEditHolePanel() : ''}
   </div>`;
 }
 
@@ -7519,7 +7575,7 @@ function renderScorecard(){
     <div class="scorecard-scroll">
       <table class="scorecard"><thead><tr>${head}</tr><tr class="stakes-row">${stakesRow}</tr></thead><tbody>${rows}</tbody></table>
     </div>
-    ${renderEditHolePanel()}
+    ${state.phase==='complete' ? renderEditHolePanel() : ''}
   </div>`;
 }
 
