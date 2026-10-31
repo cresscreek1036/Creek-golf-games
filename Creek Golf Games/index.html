@@ -171,11 +171,13 @@
   .solo-row{display:flex;gap:8px;margin:-6px 0 8px;}
   .solo-row .btn{white-space:normal;line-height:1.2;}
   .solo-row .btn-outline, .umbrella-btn.btn-outline{background:#fff;}
+  /* Go Alone, Divorce and Umbrella: a thick black outline so each reads as its own choice. */
+  .solo-row .btn, .umbrella-btn{border:3px solid #111 !important;}
   .title-row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:12px;}
   .title-row .game-title-badge{margin-bottom:0;}
   /* The hole's point with the Press buttons beside it. */
   .rate-press-row{display:flex;align-items:center;gap:8px;}
-  .rate-press-row .rate-value{flex:1;min-width:0;font-size:1.35rem;font-weight:800;color:var(--ink);line-height:1.1;}
+  .rate-press-row .rate-value{flex:1;min-width:0;text-align:center;font-size:1.35rem;font-weight:800;color:var(--ink);line-height:1.1;}
   .rate-press-row .rate-value span{display:block;font-size:0.8rem;font-weight:600;color:#5a5648;}
   .rate-press-row .btn{margin:0;flex:0 1 auto;min-width:0;white-space:nowrap;padding-left:8px;padding-right:8px;}
   /* The hole's details fill the space beside the hole number, so the Press row reaches the edge. */
@@ -2060,7 +2062,7 @@ function renderBothScores(){
     </div>
   </div>
   ${showFullCard ? fullCardContentHtml(h) : ''}
-  ${state.holes.length ? `<div class="btn-row"><button class="btn btn-outline-light" onclick="undoLastHole()">↩︎ Undo last hole</button></div>` : `<div class="btn-row"><button class="btn btn-outline-light" onclick="backToLineup()">◀︎ Back to lineup</button></div>`}
+  ${state.holes.length ? '' : `<div class="btn-row"><button class="btn btn-outline-light" onclick="backToLineup()">◀︎ Back to lineup</button></div>`}
   `;
 }
 
@@ -2522,7 +2524,7 @@ function renderPlayingBBB(){
     </div>
   </div>
   ${gameAreaHtml(renderScorecard())}
-  ${state.holes.length ? `<div class="btn-row"><button class="btn btn-outline-light" onclick="undoLastHole()">↩︎ Undo last hole</button></div>` : `<div class="btn-row"><button class="btn btn-outline-light" onclick="backToLineup()">◀︎ Back to lineup</button></div>`}
+  ${state.holes.length ? '' : `<div class="btn-row"><button class="btn btn-outline-light" onclick="backToLineup()">◀︎ Back to lineup</button></div>`}
   `;
 }
 function cancelEditHoleBBB(){
@@ -7103,7 +7105,7 @@ function renderPlayingSixSixSix(){
     ${body}
   </div>
   ${gameAreaHtml(renderScorecard())}
-  ${state.holes.length ? `<div class="btn-row"><button class="btn btn-outline-light" onclick="undoLastHole()">↩︎ Undo last hole</button></div>` : `<div class="btn-row"><button class="btn btn-outline-light" onclick="backToLineup()">◀︎ Back to lineup</button></div>`}
+  ${state.holes.length ? '' : `<div class="btn-row"><button class="btn btn-outline-light" onclick="backToLineup()">◀︎ Back to lineup</button></div>`}
   `;
 }
 
@@ -7219,7 +7221,7 @@ function renderPlayingRoll(){
     ${bodyHtml}
   </div>
   ${gameAreaHtml(renderScorecardRoll())}
-  ${state.holes.length ? `<div class="btn-row"><button class="btn btn-outline-light" onclick="undoLastHole()">↩︎ Undo last hole</button></div>` : `<div class="btn-row"><button class="btn btn-outline-light" onclick="backToLineup()">◀︎ Back to lineup</button></div>`}
+  ${state.holes.length ? '' : `<div class="btn-row"><button class="btn btn-outline-light" onclick="backToLineup()">◀︎ Back to lineup</button></div>`}
   `;
 }
 
@@ -7271,7 +7273,7 @@ function renderPlayingHammer(){
     <button class="btn btn-submit btn-full" onclick="submitHoleHammer()">Submit Hole ${hole}</button>
   </div>
   ${gameAreaHtml(renderScorecard())}
-  ${state.holes.length ? `<div class="btn-row"><button class="btn btn-outline-light" onclick="undoLastHole()">↩︎ Undo last hole</button></div>` : `<div class="btn-row"><button class="btn btn-outline-light" onclick="backToLineup()">◀︎ Back to lineup</button></div>`}
+  ${state.holes.length ? '' : `<div class="btn-row"><button class="btn btn-outline-light" onclick="backToLineup()">◀︎ Back to lineup</button></div>`}
   `;
 }
 
@@ -7354,7 +7356,7 @@ function renderPlaying(){
     </div>
   </div>
   ${showFullCard ? (state.trackMode==='both' ? fullCardContentHtml(hole) : renderScorecard()) : ''}
-  ${state.holes.length ? `<div class="btn-row"><button class="btn btn-outline-light" onclick="undoLastHole()">↩︎ Undo last hole</button></div>` : `<div class="btn-row"><button class="btn btn-outline-light" onclick="backToLineup()">◀︎ Back to lineup</button></div>`}
+  ${state.holes.length ? '' : `<div class="btn-row"><button class="btn btn-outline-light" onclick="backToLineup()">◀︎ Back to lineup</button></div>`}
   `;
 }
 
@@ -7417,7 +7419,7 @@ function renderPlayingMrPar(){
     </div>
   </div>
   ${showFullCard ? (state.trackMode==='both' ? fullCardContentHtml(hole) : renderScorecard()) : ''}
-  ${state.holes.length ? `<div class="btn-row"><button class="btn btn-outline-light" onclick="undoLastHole()">↩︎ Undo last hole</button></div>` : `<div class="btn-row"><button class="btn btn-outline-light" onclick="backToLineup()">◀︎ Back to lineup</button></div>`}
+  ${state.holes.length ? '' : `<div class="btn-row"><button class="btn btn-outline-light" onclick="backToLineup()">◀︎ Back to lineup</button></div>`}
   `;
 }
 
