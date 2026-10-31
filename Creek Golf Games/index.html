@@ -275,6 +275,11 @@
   table.scorecard th{background:var(--gold);color:var(--ink);font-weight:700;position:sticky;top:0;}
   table.scorecard td.player-name{text-align:left;font-family:'IBM Plex Sans',sans-serif;font-weight:600;position:sticky;left:0;z-index:1;background:var(--cream);}
   table.scorecard th.player-name{position:sticky;left:0;z-index:2;}
+  /* A name with its points total beside it, in the frozen first column. */
+  table.scorecard .name-total{display:flex;align-items:center;justify-content:space-between;gap:10px;}
+  table.scorecard .name-total b{font-family:'IBM Plex Mono',monospace;font-size:1.05rem;}
+  table.scorecard .name-total b.pos{color:#3f7a3f;}
+  table.scorecard .name-total b.neg{color:var(--red);}
   table.scorecard td.pos{color:#3f7a3f;font-weight:600;}
   table.scorecard td.neg{color:var(--red);font-weight:600;}
   table.scorecard td.total{font-weight:700;border-left:2px solid var(--green-deep);}
@@ -511,6 +516,8 @@
     display:flex;align-items:center;justify-content:space-between;gap:12px;
     border:1.5px solid #e3dbc3;border-radius:12px;padding:10px 12px;margin-bottom:12px;background:#fff;
   }
+  /* 5Man Captain: the hole's captain, marked on the scores screen. */
+  .captain-c{display:inline-flex;align-items:center;justify-content:center;flex:0 0 auto;width:30px;height:30px;margin-right:8px;border-radius:50%;background:var(--gold);color:var(--ink);font-family:'Fraunces',serif;font-weight:900;font-size:1.2rem;}
   .score-line .nm{
     font-weight:700;font-size:1.08rem;min-width:0;
     white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
@@ -576,6 +583,7 @@
   .pick-name{font-size:1.08rem;}
   .masthead-actions > .newround-btn, #newRoundConfirm .newround-btn{font-size:0.88rem;}
   @media (max-width:400px){ .masthead-actions > .newround-btn{font-size:0.76rem;} }
+  .pick-add .card-hcp{font-size:1rem;}
   .fill-teams-grid{grid-auto-rows:1fr;}
   .fill-teams-grid .btn{font-size:1.15rem;font-weight:800;padding:8px 6px;}
   .game-grid.three .game-btn{font-size:1rem;}
@@ -612,6 +620,38 @@ function getSlotHoles(){
   // Wolf: four holes each on 1-16; 17 and 18 are Lightning holes.
   if(state && state.mode==='captain') return {1:[1,5,9,13], 2:[2,6,10,14], 3:[3,7,11,15], 4:[4,8,12,16]};
   return {1:[1,5,9,13,17], 2:[2,6,10,14,18], 3:[3,7,11,15], 4:[4,8,12,16]};
+}
+// Change captain: while players are still taking their first turn, the
+// captain on the tee can trade places in the order with anyone who hasn't
+// captained yet. The two swap slots, so each takes the other's holes for the
+// rest of the round; holes already played keep who really captained them.
+let captainSwapOpen = false; // the hole the picker is open on, so it closes on the next hole
+function slotOfHole(h){ const sh = getSlotHoles(); return Number(Object.keys(sh).find(k => sh[k].includes(h))) || null; }
+function captainSwapChoices(){
+  if(!SLOT_GAMES.includes(state.mode) || state.phase !== 'playing') return [];
+  const h = state.currentHole, sh = getSlotHoles(), slot = slotOfHole(h);
+  if(!slot || isLightning(h) || Math.min(...sh[slot]) !== h) return [];   // already had a turn
+  return Object.keys(sh).map(Number).filter(k => k !== slot && Math.min(...sh[k]) > h).map(k => state.players[k-1]).filter(Boolean);
+}
+function toggleCaptainSwap(){ captainSwapOpen = captainSwapOpen === state.currentHole ? false : state.currentHole; render(); }
+function swapCaptainWith(name){
+  const slot = slotOfHole(state.currentHole), i = slot - 1, j = state.players.indexOf(name);
+  if(!slot || j < 0 || !captainSwapChoices().includes(name)) return;
+  const was = state.players[i];
+  if(!confirm(`Make ${name} the ${state.mode==='captain5' ? 'captain' : 'Wolf'} now? ${name} takes ${was}'s place in the order, and ${was} takes ${name}'s.`)) return;
+  [state.players[i], state.players[j]] = [state.players[j], state.players[i]];
+  captainSwapOpen = false;
+  if(pendingPartner === name){ pendingPartner = null; pendingResult = null; }
+  saveState(); render();
+}
+function captainSwapHtml(){
+  const choices = captainSwapChoices(), who = state.mode==='captain5' ? 'captain' : 'Wolf';
+  if(!choices.length) return '';
+  return `
+    <button type="button" class="btn btn-outline btn-compact" style="margin:8px 0 0;" onclick="toggleCaptainSwap()">${captainSwapOpen === state.currentHole ? '▲︎ Keep the ' + who : 'Change ' + who}</button>
+    ${captainSwapOpen === state.currentHole ? `
+    <div class="sub" style="margin:8px 0 4px;">Wrong order? Pick who should be ${who} now — they swap places in the order. Only players who haven't had a turn yet can swap.</div>
+    <div class="btn-row" style="margin:0;">${choices.map(n => `<button type="button" class="btn btn-outline btn-compact" style="flex:1 1 40%;" onclick="swapCaptainWith('${escapeStr(n)}')">${escapeHtml(n)}</button>`).join('')}</div>` : ''}`;
 }
 function getLightningHoles(){
   if(state && state.mode==='captain5') return state.lightningHoles || [16,17,18];
@@ -1347,7 +1387,7 @@ function defaultState(){
 }
 
 // ---------- Game options picked on the Pick a game screen ----------
-let captain5LightningDraft = [16,17,18]; // the other usual choice is [14,17,18]
+let captain5LightningDraft = null; // picked on Pick a game: [16,17,18] or [14,17,18], no default
 function setCaptain5Lightning(opt){ captureQuotaAnteInput(); captureSkinsAnteInput(); captain5LightningDraft = opt; render(); }
 function setWolf3Variant(v){ captureQuotaAnteInput(); captureSkinsAnteInput(); wolf3VariantDraft = v; render(); }
 // Wolf / 5Man Captain / 3 Man Wolf: false = Shuffle & Tee Off,
@@ -1765,7 +1805,7 @@ function startCaptain5(names){
   const rate = state.pointValue>0 ? state.pointValue : 1;
   Object.assign(state, {
     phase:'lineup', mode:'captain5', players:names, betRate: rate, currentHole:1, holes:[],
-    lightningPick:null, teams:null, currentValue:null, lightningHoles: captain5LightningDraft.slice(),
+    lightningPick:null, teams:null, currentValue:null, lightningHoles: (captain5LightningDraft || [16,17,18]).slice(),
     slotsShuffled: !keepSlotOrderDraft
   });
   beginPlay(); // straight to hole 1 — the lineup shows at the top of it
@@ -1863,7 +1903,7 @@ function lineupPeekHtml(){
     .replace(/<button class="btn btn-gold btn-full" onclick="beginPlay\(\)">[\s\S]*?<\/button>/, '')
     .replace(/<div class="btn-row"[^>]*><button class="btn btn-outline btn-full" onclick="backToSetupFromLineup\(\)">[\s\S]*?<\/button><\/div>/, '')
     .replace('<div class="card">', '<div>');
-  return `<details class="card lineup-peek"><summary>Lineup — who goes when</summary>${html}</details>`;
+  return `<details class="card lineup-peek"><summary>Line-Up — who goes when${state.mode==='captain5' ? ` · ⚡ Lightning starts on hole ${Math.min(...getLightningHoles())}` : ''}</summary>${html}</details>`;
 }
 function backToSetupFromLineup(){
   state.phase = 'roster';
@@ -1952,14 +1992,17 @@ function afterGameRecorded(){
 function renderBothScores(){
   const h = state.currentHole;
   const info = holeInfo(h);
+  // 5Man Captain: a big C beside this hole's captain.
+  const captainNow = state.mode==='captain5' ? getCurrentCaptain() : null;
   const blocks = state.cardPlayers.map((p, i) => {
     const st = strokesForPlayer(i, h);
     const total = totalStrokesFor(i);
     const cur = cardScore(i, h);
     const dots = st ? `<span class="stroke-dot" title="Gets a stroke on this hole"></span>`.repeat(st) : '';
+    const isCaptain = captainNow && sameName(captainNow, p.name);
     return `
       <div class="score-line">
-        <span class="nm">${escapeHtml(p.name)} (${total})${dots}</span>
+        <span class="nm">${isCaptain ? '<span class="captain-c" title="Captain this hole">C</span>' : ''}${escapeHtml(p.name)} (${total})${dots}</span>
         <input class="score-input" type="number" inputmode="numeric" pattern="[0-9]*" min="1" max="20" step="1"
                value="${cur===null?'':cur}"
                aria-label="Score for ${escapeAttr(p.name)} on hole ${h}"
@@ -1982,6 +2025,7 @@ function renderBothScores(){
     </div>
     ${blocks}
     <div class="sub" id="hole-note" style="margin:4px 0 12px;">${missingNote(missing)}</div>
+    ${scoresPressHtml()}
     <button class="btn btn-gold btn-full score-go" onclick="continueToGameResult()">Record the game ▶︎</button>
     <div class="btn-row">
       <button class="btn btn-outline btn-full" onclick="toggleFullCard()">${showFullCard ? '▲ Hide the full scorecard' : 'Show the full scorecard'}</button>
@@ -1996,6 +2040,15 @@ function renderBothScores(){
 
 // The game can be scored before the players' scores — in a Lightning round
 // the scorekeeper wants to see who's down the most before a captain defers.
+// The same Press as the game screen, so the point can be pressed from either.
+function scoresPressHtml(){
+  const value = currentHoleBaseValue() + pendingPressCount;
+  return `
+    <div style="margin:0 0 12px;">
+      <div style="font-size:1.2rem;font-weight:800;color:var(--ink);">This hole: ${value}/pt${pendingPressCount ? ` <span style="font-size:0.9rem;font-weight:600;">(pressed ${pendingPressCount>0?'+':''}${pendingPressCount})</span>` : ''}</div>
+      ${pressButtonsRow()}
+    </div>`;
+}
 function continueToGameResult(){
   state.holeSubPhase = 'game';
   saveState(); render();
@@ -2017,7 +2070,7 @@ function renderLineup(){
   <div class="card">
     ${topBackLink("backToSetupFromLineup()")}
     ${gameTitleBadge(state.mode)}
-    <h2>Lineup Set</h2>
+    <h2>Line-Up${state.mode==='captain5' ? ` <span style="font-size:1rem;font-weight:700;color:var(--ink);white-space:nowrap;">· ⚡ Lightning starts on hole ${Math.min(...getLightningHoles())}</span>` : ''}</h2>
     <div class="sub">${state.slotsShuffled===false ? 'Slots follow the order you entered' : 'Slots assigned randomly'} — this drives the ${state.mode==='mrPar' ? 'Wolf' : 'captain'} rotation for the round.${state.mode==='mrPar' ? (wolf3Alone() ? ' Playing <b>Alone</b>: the Wolf always plays alone against the other two, counted as if he had a partner with the same score and points.' : ' Playing with <b>Mr Par</b>: the Wolf always partners with Mr Par, who makes a net par on every hole.') : ''}</div>
     <table class="standings">
       <thead><tr><th>Slot</th><th>Player</th><th>${(state.mode==='captain'||state.mode==='mrPar') ? 'Wolf' : 'Captain'} on holes</th></tr></thead>
@@ -2855,7 +2908,7 @@ function doNewRound(){
   pendingResult = null; pendingPartner = null; pendingAlone = false; pendingDivorce = false; pendingPoints = null; pendingUmbrella = false;
   pendingRoll = false; pendingReroll = false; pendingPressCount = 0; pendingHammerMatches = {};
   pendingBBB = {bingo:null, bango:null, bongo:null};
-  captain5LightningDraft = [16,17,18]; wolf3VariantDraft = 'mrPar'; keepSlotOrderDraft = false; bestBallCountDraft = 2;
+  captain5LightningDraft = null; wolf3VariantDraft = 'mrPar'; keepSlotOrderDraft = false; bestBallCountDraft = 2;
   cardDraft = { names:['','','','',''], hcps:['','','','',''], neg:[false,false,false,false,false], teammate:[false,false,false,false,false] };
   scorecardGamesDraft = { skins:false, stableford:false, quota:false, ninePoint:false, bestBall:false };
   trackChoicePrimary = null;
@@ -3011,7 +3064,7 @@ function getRulesGames(){
         'Entered once on the "Who\'s playing?" screen. It is what one point is worth, and it applies to every game.',
         'Leave it blank to track points only on the scorecard games. The points games (Captain, Roll &amp; Re-roll, Hammer, Bingo Bango Bongo, 666) need a number.']],
       ['Press', [
-        'Tap ➕ Press on a hole to add 1 to the point value. In the points games a press <b>sticks</b> for the rest of the round.']],
+        'Tap ➕ Press on a hole to add 1 to the point value. In the points games a press <b>sticks</b> for the rest of the round. When scores are kept too, Press is on both the scores screen and the game screen; a press on either one counts.']],
       ['Handicap strokes', [
         'Strokes are figured off the lowest handicap in the group. A player gets one stroke on each hole whose hole-handicap number is at or below the difference (a difference over 18 wraps around for a second stroke). A red dot on the score line marks a hole where that player gets a stroke.',
         'Tap the <b>−</b> button beside a handicap for a plus player (a +2 becomes −2, so they give strokes).']],
@@ -3123,8 +3176,9 @@ function getRulesGames(){
     glance:'Five players. Every hole a rotating captain picks a partner and plays 2 on 3, except three Lightning holes.',
     sections:[
       ['Setup', [
-        'Five players. Tap <b>Shuffle &amp; Tee Off</b> to put them in random slots 1-5, or <b>Just Tee Off</b> to use the order you typed them in. On Pick a game, choose which three holes are Lightning — 16, 17, 18 or 14, 17, 18.']],
+        'Five players. Tap <b>Shuffle &amp; Tee Off</b> to put them in random slots 1-5, or <b>Just Tee Off</b> to use the order you typed them in. On Pick a game, choose which three holes are Lightning — 16, 17, 18 or 14, 17, 18 (you have to pick one; there\'s no default). The Line-Up on hole 1 says which hole Lightning starts on.']],
       ['The captain', [
+        'Wrong order? Until everyone has had a first turn as captain, tap <b>Change captain</b> under the captain\'s name and pick who should be captain now. Only players who haven\'t captained yet can swap, so on hole 2 there are three to choose from and on hole 4 just one. The two swap places in the order for the rest of the round; holes already played don\'t change.',
         'Each slot captains three holes, in order, skipping whichever holes are Lightning. With Lightning on 16, 17, 18: Slot 1 on 1, 6, 11; Slot 2 on 2, 7, 12; Slot 3 on 3, 8, 13; Slot 4 on 4, 9, 14; Slot 5 on 5, 10, 15.',
         'Each hole the captain picks one of the other four as a partner. Captain and partner play the other three, 2 on 3.']],
       ['Choosing a partner', [
@@ -5041,12 +5095,13 @@ function continueFromTrackChoice(){
   bonus.ninePoint = trackChoicePrimary==='ninePoint';
   bonus.bestBall = trackChoicePrimary==='bestBall';
   if(!trackChoicePrimary && !Object.values(bonus).some(v=>v)){ alert('Pick a game first.'); return; }
+  if(trackChoicePrimary==='captain5' && !captain5LightningDraft){ alert('Pick the Lightning holes for 5Man Captain: 16, 17, 18 or 14, 17, 18.'); return; }
   // Kept in state (not just the drafts) so the pick survives the app being
   // reloaded on the course or players screen.
   state.gamePick = {
     primary: trackChoicePrimary, trackMode: trackModeChoice, bonus,
     skinsAnte: skinsAnteDraft, skinsMode: skinsModeDraft, skinsCarry: skinsCarryDraft, skinsValidate: skinsValidateDraft, quotaAnte: quotaAnteDraft,
-    captain5Lightning: captain5LightningDraft.slice(), wolf3Variant: wolf3VariantDraft,
+    captain5Lightning: captain5LightningDraft ? captain5LightningDraft.slice() : null, wolf3Variant: wolf3VariantDraft,
     bestBallCount: bestBallCountDraft
   };
   state.phase = 'courseSelect';
@@ -5237,7 +5292,7 @@ function gameOptionsHtml(){
   if(trackChoicePrimary==='captain5'){
     const is = o => JSON.stringify(captain5LightningDraft)===JSON.stringify(o);
     return `
-    <label style="margin:12px 0 4px;">Lightning holes</label>
+    <label style="margin:12px 0 4px;">Lightning holes${captain5LightningDraft ? '' : ' <span style="color:var(--red);text-transform:none;letter-spacing:0;">— pick one</span>'}</label>
     <div class="btn-row" style="margin:0;">
       ${opt(is([16,17,18]), 'setCaptain5Lightning([16,17,18])', '16, 17, 18')}
       ${opt(is([14,17,18]), 'setCaptain5Lightning([14,17,18])', '14, 17, 18')}
@@ -7206,7 +7261,7 @@ function renderPlaying(){
     <div class="hole-head">
       <div class="hole-badge">${hole}</div>
       <div>
-        ${captain ? `<div class="captain-badge">${state.mode==='captain'?'Wolf':'Captain'}: ${captain}${bettingStrokesFor(captain,hole)?strokeDotInline():''}</div>` : ''}
+        ${captain ? `<div class="captain-badge">${state.mode==='captain'?'Wolf':'Captain'}: ${captain}${bettingStrokesFor(captain,hole)?strokeDotInline():''}</div>${lightning ? '' : captainSwapHtml()}` : ''}
         <div class="meta">${lightning ? '<span class="lightning-tag">⚡ Lightning round</span>' : (captain ? (pendingAlone ? `Going alone (Sweet Lou ${state.mode==='captain'?'🐺':'🐓'})` : (pendingDivorce && pendingPartner ? `💔 ${pendingPartner} divorced — going alone` : '')) : `${state.mode==='captain'?'Wolf':'Captain'} on the rotation`)}</div>
         ${rateRow}
       </div>
@@ -7265,7 +7320,7 @@ function renderPlayingMrPar(){
     <div class="hole-head">
       <div class="hole-badge">${hole}</div>
       <div>
-        <div class="captain-badge">Wolf: ${captain}${bettingStrokesFor(captain,hole)?strokeDotInline():''}${(pendingAlone || wolf3Alone()) ? '' : ' + Mr Par'}</div>
+        <div class="captain-badge">Wolf: ${captain}${bettingStrokesFor(captain,hole)?strokeDotInline():''}${(pendingAlone || wolf3Alone()) ? '' : ' + Mr Par'}</div>${captainSwapHtml()}
         <div class="meta">${wolf3Alone() ? `Alone, counted as two${pendingAlone ? ' · Sweet Lou 🐺' : ''}` : (pendingAlone ? 'Going alone (Sweet Lou 🐺)' : `Mr Par makes a net par (${info.par})`)} · vs ${state.players.filter(p=>p!==captain).map(p=>`${p}${bettingStrokesFor(p,hole)?strokeDotInline():''}`).join(' &amp; ')}</div>
         ${rateRow}
         ${pressButtonsRow()}
@@ -7385,7 +7440,10 @@ function renderScorecardRoll(){
 function renderScorecard(){
   const totals = runningTotalsThrough(18);
   const lightningHoles = getLightningHoles();
-  let head = `<th class="player-name">Player</th>`;
+  // 5Man Captain: each player's total sits in the frozen first column, so it
+  // stays in view while the table is swiped sideways.
+  const totalUpFront = state.mode==='captain5';
+  let head = `<th class="player-name">${totalUpFront ? 'Player · Total' : 'Player'}</th>`;
   for(let h=1; h<=18; h++){
     const holeRec = state.holes.find(x=>x.hole===h);
     let marker = lightningHoles.includes(h) ? '⚡' : '';
@@ -7393,18 +7451,22 @@ function renderScorecard(){
     if(holeRec && holeRec.divorce) marker += '💔';
     head += `<th class="${h===10?'divider-col':''}">${h}${marker}</th>`;
   }
-  head += `<th class="total">Total</th>`;
+  // With the total up front, the end column would just repeat it.
+  if(!totalUpFront) head += `<th class="total">Total</th>`;
 
-  let stakesRow = `<td class="player-name stakes-label">The Point (points multiplier)</td>`;
+  let stakesRow = `<td class="player-name stakes-label">${totalUpFront ? 'The Point' : 'The Point (points multiplier)'}</td>`;
   for(let h=1; h<=18; h++){
     const rec = state.holes.find(x=>x.hole===h);
     stakesRow += `<td class="${h===10?'divider-col':''}">${rec ? rec.betRate : '—'}</td>`;
   }
-  stakesRow += `<td class="total"></td>`;
+  if(!totalUpFront) stakesRow += `<td class="total"></td>`;
 
   let rows = '';
   state.players.forEach(p=>{
-    let cells = `<td class="player-name">${p}</td>`;
+    const t = totals[p]||0;
+    let cells = totalUpFront
+      ? `<td class="player-name"><span class="name-total"><span>${p}</span><b class="${t>0?'pos':(t<0?'neg':'')}">${t>0?'+':''}${t}</b></span></td>`
+      : `<td class="player-name">${p}</td>`;
     let running = 0;
     for(let h=1; h<=18; h++){
       const rec = state.holes.find(x=>x.hole===h);
@@ -7420,7 +7482,7 @@ function renderScorecard(){
     }
     const finalTotal = totals[p]||0;
     const finalCls = finalTotal>0?'pos':(finalTotal<0?'neg':'');
-    cells += `<td class="total ${finalCls}">${finalTotal>0?'+':''}${finalTotal}</td>`;
+    if(!totalUpFront) cells += `<td class="total ${finalCls}">${finalTotal>0?'+':''}${finalTotal}</td>`;
     rows += `<tr>${cells}</tr>`;
   });
 
