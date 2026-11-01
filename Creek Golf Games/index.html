@@ -1962,7 +1962,7 @@ function beginPlay(){
   }
   if(state.trackMode === 'both'){
     initCardPlayersFromRoster(state.players);
-    state.holeSubPhase = 'scores';
+    state.holeSubPhase = 'game'; // each hole: the game result first, then its scores
     state.cardGames = Object.keys(scorecardGamesDraft).filter(k=>scorecardGamesDraft[k]);
     state.quotaAnte = quotaAnteDraft; state.skinsAnte = skinsAnteDraft; state.skinsMode = skinsModeDraft; state.skinsCarry = skinsCarryDraft; state.skinsValidate = skinsValidateDraft;
   }
@@ -2010,11 +2010,12 @@ function backToHoleScores(){
 }
 // After a hole's game result: on to the next hole's scores. If the game was
 // scored before any scores went in, that hole's scores come up first.
+// Each hole goes: game result, then that hole's scores, then the next hole's game.
 function afterGameRecorded(){
   if(state.trackMode!=='both') return;
-  if(state.phase!=='complete') state.holeSubPhase = 'scores';
+  if(state.phase!=='complete') state.holeSubPhase = 'game';
   const last = state.holes[state.holes.length - 1];
-  if(last && state.cardPlayers.every((p, i) => cardScore(i, last.hole)===null)) state.scoreEditHole = last.hole;
+  if(last){ state.scoreEditHole = last.hole; state.scoreEntryAfterGame = true; }
 }
 
 function renderBothScores(){
@@ -2997,7 +2998,8 @@ function render(){
       app.innerHTML = renderBothScores();
     } else {
       const sh = state.currentHole, entered = state.trackMode==='both' ? state.cardPlayers.filter((p, i) => cardScore(i, sh)!==null).length : 0;
-      app.innerHTML = (state.trackMode==='both' ? `<div class="btn-row" style="margin:0 0 12px;"><button class="btn btn-outline-light btn-full" onclick="backToHoleScores()">◀︎ Scores for Hole ${sh}${entered < state.cardPlayers.length ? ` (${entered} of ${state.cardPlayers.length} entered)` : ''}</button></div>` : '') + ((state.mode==='rollReroll') ? renderPlayingRoll() : (state.mode==='hammer') ? renderPlayingHammer() : (state.mode==='bbb') ? renderPlayingBBB() : (state.mode==='six66') ? renderPlayingSixSixSix() : renderPlaying());
+      const missingHtml = state.trackMode==='both' ? missingPriorScoresHtml(sh) : '';
+      app.innerHTML = (missingHtml ? `<div class="card" style="padding:4px 14px;">${missingHtml}</div>` : '') + ((state.mode==='rollReroll') ? renderPlayingRoll() : (state.mode==='hammer') ? renderPlayingHammer() : (state.mode==='bbb') ? renderPlayingBBB() : (state.mode==='six66') ? renderPlayingSixSixSix() : renderPlaying());
     }
   }
   else app.innerHTML = renderComplete();
@@ -3116,7 +3118,7 @@ function getRulesGames(){
         'Check <b>Teammate</b> on the Who\'s playing? screen for two players (no more than two). 666 uses that pair for holes 1-6, and Vegas uses it as Team 1.']],
       ['Picking a game', [
         'Pick the game first, then the course, then the players and The Point.',
-        'Points games keep both the scores and the game by default: enter scores each hole, then record the game\'s result. Typing a score moves straight to the next player\'s box (a 1 waits for a second digit, for 10 to 19); after the last one the gold button lights up, ready to tap. The game can also be recorded first (handy in a Lightning round, to see who\'s down before a captain defers): <b>◀︎ Scores for Hole N</b> on the game screen goes back to the scores, and a hole recorded with no scores asks for them next. Tap <b>Game only (no scorecard)</b> to skip the scores. <b>⛳ Just keep the scores</b>, beside the Pick a game title, is a plain scorecard.',
+        'Points games keep both the scores and the game by default. Each hole, record the game first (captain, partner, result, points), then enter that hole\'s scores: typing a score moves straight to the next player\'s box (a 1 waits for a second digit, for 10 to 19), and <b>Save</b> moves on to the next hole. A hole left without scores is flagged in red on the next hole; tap it, or use <b>Edit a prior hole</b>, to fix it. Tap <b>Game only (no scorecard)</b> to skip the scores. <b>⛳ Just keep the scores</b>, beside the Pick a game title, is a plain scorecard.',
         'Skins, Stableford, Quota and 5-3-1 need scores, so checking one always keeps scores. Vegas and Nassau are played on their own.']],
       ['Roll the Dice', [
         'An option next to The Point on the Who\'s playing? screen. Turn it on and set a Low and High instead of a fixed point value.',
@@ -5125,6 +5127,8 @@ let trackModeChoice = 'both'; // 'both' | 'scores' | 'games'
 // immediately, so there's always a chance to also check a bonus game first.
 let trackChoicePrimary = null;
 function selectPrimaryGame(mode){
+  // Picking 5Man Captain (again) always starts with no Lightning holes chosen.
+  if(mode==='captain5' && trackChoicePrimary!=='captain5') captain5LightningDraft = null;
   captureQuotaAnteInput(); captureSkinsAnteInput();
   trackChoicePrimary = (trackChoicePrimary===mode) ? null : mode;
   render();
@@ -5926,6 +5930,7 @@ function goToCardHole(n){
 }
 function closeScoreEdit(){
   state.scoreEditHole = null;
+  state.scoreEntryAfterGame = false;
   saveState(); render();
 }
 
@@ -5934,6 +5939,9 @@ function closeScoreEdit(){
 function renderScoreEditBoth(){
   const h = state.scoreEditHole;
   const info = holeInfo(h);
+  const entry = !!state.scoreEntryAfterGame;   // straight after the hole's game result
+  const rec = state.holes.find(x => x.hole === h);
+  const cap = state.mode==='captain5' && rec ? rec.captain : null;
   const blocks = state.cardPlayers.map((p, i) => {
     const st = strokesForPlayer(i, h);
     const total = totalStrokesFor(i);
@@ -5941,7 +5949,7 @@ function renderScoreEditBoth(){
     const dots = st ? `<span class="stroke-dot" title="Gets a stroke on this hole"></span>`.repeat(st) : '';
     return `
       <div class="score-line">
-        <span class="nm">${escapeHtml(p.name)} (${total})${dots}</span>
+        <span class="nm">${cap && sameName(cap, p.name) ? '<span class="captain-c" title="Captain this hole">C</span>' : ''}${escapeHtml(p.name)} (${total})${dots}</span>
         <input class="score-input" type="number" inputmode="numeric" pattern="[0-9]*" min="1" max="20" step="1"
                value="${cur===null?'':cur}"
                aria-label="Score for ${escapeAttr(p.name)} on hole ${h}"
@@ -5957,12 +5965,12 @@ function renderScoreEditBoth(){
       <div class="hole-badge">${h}</div>
       <div>
         <div class="meta"><b>Par ${info.par}</b> · handicap <b>${info.si}</b></div>
-        <div class="meta" style="margin-top:4px;">Fixing scores for Hole ${h}</div>
+        <div class="meta" style="margin-top:4px;">${entry ? `Enter scores for Hole ${h}` : `Fixing scores for Hole ${h}`}</div>
       </div>
     </div>
     ${blocks}
     <div class="sub" id="hole-note" style="margin:4px 0 12px;">${missingNote(missing)}</div>
-    <button class="btn btn-gold btn-full score-go" onclick="closeScoreEdit()">${state.phase==='playing' && state.holeSubPhase==='scores' && state.currentHole!==h ? `Save — on to Hole ${state.currentHole}` : 'Save — back to the game'}</button>
+    <button class="btn btn-gold btn-full score-go" onclick="closeScoreEdit()">${entry ? (state.phase==='complete' ? 'Save — finish the round ▶︎' : `Save — on to Hole ${state.currentHole} ▶︎`) : 'Save — back to the game'}</button>
   </div>`;
 }
 function toggleFullCard(){ showFullCard = !showFullCard; render(); }
@@ -5990,6 +5998,9 @@ function editPriorHtml(kind, onDark){
     <div class="inline-box" style="margin:8px 0 0;width:100%;box-sizing:border-box;">
       <div class="inline-label" style="margin-bottom:8px;">Which hole? ${kind === 'scores' ? 'Fix its scores' : 'Fix its game result'}, then you come back here.</div>
       <div class="tied-picker">${holes.map(n => `<button onclick="${kind === 'scores' ? `goToCardHole(${n})` : `chooseEditHole(${n})`}">Hole ${n}</button>`).join('')}</div>
+      ${kind === 'game' && state.trackMode === 'both' ? `
+      <div class="inline-label" style="margin:12px 0 8px;">Or fix a hole's scores:</div>
+      <div class="tied-picker">${holes.map(n => `<button onclick="goToCardHole(${n})">Hole ${n}</button>`).join('')}</div>` : ''}
       <div class="btn-row"><button class="btn btn-outline btn-full" onclick="togglePriorEdit()">✕ Close</button></div>
     </div>`;
 }
