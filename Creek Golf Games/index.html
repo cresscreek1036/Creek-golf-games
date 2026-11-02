@@ -607,6 +607,7 @@
   .fill-teams-grid{grid-auto-rows:1fr;}
   .fill-teams-grid .btn{font-size:1.15rem;font-weight:800;padding:8px 6px;}
   .game-grid.three .game-btn{font-size:1rem;}
+  .app-version{text-align:right;font-family:'IBM Plex Mono',monospace;font-size:0.72rem;color:var(--gold-soft);opacity:0.8;margin:-4px 4px 6px;}
 </style>
 </head>
 <body>
@@ -5315,6 +5316,12 @@ function setTrackModeChoice(mode){
   render();
 }
 
+// Small version line at the top of the first screen. The iPhone app sets
+// CREEK_APP_VERSION from its bundle; make-netlify.sh sets it on the website.
+function appVersionHtml(){
+  return window.CREEK_APP_VERSION ? `<div class="app-version">Version ${escapeHtml(String(window.CREEK_APP_VERSION))}</div>` : '';
+}
+
 function renderTrackChoice(){
   const gameToggles = BONUS_GAME_KEYS.map(key => `
     <button class="btn game-btn ${scorecardGamesDraft[key]?'btn-selected':'btn-outline'}" onclick="toggleScorecardGame('${key}')">${SCORECARD_GAME_LABELS[key]}</button>
@@ -5330,6 +5337,7 @@ function renderTrackChoice(){
   const anyScorecardGameChecked = Object.values(scorecardGamesDraft).some(v=>v);
 
   return `
+  ${appVersionHtml()}
   <div class="card">
     <!-- "Pick a game … or Just keep the scores" -->
     <div class="pick-game-head">

@@ -27,6 +27,12 @@ struct WebAppView: UIViewRepresentable {
             injectionTime: .atDocumentStart,
             forMainFrameOnly: true
         ))
+        // The first screen shows the app's version, e.g. "Version 1.3 (8)".
+        contentController.addUserScript(WKUserScript(
+            source: Self.appVersionScript,
+            injectionTime: .atDocumentStart,
+            forMainFrameOnly: true
+        ))
         contentController.addScriptMessageHandler(
             context.coordinator,
             contentWorld: .page,
@@ -88,6 +94,18 @@ struct WebAppView: UIViewRepresentable {
       window.claude = { use: async (name) => (name === 'downloads' ? downloads : null) };
     })();
     """
+
+    /// Sets `window.CREEK_APP_VERSION` to the bundle's version and build,
+    /// such as "1.3 (8)".
+    private static var appVersionScript: String {
+        let info = Bundle.main.infoDictionary
+        let version = info?["CFBundleShortVersionString"] as? String ?? ""
+        let build = info?["CFBundleVersion"] as? String ?? ""
+        let text = build.isEmpty ? version : "\(version) (\(build))"
+        // Encode as a JSON string so any character is safe inside the script.
+        let literal = (try? JSONEncoder().encode(text)).flatMap { String(data: $0, encoding: .utf8) } ?? "\"\""
+        return "window.CREEK_APP_VERSION = \(literal);"
+    }
 
     final class Coordinator: NSObject, WKUIDelegate, WKNavigationDelegate, WKScriptMessageHandlerWithReply {
         static let downloadsHandlerName = "downloads"

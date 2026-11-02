@@ -22,6 +22,14 @@ cp Website/* "$out"/
 sed 's|<meta charset="UTF-8">|<meta charset="UTF-8">\
 <script src="web-bridge.js"></script>|' "$src/index.html" > "$out/index.html"
 
+# The version shown on the first screen, read from the Xcode project (the app
+# target's settings come first in the file), e.g. "1.3 (8)".
+proj=(*.xcodeproj/project.pbxproj)
+app_version=$(grep -m1 'MARKETING_VERSION = ' "$proj[1]" | sed -E 's/.*= *"?([^";]*)"?;.*/\1/')
+app_build=$(grep -m1 'CURRENT_PROJECT_VERSION = ' "$proj[1]" | sed -E 's/.*= *"?([^";]*)"?;.*/\1/')
+sed -i '' "s|<meta charset=\"UTF-8\">|<meta charset=\"UTF-8\">\\
+<script>window.CREEK_APP_VERSION = \"$app_version ($app_build)\";</script>|" "$out/index.html"
+
 # The app manifest and home-screen icon (website only).
 sed -i '' 's|<meta charset="UTF-8">|<meta charset="UTF-8">\
 <link rel="manifest" href="manifest.webmanifest">\
